@@ -1,0 +1,16 @@
+{
+  "id": "team_chat",
+  "name": "TeamChat",
+  "version": "4.0.6",
+  "description": "CloudPaw-Master 真实主持的团队会谈插件 - 人类→CloudPaw-Master→chat_with_agent→智能体→汇总转回",
+  "author": "CloudPaw Team",
+  "entry": "main.py",
+  "frontend": "frontend/dist/index.js",
+  "menu": "新会谈",
+  "icon": "🤝",
+  "permissions": [
+    "agent.list",
+    "agent.chat",
+    "workspace.write"
+  ]
+}
