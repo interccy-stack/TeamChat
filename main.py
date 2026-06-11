@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""TeamChat Plugin Backend v4.0.6
+"""TeamChat Plugin Backend v4.0.8
 
 新增:
   1. POST /upload — 文件上传（txt/md/json/py/js/html/css/xml/csv/log/yaml/yml，最大5MB）
@@ -9,8 +9,7 @@
   4. PUT /session/{id}/tag — 标签
   5. PUT /session/{id}/pin — 置顶/取消
   6. GET /sessions?search= — 搜索
-  7. GET /agent-info/{id} — 智能体详情（模型+工作区）
-  8. POST /avatar — 头像上传（200x200，jpg/png）
+  7. POST /avatar — 头像上传（20x20 像素，jpg/png，用于圆桌动画）
 """
 
 import asyncio
@@ -24,7 +23,7 @@ from io import BytesIO
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -65,7 +64,7 @@ AGENTS_CACHE_TTL = 60.0
 UPLOAD_MAX_SIZE = 5 * 1024 * 1024  # 5MB
 ALLOWED_EXTENSIONS = {"txt", "md", "json", "py", "js", "html", "css", "xml", "csv", "log", "yaml", "yml"}
 
-CURRENT_VERSION = "4.0.6"
+CURRENT_VERSION = "4.0.8"
 
 # 默认智能体（API 不可用时回落）
 DEFAULT_AGENTS = [
@@ -481,7 +480,7 @@ def build_router() -> APIRouter:
         raise HTTPException(status_code=404, detail=f"智能体 {agent_id} 不存在")
 
     @router.post("/avatar", response_model=AvatarResponse)
-    async def upload_avatar(agent_id: str, file: UploadFile = File(...)):
+    async def upload_avatar(agent_id: str = Form(...), file: UploadFile = File(...)):
         if not file.filename:
             raise HTTPException(status_code=400, detail="未选择文件")
         ext = (file.filename or "").rsplit(".", 1)[-1].lower()
@@ -499,10 +498,10 @@ def build_router() -> APIRouter:
             w, h = _get_png_size(data)
         if w == 0 or h == 0:
             raise HTTPException(status_code=400, detail="无法解析图像尺寸")
-        if w > 200 or h > 200:
+        if w != 20 or h != 20:
             raise HTTPException(
                 status_code=400,
-                detail=f"图像尺寸 {w}x{h} 超过 200x200 限制，请先裁剪后上传"
+                detail=f"头像必须恰好 20x20 像素，当前为 {w}x{h}，请调整为 20x20 后上传"
             )
         save_ext = "jpg" if img_type == "jpeg" else "png"
         save_path = os.path.join(AVATAR_DIR, f"{agent_id}.{save_ext}")
@@ -710,6 +709,371 @@ def build_router() -> APIRouter:
         data["pinned"] = req.pinned
         await _save_session(session_id, data)
         return JSONResponse(content={"ok": True, "pinned": req.pinned})
+
+    @router.get("/cron-summary")
+    async def cron_summary():
+        """获取 QwenPaw 定时任务摘要"""
+        try:
+            async with httpx.AsyncClient(timeout=10.0, trust_env=False) as c:
+                r = await c.get(_api_url("/cron"))
+                r.raise_for_status()
+                jobs = r.json().get("jobs", [])
+                summary = []
+                for j in jobs:
+                    summary.append({
+                        "id": j.get("id", ""),
+                        "name": j.get("name", j.get("id", "")),
+                        "agent_id": j.get("agent_id", ""),
+                        "schedule": j.get("schedule", ""),
+                        "enabled": j.get("enabled", False),
+                        "last_run": j.get("last_run"),
+                        "next_run": j.get("next_run"),
+                    })
+                return JSONResponse(content={"ok": True, "jobs": summary})
+        except Exception as e:
+            return JSONResponse(content={"ok": True, "jobs": [], "error": str(e)})
+
+    # -- 人类头像上传（30x30）--
+    @router.post("/avatar/human")
+    async def upload_human_avatar(file: UploadFile = File(...)):
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="未选择文件")
+        ext = (file.filename or "").rsplit(".", 1)[-1].lower()
+        if ext not in ("jpg", "jpeg", "png"):
+            raise HTTPException(status_code=400, detail="仅支持 jpg/png 格式")
+        data = await file.read()
+        if len(data) > 2 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="文件最大 2MB")
+        img_type = imghdr.what(None, h=data)
+        if img_type not in ("jpeg", "png"):
+            raise HTTPException(status_code=400, detail="无效的图像文件")
+        # 前端自动裁剪到 30x30，这里宽松校验
+        save_ext = "jpg" if img_type == "jpeg" else "png"
+        save_path = os.path.join(AVATAR_DIR, f"human.{save_ext}")
+        with open(save_path, "wb") as f:
+            f.write(data)
+        return JSONResponse(content={"ok": True, "avatar_url": "/api/team-chat/avatar/human"})
+
+    @router.get("/avatar/human")
+    async def get_human_avatar():
+        for ext in ("jpg", "png", "jpeg"):
+            p = os.path.join(AVATAR_DIR, f"human.{ext}")
+            if os.path.exists(p):
+                from fastapi.responses import FileResponse
+                return FileResponse(p, media_type=f"image/{'jpeg' if ext=='jpg' else ext}")
+        raise HTTPException(status_code=404, detail="人类头像不存在")
+
+    # ============================================================
+    # 系统信息 (真实IP + 时间)
+    # ============================================================
+    import socket
+    import datetime
+
+    @router.get("/system-info")
+    async def system_info():
+        """返回服务器 LAN IP 和当前时间"""
+        ip = "127.0.0.1"
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.settimeout(0.1)
+            s.connect(("10.254.254.254", 1))
+            ip = s.getsockname()[0]
+            s.close()
+        except Exception:
+            try:
+                ip = socket.gethostbyname(socket.gethostname())
+            except Exception:
+                pass
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        return JSONResponse(content={"ip": ip, "time": now, "timezone": str(datetime.datetime.now().astimezone().tzinfo or "local")})
+
+    # ============================================================
+    # 五子棋游戏 (Gomoku)
+    # ============================================================
+    import asyncio
+    import re
+
+    _gomoku = {}  # game_id -> state
+    _gomoku_passive = {"enabled": False, "auto_rematch": True}  # 被动观战模式
+    _gomoku_players = []  # 待抽签的 agent_id 列表
+
+    def _check_gomoku_win(board, row, col, player):
+        """Check 5-in-a-row in any direction"""
+        size = len(board)
+        directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
+        for dr, dc in directions:
+            cnt = 1
+            for i in range(1, 5):
+                r, c = row + dr * i, col + dc * i
+                if 0 <= r < size and 0 <= c < size and board[r][c] == player:
+                    cnt += 1
+                else:
+                    break
+            for i in range(1, 5):
+                r, c = row - dr * i, col - dc * i
+                if 0 <= r < size and 0 <= c < size and board[r][c] == player:
+                    cnt += 1
+                else:
+                    break
+            if cnt >= 5:
+                return True
+        return False
+
+    async def _gomoku_agent_move(game_id, agent_id, board, player_str, player_num):
+        """Ask an agent for their next move"""
+        lines = []
+        lines.append("   " + "".join(str(i % 10) for i in range(15)))
+        for r in range(15):
+            row = [f"{r:2d} "]
+            for c in range(15):
+                if board[r][c] == 0:
+                    row.append("·")
+                elif board[r][c] == 1:
+                    row.append("●")
+                else:
+                    row.append("○")
+            lines.append("".join(row))
+        board_str = "\n".join(lines)
+
+        prompt = (
+            f"你正在下一局五子棋，你是{player_str}。\n\n"
+            f"当前棋盘 (15x15, ·=空, ●=黑, ○=白):\n{board_str}\n\n"
+            f"轮到你了。请回复你的落子位置，只回复 row,col 格式（如 7,7 表示第7行第7列），不要其他内容。"
+        )
+        try:
+            response = await _call_agent_async(agent_id, prompt)
+            text = response if isinstance(response, str) else str(response)
+            # Parse coordinates
+            m = re.search(r'(\d+)\s*[,，\s]\s*(\d+)', text)
+            if m:
+                row = int(m.group(1))
+                col = int(m.group(2))
+                if 0 <= row < 15 and 0 <= col < 15 and board[row][col] == 0:
+                    return row, col
+            logger.warning(f"[Gomoku] Agent {agent_id} returned unparseable: {text[:100]}")
+            # Fallback: try to extract single number pair from anywhere
+            nums = re.findall(r'\b(\d+)\b', text)
+            if len(nums) >= 2:
+                row, col = int(nums[0]), int(nums[1])
+                if 0 <= row < 15 and 0 <= col < 15 and board[row][col] == 0:
+                    return row, col
+        except Exception as e:
+            logger.error(f"[Gomoku] Agent {agent_id} call failed: {e}")
+        return None
+
+    async def _gomoku_game_loop(game_id):
+        """Main game loop - runs as a background task"""
+        game = _gomoku.get(game_id)
+        if not game:
+            return
+        try:
+            while True:
+                await asyncio.sleep(1.5)  # Pace between moves
+                game = _gomoku.get(game_id)
+                if not game or game["status"] != "playing":
+                    break
+
+                current = game["current"]
+                agent_id = game["black_agent"] if current == 1 else game["white_agent"]
+                player_str = "黑方(●)" if current == 1 else "白方(○)"
+                player_num = current
+
+                result = await _gomoku_agent_move(
+                    game_id, agent_id, game["board"], player_str, player_num
+                )
+
+                game = _gomoku.get(game_id)
+                if not game or game["status"] != "playing":
+                    break
+
+                if result is None:
+                    # Agent failed - randomly place on first empty spot
+                    for r in range(15):
+                        for c in range(15):
+                            if game["board"][r][c] == 0:
+                                result = (r, c)
+                                break
+                        if result:
+                            break
+                if result:
+                    row, col = result
+                    game["board"][row][col] = player_num
+                    game["moves"].append({"row": row, "col": col, "player": player_num, "agent": agent_id})
+                    game["last_move"] = {"row": row, "col": col, "player": player_num}
+
+                    if _check_gomoku_win(game["board"], row, col, player_num):
+                        game["status"] = "black_wins" if player_num == 1 else "white_wins"
+                        game["winner"] = game["black_name"] if player_num == 1 else game["white_name"]
+                        # 被动模式：3秒后自动复盘，交换黑白
+                        if _gomoku_passive.get("enabled") and _gomoku_passive.get("auto_rematch"):
+                            asyncio.create_task(_gomoku_auto_rematch(game_id))
+                        break
+
+                    # Check draw (board full)
+                    if all(game["board"][r][c] != 0 for r in range(15) for c in range(15)):
+                        game["status"] = "draw"
+                        break
+
+                    # Switch turns
+                    game["current"] = 2 if current == 1 else 1
+        except Exception as e:
+            logger.error(f"[Gomoku] Game loop error: {e}")
+            game = _gomoku.get(game_id)
+            if game:
+                game["status"] = "stopped"
+
+    async def _gomoku_auto_rematch(old_game_id: str):
+        """被动模式：对局结束 4 秒后自动交换黑白重新开始"""
+        await asyncio.sleep(4)
+        old_game = _gomoku.get(old_game_id)
+        if not old_game or not _gomoku_passive.get("enabled"):
+            return
+        new_id = str(uuid.uuid4())[:8]
+        _gomoku[new_id] = {
+            "board": [[0] * 15 for _ in range(15)],
+            "current": 1,
+            "black_agent": old_game["white_agent"],
+            "white_agent": old_game["black_agent"],
+            "black_name": old_game["white_name"],
+            "white_name": old_game["black_name"],
+            "status": "playing",
+            "moves": [],
+            "last_move": None,
+            "winner": None,
+            "prev_game": old_game_id,
+        }
+        logger.info(f"[Gomoku] 自动复盘 {new_id}: {_gomoku[new_id]['black_name']}(●) vs {_gomoku[new_id]['white_name']}(○)")
+        asyncio.create_task(_gomoku_game_loop(new_id))
+
+    def _detect_gomoku_intent(text: str) -> Optional[str]:
+        """检测文本中是否包含五子棋对弈邀请。返回挑战者 agent_id 或 None"""
+        triggers = ["下一局", "来下棋", "下一盘", "五子棋", "来一局", "对弈", "下棋吗", "和我下", "谁和我"]
+        text_lower = text.lower()
+        for t in triggers:
+            if t in text_lower:
+                return True
+        return False
+
+    async def _gomoku_scheduler():
+        """定时擂台赛：每15分钟随机两智能体对弈"""
+        import random as _random
+        while True:
+            await asyncio.sleep(15 * 60)
+            if not _gomoku_passive.get("enabled"):
+                continue
+            active = any(g.get("status") == "playing" for g in _gomoku.values())
+            if active:
+                continue
+            try:
+                agents = await _agent_cache.get()
+            except Exception:
+                continue
+            non_host = [a for a in agents if not a.get("is_host") and a.get("agent_id") != DEFAULT_HOST_ID]
+            if len(non_host) < 2:
+                continue
+            p1, p2 = _random.sample(non_host, 2)
+            new_id = str(uuid.uuid4())[:8]
+            _gomoku[new_id] = {
+                "board": [[0] * 15 for _ in range(15)],
+                "current": 1,
+                "black_agent": p1["agent_id"],
+                "white_agent": p2["agent_id"],
+                "black_name": p1.get("name", p1["agent_id"]),
+                "white_name": p2.get("name", p2["agent_id"]),
+                "status": "playing",
+                "moves": [],
+                "last_move": None,
+                "winner": None,
+            }
+            logger.info(f"[Gomoku] 擂台赛 {new_id}: {p1['name']}(●) vs {p2['name']}(○)")
+            asyncio.create_task(_gomoku_game_loop(new_id))
+
+    class GomokuStartReq(BaseModel):
+        black_agent: str = Field(..., description="黑方智能体 ID")
+        white_agent: str = Field(..., description="白方智能体 ID")
+
+    @router.post("/gomoku/start")
+    async def gomoku_start(req: GomokuStartReq):
+        # Get agent names
+        agents = await _agent_cache.get()
+        agent_map = {a["agent_id"]: a for a in agents}
+        black_name = agent_map.get(req.black_agent, {}).get("name", req.black_agent)
+        white_name = agent_map.get(req.white_agent, {}).get("name", req.white_agent)
+
+        game_id = str(uuid.uuid4())[:8]
+        _gomoku[game_id] = {
+            "board": [[0] * 15 for _ in range(15)],
+            "current": 1,
+            "black_agent": req.black_agent,
+            "white_agent": req.white_agent,
+            "black_name": black_name,
+            "white_name": white_name,
+            "status": "playing",
+            "moves": [],
+            "last_move": None,
+            "winner": None,
+        }
+        # Start game loop in background
+        asyncio.create_task(_gomoku_game_loop(game_id))
+        logger.info(f"[Gomoku] Game {game_id} started: {black_name}(●) vs {white_name}(○)")
+        return JSONResponse(content={"ok": True, "game_id": game_id})
+
+    @router.get("/gomoku/state")
+    async def gomoku_state(game_id: str = ""):
+        """Get current game state. If game_id empty, return the latest active game."""
+        if not game_id:
+            # Return the latest active game
+            for gid in sorted(_gomoku.keys(), key=lambda x: len(_gomoku[x]["moves"]), reverse=True):
+                g = _gomoku[gid]
+                if g["status"] in ("playing", "black_wins", "white_wins", "draw"):
+                    game_id = gid
+                    break
+        game = _gomoku.get(game_id)
+        if not game:
+            return JSONResponse(content={"exists": False})
+        return JSONResponse(content={
+            "exists": True,
+            "game_id": game_id,
+            "board": game["board"],
+            "current": game["current"],
+            "black_name": game["black_name"],
+            "white_name": game["white_name"],
+            "status": game["status"],
+            "moves": game["moves"],
+            "last_move": game["last_move"],
+            "winner": game.get("winner"),
+        })
+
+    @router.post("/gomoku/stop")
+    async def gomoku_stop(game_id: str = ""):
+        if not game_id:
+            for gid in _gomoku:
+                if _gomoku[gid]["status"] == "playing":
+                    game_id = gid
+                    break
+        game = _gomoku.get(game_id)
+        if game:
+            game["status"] = "stopped"
+            return JSONResponse(content={"ok": True})
+        return JSONResponse(content={"ok": False, "detail": "No active game"})
+
+    @router.post("/gomoku/passive")
+    async def gomoku_passive(enabled: bool = True):
+        _gomoku_passive["enabled"] = enabled
+        logger.info(f"[Gomoku] 被动观战模式: {'ON' if enabled else 'OFF'}")
+        return JSONResponse(content={"ok": True, "enabled": enabled})
+
+    @router.get("/gomoku/passive")
+    async def gomoku_passive_get():
+        return JSONResponse(content={"enabled": _gomoku_passive.get("enabled", False)})
+
+    # 启动擂台赛后台线程
+    import threading
+    def _start_scheduler():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(_gomoku_scheduler())
+    threading.Thread(target=_start_scheduler, daemon=True).start()
 
     return router
 

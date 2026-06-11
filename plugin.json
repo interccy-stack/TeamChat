@@ -1,9 +1,9 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "4.0.6",
-    "description": "CloudPaw-Master 主持的团队会谈插件 — 人类与智能体之间的翻译与协调中枢",
-    "author": "0+1+2≠3 QQ 115886",
+    "version": "4.0.8",
+    "description": "TeamChat v4.0.8 — 圆桌动画 · 头像  · 头脑风暴发光 · hover · 破冰 · 统计",
+    "author": " 0+1+2≠3 Team 115886",
     "type": "general",
     "entry": {
         "backend": "main.py",
@@ -14,6 +14,6 @@
     "menu": {
         "label": "新会谈",
         "icon": "chat",
-        "description": "以 CloudPaw-Master 为主持人，开启人类与智能体之间的团队会谈"
+        "description": "以 AI 为主持人，开启人类与智能体之间的团队会谈"
     }
 }
