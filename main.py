@@ -13,7 +13,7 @@
 """
 
 import asyncio
-import imghdr
+
 import json
 import logging
 import os
@@ -282,8 +282,15 @@ class AvatarResponse(BaseModel):
 
 
 # ============================================================
-# 图像工具（无需 Pillow，手动解析 jpg/png 尺寸）
+# imghdr 替代（Python 3.13+ 已移除 imghdr）
 # ============================================================
+def _guess_image_type(data: bytes) -> str:
+    """简易 imghdr.what 替代，仅检测 jpeg/png。"""
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "png"
+    if data[:2] == b"\xff\xd8":
+        return "jpeg"
+    return None
 def _get_jpeg_size(data: bytes) -> tuple:
     """从 JPEG 字节中解析宽高。"""
     i = 2
@@ -489,7 +496,7 @@ def build_router() -> APIRouter:
         data = await file.read()
         if len(data) > 2 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="文件最大 2MB")
-        img_type = imghdr.what(None, h=data)
+        img_type = _guess_image_type(data)
         if img_type not in ("jpeg", "png"):
             raise HTTPException(status_code=400, detail="无效的图像文件")
         if img_type == "jpeg":
@@ -744,7 +751,7 @@ def build_router() -> APIRouter:
         data = await file.read()
         if len(data) > 2 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="文件最大 2MB")
-        img_type = imghdr.what(None, h=data)
+        img_type = _guess_image_type(data)
         if img_type not in ("jpeg", "png"):
             raise HTTPException(status_code=400, detail="无效的图像文件")
         # 前端自动裁剪到 30x30，这里宽松校验
