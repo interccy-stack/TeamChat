@@ -1,16 +1,21 @@
 {
-  "id": "team_chat",
-  "name": "TeamChat",
-  "version": "4.0.8",
-  "description": "AI 真实主持的团队会谈插件 - 人类→AI→chat_with_agent→智能体→汇总转回",
-  "author": "CloudPaw Team",
-  "entry": "main.py",
-  "frontend": "frontend/dist/index.js",
-  "menu": "新会谈",
-  "icon": "🤝",
-  "permissions": [
-    "agent.list",
-    "agent.chat",
-    "workspace.write"
-  ]
+    "id": "team_chat",
+    "name": "TeamChat",
+    "version": "4.0.9",
+    "description": "TeamChat v4.0.9 — 修复 QP.plugin.getMediaUrl 渲染崩溃",
+    "author": " 0+1+2≠3 Team 115886",
+    "entry": {
+        "backend": "main.py",
+        "frontend": "frontend/dist/index.js"
+    },
+    "menu": {
+        "label": "新会谈",
+        "icon": "团",
+        "description": "以 AI 为主持人，开启人类与智能体之间的团队会谈"
+    },
+    "permissions": [
+        "agent.list",
+        "agent.chat",
+        "workspace.write"
+    ]
 }

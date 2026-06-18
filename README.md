@@ -1,210 +1,376 @@
 ================================================================================
-  TeamChat v4.0.8  —  QwenPaw 团队会谈插件
-  人类自选主持人 · 全异步架构 · 像素动画 · 后台持久化
+  TeamChat v4.0.9  —  QwenPaw 团队会谈插件
+  多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐
 ================================================================================
-                         编辑者：华容咨询ai-lowc.site
-  一句话：选择智能体当主持人，人类发言后 AI 主持协调多智能体讨论，
-           离开页面不丢消息，右边栏像素圆桌动画实时展示与会人员。
+                         编辑者：华容咨询  ·  0+1+2≠3 Team 115886
 
+  一句话：选择智能体当主持人，人类发言后 AI 主持协调多智能体讨论。
+          多标签并行会话，离开不丢消息，右边栏像素圆桌动画实时展示。
+更多版本补丁【https://github.com/interccy-stack/TeamChat】
 ================================================================================
   一、版本历史
 ================================================================================
 
-  v4.0.8 (2026-06-11) — 当前版本
-    + POST /upload          — 文件上传（11种格式, 最大5MB）
-    + POST /chat 即时存盘    — 每步回复立即保存，离开页面不丢
-    + DELETE /session/{id}  — 删除会话
-    + PUT /session/{id}/tag — 标签
-    + PUT /session/{id}/pin — 置顶/取消
-    + GET /sessions?search= — 搜索全文
-    + GET /agent-info/{id}  — 智能体详情（模型+工作区路径）
-    + POST /avatar           — 头像上传（200x200, jpg/png）
-    + GET /avatar/{id}       — 头像下载
-    + 🏛️ 左上角像素圆桌动画    — Canvas 实时绘制人物绕圆桌跳动
-    + 🔥 进度条七彩渐变+火花   — ✨🔥💥 三个阶段特效
-    + 📎 文件上传 ref 修复     — 解决 Ant Design Button 不触发
-    + 📊 消息条显示模型/工作区 — 每条消息气泡携带智能体详情
-    + 💻 系统环境信息面板      — 右上角 Popover，含用户可编辑上下文
-    + ⚡ 代码质量提升           — imghdr 验证/AST 解析/细分异常
+  v4.0.9 (2026-06-18) — 当前版本
+    + 📑 多会话标签页          — 浏览器式标签切换，每标签独立保存状态
+    + ⌨ ↑↓ 输入历史浏览         — 自动存档最近 200 条已发送消息
+    + 📼 PPT 播放器 v5          — 打字机逐字动画、Canvas 粒子背景、3 级变速
+    + 🎨 全局界面双主题         — ☀️ 日光 (暖白) / 🌙 月色 (深蓝) 一键切换
+    + ◀ 收起小桌板              — 铂金金属按钮，280px ↔ 36px 窄条折叠
+    + 📄 文件架                 — 智能体产出收集 + 工作区递归扫描
+    + 🎵 轻音乐 7 曲目          — 《茉莉花》等 7 首 + ✏️ 自定义简谱引擎
+    + 💳 观点切换器 / 对比模式  — 刷卡翻阅智能体观点
+    + 📂 历史会谈卡片美化       — 金属按钮、紧凑操作行、消息预览
+    + 🔒 安全锁                 — 有未完成讨论时，其他标签锁定输入
+    + ⏹ 停止按钮               — AbortController 中断，脑暴防穿透
+    + ⭐ 收藏夹独立 tab         — 历史会谈 Modal 双标签切换
+    + 💾 localStorage 会话缓存  — 离线优先，后台 API 兜底
+    + 🏷️ 标签内联编辑           — Input 组件替代 prompt()
+    + 🎬 一闪广告              — 首次加载闪现，永久不重复
+    + 🔑 快捷键面板             — ? 键弹出速查 Modal
+    + 🔔 桌面通知              — 讨论完成时推送 + 自动播音乐
+    + 🏛 圆桌浮动 canvas        — position:fixed 永不中断
+    + 🎨 5 种圆桌主题            — 经典/海洋/森林/低碳/赛朋 金属按钮
+    + ✨ 金属质感全系列          — 语音/附件/回顾/轻音乐/发送/停止 铜金按钮
+    + 🧠 头脑风暴轮次            — 13px 金色加粗动态显示
+    + 🐛 修复 session_id: null → HTTP 422
+    + 🐛 修复未选智能体直接发 → HTTP 400 → 前端拦截
+    + 🐛 修复 apiPostAbort 作用域 → 消息不通 bug
+    + 🐛 修复进度条离开消失 → activeTabRef 持久化
+    + 📊 /sessions 性能优化 → 精简摘要模式，响应体缩小 95%
 
-  v4.0.6~7 (用户自改版)
-    + 会话路径改为 plugins/team_chat/sessions/
-    + 异步锁保护缓存和配置读取
-    + 细分异常类型（JSONDecodeError/KeyError/Timeout/NetworkError）
-    + 历史限制 MAX_HISTORY_SIZE=500
-    + 完整 UUID session ID
-    + 异步会话 I/O
-
-  v4.0.5 — 评测修复
-    + Pydantic Field max_length=16000
-    + 超时统一常量
-    + onChangeHost 旧主持人自动恢复
-    + 允许纯主持人对话
-
-  v4.0.4 — 评测修复
-    + 主持人切换状态同步
-    + 会话恢复失败日志
-    + 清理未使用依赖变量
-
-  v4.0.3
-    + 🧠 头脑风暴多轮讨论
-    + 🔥 进度条动画
-    + 💾 localStorage 会话持久化（离开不丢）
-
-  v4.0.2
-    + 🎤 语音转文字 (SpeechRecognition)
-    + 📎 文件附件（前端读取文本）
-    + UI 文案统一
-
-  v4.0.1
-    + 人类自选主持人（替换固定 CloudPaw-Master）
-    + 全异步架构（httpx.AsyncClient）
-    + 主持人灰显不可自选
-
+  v4.0.8 (2026-06-11)
+    + POST /chat 即时存盘、POST /upload、标签/置顶、全文搜索
+    + 🏛️ 像素圆桌动画、🔥 进度条七彩渐变、📎 文件上传
 
 ================================================================================
-  二、架构
+  二、架构总览
 ================================================================================
 
-    前端 (React Canvas)                 后端 (FastAPI async)              Agent API
-    ══════════════════════             ═════════════════════             ══════════
-    registerRoutes()                   build_router()                   GET /api/agents
-    ↓                                  prefix="/team-chat"              POST /api/agent/process
-    TeamChatPage
-    ├─ 🏛️ 像素圆桌动画 (Canvas)        ├─ GET  /agents                  (SSE 流式)
-    ├─ 主持人 Select                   ├─ POST /chat       ← 核心
-    ├─ 智能体 Tags (灰主持人)           ├─ GET  /sessions
-    ├─ 🧠 头脑风暴开关                  ├─ GET  /session/{id}
-    ├─ 消息历史 + 气泡                  ├─ DELETE /session/{id}
-    ├─ 主持步骤                         ├─ PUT  /session/{id}/tag
-    ├─ 输入栏 + 🎤 + 📎                  ├─ PUT  /session/{id}/pin
-    ├─ 💻 环境信息                      ├─ GET  /agent-info/{id}
-    └─ 📂 历史会谈弹窗                  ├─ POST /upload
-                                       ├─ POST /avatar
-                                       └─ GET  /avatar/{id}
-
-    数据流:
-      人类发言 → POST /chat {host_id, agent_ids, message}
-        → 翻译: _translate_for_host()
-        → async SSE → 主持人回复 → 立即存盘
-        → _translate_for_agent() × N
-        → async SSE → 每个智能体回复 → 立即存盘
-        → ChatResponse {history, host_steps}
-        → JSON 持久化
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         TeamChat v4.0.9 Architecture                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Browser (QwenPaw Desktop)                                             │
+│   ┌───────────────────────────────────────────────────────────────┐    │
+│   │  TeamChatPage                                                  │    │
+│   │  ┌──────────────────────┐  ┌──────────────────────────────┐   │    │
+│   │  │  Left Panel (flex:1) │  │  Right Sidebar (280px/36px)  │   │    │
+│   │  │                      │  │                              │   │    │
+│   │  │  📑 Tab Bar          │  │  📂 历史会谈 (metal btn)     │   │    │
+│   │  │  ┌────────────────┐  │  │  👤 头像上传+预设           │   │    │
+│   │  │  │ Host Select    │  │  │  💬 我是谁 (TextArea)      │   │    │
+│   │  │  │ 🧠 Brainstorm  │  │  │  🎨 圆桌主题 (5 金属)       │   │    │
+│   │  │  │ Agent Tags     │  │  │  ☀️ 日光 · 🌙 月色         │   │    │
+│   │  │  └────────────────┘  │  │  🎵 轻音乐列表             │   │    │
+│   │  │  💬 Message List     │  │  ◀ 收起小桌板 (铂金)      │   │    │
+│   │  │  📋 Host Steps       │  │  🏛 浮动圆桌 Canvas        │   │    │
+│   │  │  ┌────────────────┐  │  │                              │   │    │
+│   │  │  │ Input Area     │  │  │                              │   │    │
+│   │  │  │ ↑↓历史 · 🎤    │  │  │                              │   │    │
+│   │  │  │ 📎 · ▸回顾▼   │  │  │                              │   │    │
+│   │  │  │ 🎵 · ⏹停止    │  │  │                              │   │    │
+│   │  │  │ ▶ 发送        │  │  │                              │   │    │
+│   │  │  └────────────────┘  │  │                              │   │    │
+│   │  └──────────────────────┘  └──────────────────────────────┘   │    │
+│   └───────────────────────────────────────────────────────────────┘    │
+│                                                                         │
+│   Modals:                                                               │
+│     📂 历史会谈 (全部/⭐收藏双tab)  ·  💳 观点切换器                     │
+│     📼 PPT 播放器 (打字机+粒子+变速)  ·  📄 文件架 (已收集/工作区)      │
+│     🔑 快捷键面板 (Esc关闭)  ·  📖 README                               │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Backend (FastAPI via build_router() → prefix="/team-chat")           │
+│   ┌───────────────────────────────────────────────────────────────┐    │
+│   │  Core:     POST /chat          ← 协调多智能体，即时存盘        │    │
+│   │            GET  /agents         ← 智能体列表 (TTL 60s 缓存)    │    │
+│   │  Sessions: GET  /sessions       ← 列表 + 搜索 (精简摘要)      │    │
+│   │            GET  /session/{id}   ← 详情 (完整数据)              │    │
+│   │            DELETE /session/{id}                                  │    │
+│   │            PUT  /session/{id}/tag                                │    │
+│   │            PUT  /session/{id}/pin                                │    │
+│   │            POST /session/{id}/summarize  ← 刷卡器               │    │
+│   │  Files:    POST /upload          ← 文本文件上传 (11 种格式)     │    │
+│   │            POST /collect-file    ← 工作区文件收纳               │    │
+│   │            POST /collect-content ← 内容收纳                     │    │
+│   │            GET  /download/{fn}   ← 文件下载                     │    │
+│   │            GET  /collected-files ← 已收集列表                   │    │
+│   │            GET  /workspace-files ← 工作区扫描 (递归)            │    │
+│   │  Avatars:  GET  /avatars                                        │    │
+│   │            PUT  /avatars/{id}                                    │    │
+│   │            DELETE /avatars/{id}                                  │    │
+│   │            GET  /avatar/{id}                                     │    │
+│   │            POST /avatar                                          │    │
+│   │  Cron:     GET  /cron              ← 定时任务列表                │    │
+│   │            POST /cron              ← 创建定时任务                │    │
+│   │            DELETE /cron/{job_id}   ← 删除定时任务                │    │
+│   │  Meta:     GET  /system-info       ← IP + 时间戳                 │    │
+│   │            GET  /channels          ← 通信渠道                    │    │
+│   │            GET  /readme            ← README.md                   │    │
+│   │            GET  /media/{filename}  ← 媒体文件                    │    │
+│   └───────────────────────────────────────────────────────────────┘    │
+│                                                                         │
+│   Data Storage:                                                         │
+│     data/*.json          ← 会话 (SessionStore → JSON 文件)             │
+│     data/collected/      ← 文件架收集                                  │
+│     media/               ← 上传媒体                                    │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   QwenPaw Agent API (httpx.AsyncClient, trust_env=False)               │
+│     GET  /api/agents       ← 智能体发现                                 │
+│     POST /api/agent/process ← SSE 流式 → _call_agent_async()           │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 
 ================================================================================
-  三、文件清单
+  三、前端功能完整清单 (28 项)
 ================================================================================
+
+  🔵 核心功能 (6)
+  ┌──────────────────────────────────────────────────────────────┐
+  │  1. 主持人选择    — 铜金渐变文字 + Select 下拉，⭐ 标记      │
+  │  2. 智能体选择    — Tags 点击切换，前5位展开，+N 折叠按钮     │
+  │  3. 发送消息      — Enter 发送 · Shift+Enter 换行             │
+  │  4. 消息气泡      — 角色分色（人类棕/主机金/智能体紫）        │
+  │  5. 主持步骤      — Collapse 面板，步骤+详情                  │
+  │  6. 文件引用      — [file:xxx] 自动渲染下载按钮              │
+  └──────────────────────────────────────────────────────────────┘
+
+  🟠 智能功能 (6)
+  ┌──────────────────────────────────────────────────────────────┐
+  │  7. 🧠 头脑风暴    — 多轮递归讨论，13px 金色加粗轮次显示      │
+  │  8. 💳 观点切换器  — 刷卡翻阅智能体发言，末页对比模式          │
+  │  9. 📼 PPT 播放器  — 打字机动画 · 粒子背景 · 3级变速 · 键盘操控│
+  │ 10. 📄 文件架     — 收集下载 + 工作区递归扫描，双标签         │
+  │ 11. ⏹ 停止按钮   — AbortController 中断，脑暴防穿透           │
+  │ 12. 🔒 安全锁     — 未完成讨论时其他标签锁定输入               │
+  └──────────────────────────────────────────────────────────────┘
+
+  🟢 体验功能 (6)
+  ┌──────────────────────────────────────────────────────────────┐
+  │ 13. 📑 多标签页   — 浏览器式切换，独立会话状态               │
+  │ 14. ⌨ ↑↓ 历史    — ArrowUp/Down 浏览最近 200 条已发送       │
+  │ 15. 🎤 语音输入   — Web SpeechRecognition                    │
+  │ 16. 📎 附件上传   — 文本文件 11 种格式                       │
+  │ 17. 🎵 轻音乐     — 7 首内置 + ✏️ 自定义简谱，桌面通知联动   │
+  │ 18. 🔑 快捷键面板 — ? 弹出，Esc 关闭                        │
+  └──────────────────────────────────────────────────────────────┘
+
+  🟣 视觉功能 (6)
+  ┌──────────────────────────────────────────────────────────────┐
+  │ 19. 🏛 圆桌动画   — Canvas 60fps，位置浮动，永不中断         │
+  │ 20. 🎨 圆桌主题   — 经典/海洋/森林/低碳/赛朋 金属按钮        │
+  │ 21. ☀️🌙 全局主题 — 日光 (暖白) / 月色 (深蓝) 全界面适配    │
+  │ 22. 👤 头像管理   — 预设头像 + 自定义上传                    │
+  │ 23. ✨ 金属按钮   — 输入栏全系列 铜金金属质感                 │
+  │ 24. ◀ 收起小桌板 — 铂金金属按钮                             │
+  └──────────────────────────────────────────────────────────────┘
+
+  🔴 管理功能 (4)
+  ┌──────────────────────────────────────────────────────────────┐
+  │ 25. 📂 历史会谈   — 搜索/标签/收藏/删除，全部/⭐收藏双tab     │
+  │ 26. 🏷️ 标签       — 内联 Input 编辑，防穿透                  │
+  │ 27. 📌 收藏       — ⭐/☆ 切换，金色标记                      │
+  │ 28. 📥 导出       — showSaveFilePicker() 自选路径保存 MD     │
+  └──────────────────────────────────────────────────────────────┘
+
+================================================================================
+  四、28 条 API 路由速查
+================================================================================
+
+  核心:
+    POST   /chat                  ChatRequest {message, host_id, agent_ids,
+                                  session_id, host_name, brainstorm}
+    GET    /agents                智能体列表 (TTL 60s)
+
+  会话管理:
+    GET    /sessions?search=      列表 + 搜索 (精简摘要: session_id, tag,
+                                  pinned, message_count, last_message,
+                                  created_at, updated_at, agent_ids, etc.)
+    GET    /session/{id}          详情 (完整 history + host_steps)
+    DELETE /session/{id}          删除
+    PUT    /session/{id}/tag      TagUpdate {tag}
+    PUT    /session/{id}/pin      PinUpdate {pinned: bool}
+    POST   /session/{id}/summarize SummarizeRequest {host_id}
+
+  文件:
+    POST   /upload                multipart (11 种格式, ≤5MB)
+    POST   /collect-file          WorkspaceFileRequest {path, label}
+    POST   /collect-content       ContentCollectRequest {content, filename}
+    GET    /download/{filename}   文件下载
+    GET    /collected-files       已收集列表
+    GET    /workspace-files?path= 工作区递归扫描
+
+  头像:
+    GET    /avatars               全部头像
+    PUT    /avatars/{id}          AvatarUpload {data_url}
+    DELETE /avatars/{id}          删除（恢复默认）
+    GET    /avatar/{id}           下载
+    POST   /avatar                multipart (jpg/png, 200×200)
+
+  Cron (定时头脑风暴):
+    GET    /cron                  任务列表
+    POST   /cron                  CronJobReq {job_id, schedule, agent_ids,
+                                  prompt, host_id}
+    DELETE /cron/{job_id}         删除任务
+
+  系统:
+    GET    /system-info           IP + 时间戳
+    GET    /channels              通信渠道列表
+    GET    /readme                README.md
+    GET    /media/{filename}      媒体文件
+
+================================================================================
+  五、关键设计决策
+================================================================================
+
+  后端:
+    • Pydantic 模型必须模块级别  — 嵌套在函数内 → UnboundLocalError
+    • Form() 与 JSON 不兼容      — 前端 JSON body 必须用 Pydantic 接收
+    • httpx trust_env=False      — QwenPaw Desktop 有 Privoxy 代理
+    • SessionStore 文件级 JSON   — data/*.json, 内存缓存 + 同步写盘
+    • MAX_HISTORY = 500          — 单会话最多保留 500 条消息
+    • /sessions 返回精简摘要     — 不含 history/host_steps, 响应体缩减 95%
+    • /session/{id} 返回完整数据 — 加载历史时获取全部消息
+    • pinned 强制 bool(s.get("pinned")) — 防 mixed type TypeError
+
+  前端:
+    • snap ref 防闭包过期        — saveTab() 读 useRef 不读闭包
+    • activeTabRef 实时 tabId    — unmount cleanup 用 ref 获最新值
+    • syncActiveTab 每回调落地   — 4 个写入点 (普通/脑暴每轮/脑暴完成/汇总)
+    • _abortRef 桥接 IIFE 作用域 — 解决 apiPostAbort 访问不到组件 abortRf
+    • stopRef 脑暴防穿透         — round() 入口检查 stopRef.current
+    • localStorage 会话缓存优先  — 离线下仍可浏览历史列表
+    • 安全锁 busyRef 三层防御    — UI 禁用 + 橙条警告 + send 拦截
+    • 圆桌 canvas 永远不 unmount — position:fixed 常驻，仅 CSS 切换位置
+    • 广告 localStorage 一次性   — teamchat_ad_shown 永久标记
+
+  键名汇总:
+    localStorage: teamchat_tabs, teamchat_last_session,
+                  teamchat_sessions_cache, teamchat_shortcut_hint,
+                  teamchat_custom_song, teamchat_ad_shown
+
+================================================================================
+  六、文件结构
+================================================================================
+
+  运行目录:
   C:\Users\Administrator\.qwenpaw\plugins\team_chat\
+  ├── plugin.json            插件元数据 (version: "4.0.9")
+  ├── manifest.json          发布清单
+  ├── main.py                后端 (28 routes, ~1035 行)
+  ├── README.md              本文档
+  ├── frontend/
+  │   ├── dist/index.js      构建产物 (~1646 行)
+  │   └── src/index.js       前端源码 (同步副本)
+  ├── data/
+  │   ├── *.json             会话文件 (SessionStore)
+  │   └── collected/         文件架收集目录
+  ├── media/                 上传媒体文件
+  └── __pycache__/           Python 缓存 (升级时清除)
 
-  plugin.json            — 插件元数据
-  manifest.json          — 发布清单
-  main.py                — 后端（11 路由）
-  frontend/dist/index.js — 前端（React + Canvas）
-  frontend/src/index.js  — 前端源码
-  README.md              — 说明文档
-  sessions/              — 会谈记录（自动创建）
-  media/                 — 上传文件（自动创建）
-  avatars/               — 智能体头像（自动创建，自定义上传）
-
-================================================================================
-  四、API 接口
-================================================================================
-
-  核心接口：
-    POST /chat           发起会谈，返回全部历史+步骤
-    GET  /agents         获取智能体列表
-    GET  /sessions?search= 获取会话列表（支持搜索）
-    GET  /session/{id}   获取指定会话
-
-  管理接口（v4.0.6 新增）：
-    DELETE /session/{id}   删除会话
-    PUT    /session/{id}/tag 设置标签
-    PUT    /session/{id}/pin 置顶/取消
-
-  增强接口（v4.0.6 新增）：
-    GET  /agent-info/{id}  智能体详情（模型+工作区）
-    POST /upload           文件上传（txt/md/json/py/…11种，最大5MB）
-    POST /avatar           头像上传（200x200 jpg/png，最大2MB）
-    GET  /avatar/{id}      头像下载
+  源码目录:
+  C:\Users\Administrator\Desktop\team_chat\
+  ├── plugin.json
+  ├── main.py
+  ├── README.md
+  └── frontend/
+      ├── dist/index.js
+      └── src/index.js
 
 ================================================================================
-  五、关键实现
+  七、升级 / 部署
 ================================================================================
 
-  翻译引擎：
-    _translate_for_host()    — 人类语言 → 主持人协调提示词
-    _translate_for_agent()   — 人类语言 → 参与者提示词
-    HISTORY_WINDOW=6         — 上下文窗口
-    CONTENT_PREVIEW_LEN=120  — 每条历史摘要长度
-
-  异步基础设施：
-    _call_agent_async()         — SSE 流式调用智能体
-    _fetch_agents_async()       — TTL 60s 缓存智能体列表
-    _resolve_agent_api_base_async() — 异步读取配置
-
-  持久化：
-    _load_session() / _save_session() — JSON 文件+异步锁
-    MAX_HISTORY_SIZE=500              — 历史限制
-
-  视觉：
-    像素圆桌动画 — Canvas requestAnimationFrame，人物绕圆桌跳动
-    进度条 — Ant Design Progress，七彩渐变 strokeColor，火花 emoji 阶段性显示
-    头像 — imghdr 验证 + 手动 JPEG/PNG 尺寸解析（无 Pillow 依赖）
+  部署步骤:
+    1. 修改源码 (src/index.js 或 main.py)
+    2. 语法验证:
+         node --check frontend\src\index.js
+         python -c "import py_compile; py_compile.compile('main.py',doraise=True)"
+    3. 同步到运行目录:
+         copy frontend\src\index.js frontend\dist\index.js
+         copy /Y frontend\src\index.js %USERPROFILE%\.qwenpaw\plugins\team_chat\frontend\dist\index.js
+         copy /Y main.py %USERPROFILE%\.qwenpaw\plugins\team_chat\main.py
+    4. 清除缓存:
+         rmdir /S /Q %USERPROFILE%\.qwenpaw\plugins\team_chat\__pycache__
+    5. 重启 QwenPaw Desktop
+    6. 浏览器 Ctrl+Shift+R 硬刷新
 
 ================================================================================
-  六、文件格式
+  八、测试计划 (9 轮 40+ 项)
 ================================================================================
 
-  会话 JSON 结构：
-    {
-      "session_id": "uuid",
-      "created_at": timestamp,
-      "host_id": "cloud-orchestrator",
-      "host_name": "CloudPaw-Master",
-      "agent_ids": ["default", "QwenPaw_QA_Agent_0.2"],
-      "agent_names": ["Default Agent", "QA Agent"],
-      "tag": "",          // v4.0.7 新增
-      "pinned": false,     // v4.0.6 新增
-      "history": [
-        {
-          "sender": "human | agent_id",
-          "sender_name": "人类用户 | Agent名称",
-          "content": "消息正文",
-          "role": "human | host | agent",
-          "robot_prompt": "使用的提示词",
-          "timestamp": 1234567890.0
-        }
-      ],
-      "host_steps": [
-        {"step": 1, "action": "向主持人发送提示词", "detail": "...", "timestamp": ...}
-      ]
-    }
+  ┌─ 第一轮：基础烟囱 ──────────────────────────────────────────┐
+  │ T1.1 页面加载     — 无崩溃，主持人/智能体有数据，圆桌动画运行│
+  │ T1.2 基础发送     — 输入→回复→步骤面板→JSON落盘             │
+  │ T1.3 未选拦截     — 无智能体发送→400拦截提示                 │
+  └──────────────────────────────────────────────────────────────┘
+
+  ┌─ 第二轮：标签页 ────────────────────────────────────────────┐
+  │ T2.1 新建标签     — + 新标签空白，旧标签不变                 │
+  │ T2.2 状态隔离     — 两标签独立发送，切换后各自保持            │
+  │ T2.3 关闭标签     — 自动切到相邻标签                          │
+  │ T2.4 重命名       — 内联 Input 编辑，持久化                   │
+  │ T2.5 si 不丢失    — 标签A发送后切回，si不变                  │
+  └──────────────────────────────────────────────────────────────┘
+
+  ┌─ 第三轮：历史会谈 ──────────────────────────────────────────┐
+  │ T3.1 Modal 弹出   — 金属按钮，自动加载                      │
+  │ T3.2 搜索         — 关键词过滤正确                            │
+  │ T3.3 标签 & 收藏  — 内联编辑 + ⭐/☆ 切换                    │
+  │ T3.4 加载历史     — 新标签页打开，完整恢复                    │
+  │ T3.5 删除         — 确认→消失，取消→不变                     │
+  │ T3.6 全部/收藏tab — 切换过滤正常，空状态提示                 │
+  └──────────────────────────────────────────────────────────────┘
+
+  ┌─ 第四轮：头脑风暴 ──────────────────────────────────────────┐
+  │ T4.1 基础脑暴     — 选≥2智能体→开脑暴→进度条七彩→轮次显示   │
+  │ T4.2 停止按钮     — 点击⏹→立即中断，不继续下一轮            │
+  │ T4.3 安全锁       — 脑暴进行中→其他标签橙条+输入禁用         │
+  └──────────────────────────────────────────────────────────────┘
+
+  ┌─ 第五轮：刷卡器 & 回顾 ─────────────────────────────────────┐
+  │ T5.1 查看结果     — 脑暴完成→回顾▼→查看结果                 │
+  │ T5.2 观点对比     — 逐张刷卡翻阅，末页对比模式               │
+  │ T5.3 导出 MD      — 自选路径保存                             │
+  └──────────────────────────────────────────────────────────────┘
+
+  ┌─ 第六轮：PPT 播放器 ────────────────────────────────────────┐
+  │ T6.1 打字机       — 消息逐字出现，闪烁光标▎                  │
+  │ T6.2 粒子背景     — 60 个光点漂浮                            │
+  │ T6.3 键盘控制     — ← → Space 1/2/3 Esc                     │
+  │ T6.4 双主题       — ☀️日光 / 🌙月色 一键切换               │
+  │ T6.5 导出         — showSaveFilePicker 自选路径              │
+  └──────────────────────────────────────────────────────────────┘
+
+  ┌─ 第七轮：文件架 ────────────────────────────────────────────┐
+  │ T7.1 已收集列表   — 回顾▼→文件架→已收集tab                  │
+  │ T7.2 工作区扫描   — 🔍→递归扫描→📥收集                      │
+  │ T7.3 下载         — 📥→自选路径保存                          │
+  │ T7.4 文件引用     — [file:xxx] 自动下载按钮                  │
+  └──────────────────────────────────────────────────────────────┘
+
+  ┌─ 第八轮：侧边栏 & 动画 ─────────────────────────────────────┐
+  │ T8.1 收起小桌板   — 铂金按钮→收缩36px                       │
+  │ T8.2 圆桌不中断   — 收缩→展开→动画立即恢复                   │
+  │ T8.3 圆桌主题     — 5 种切换 (经典/海洋/森林/低碳/赛朋)      │
+  │ T8.4 全局主题     — ☀️日光→全界面暖白·🌙月色→全界面深蓝    │
+  │ T8.5 金属按钮     — 输入栏6个按钮铜金质感一致                │
+  └──────────────────────────────────────────────────────────────┘
+
+  ┌─ 第九轮：输入 & 音乐 ───────────────────────────────────────┐
+  │ T9.1 ↑↓历史       — 发送3条→↑逐条回溯→↓前进→底端恢复草稿   │
+  │ T9.2 🎤语音       — 请求麦克风→识别→填入                    │
+  │ T9.3 📎附件       — 选择文件→上传→成功提示                   │
+  │ T9.4 🎵轻音乐     — 7 首曲目切换→播放→停止                  │
+  │ T9.5 ✏️自定义简谱 — 输入数字简谱→播放                        │
+  │ T9.6 🔑快捷键面板 — ? 弹出→Esc 关闭                         │
+  │ T9.7 🔔桌面通知   — 讨论完成→通知+音乐                       │
+  └──────────────────────────────────────────────────────────────┘
 
 ================================================================================
-  七、安装与升级
-================================================================================
-
-  安装：
-    1. 解压到 C:\Users\Administrator\.qwenpaw\plugins\team_chat\
-    2. 重启 QwenPaw
-    3. 菜单 → 「新会谈」
-
-  升级（从 v4.0.7）：
-    1. 覆盖 plugin.json, main.py, frontend/dist/index.js, frontend/src/index.js
-    2. 重启 QwenPaw
-    3. 旧会话自动兼容（tag/pinned 为空值）
-
-================================================================================
-  八、注意事项
-
-    1. getApiUrl 包含插件前缀，前端必须拼接 "/team-chat"
-    2. httpx.AsyncClient 是关键，同步会死锁
-    3. 会话存于 plugins/team_chat/sessions/，卸载重装不丢
-    4. 媒体文件存于 plugins/team_chat/media/ 和 avatars/
-    5. 头像仅支持 jpg/png，超过 200x200 拒绝上传
-    6. 文件上传仅支持 11 种文本格式，最大 5MB
-
-================================================================================
-  TeamChat v4.0.8  —  2026-06-11  —   0+1+2≠3 Team 115886
+  TeamChat v4.0.9  —  2026-06-18  —   0+1+2≠3 Team 115886
 ================================================================================

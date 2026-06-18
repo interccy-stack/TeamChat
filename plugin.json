@@ -1,8 +1,8 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "4.0.8",
-    "description": "TeamChat v4.0.8 — 圆桌动画 · 头像  · 头脑风暴发光 · hover · 破冰 · 统计",
+    "version": "4.0.9",
+    "description": "TeamChat v4.0.9 — 优化界面,缩放主题区,后端强化,安全防护.加强团队协作决策能力,多会话标签页,回顾功能|文件架|查看结果|观点对比|PPT回放|导出MD.",
     "author": " 0+1+2≠3 Team 115886",
     "type": "general",
     "entry": {
@@ -10,10 +10,10 @@
         "frontend": "frontend/dist/index.js"
     },
     "dependencies": [],
-    "min_version": "1.1.7",
+    "min_version": "1.1.11",
     "menu": {
         "label": "新会谈",
-        "icon": "chat",
-        "description": "以 AI 为主持人，开启人类与智能体之间的团队会谈"
+        "icon": "团",
+        "description": "以 AI 为主持人，开启人类与智能体之间的团队会谈,沟通团队成员,协调任务,解决冲突."
     }
 }
