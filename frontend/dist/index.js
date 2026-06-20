@@ -1,13 +1,71 @@
 /**
- * TeamChat Frontend v4.0.9
- * 修复: QP.plugin.getMediaUrl 渲染崩盘，加安全守卫
+ * ===================================================================
+ *  TeamChat Frontend v4.1.0 — 重大更新
+ *  【串串频道 v2.0】ChuanChuanPage: 4-Tab统一页面
+ *    📡频道 | 📂历史 | ✍️原创作者AI | 📤导出
+ *  【轻音乐增强】音量 Slider + 内部停止按钮 + ▶ 正在播放指示
+ *  【config 路径修复】串串频道重启后状态持久化
+ *  【稻盛和夫 + 有巢哲学】工作原理末行展示
+ * ===================================================================
  */
 (function () {
   var s = document.createElement("style");
-  s.textContent = "@keyframes tcIn{from{opacity:0;transform:scale(0.9) rotateX(12deg)}to{opacity:1;transform:scale(1) rotateX(0)}}"+
+  s.textContent =
+    "*{font-family:\"Microsoft YaHei\",\"PingFang SC\",\"Hiragino Sans GB\",\"WenQuanYi Micro Hei\",sans-serif !important}"+
+    "body{font-family:\"Microsoft YaHei\",sans-serif}"+
+    "@keyframes tcIn{from{opacity:0;transform:scale(0.9) rotateX(12deg)}to{opacity:1;transform:scale(1) rotateX(0)}}"+
     "@keyframes tcAdIn{0%{opacity:0;transform:translateY(-60px) scale(0.8)}15%{opacity:1;transform:translateY(0) scale(1)}70%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(10px) scale(0.95)}}"+
     "@keyframes tcAdPulse{0%,100%{box-shadow:0 0 20px rgba(255,152,0,.3)}50%{box-shadow:0 0 40px rgba(255,152,0,.6)}}"+
-    ".tc-tab:hover .tc-tab-close{opacity:1 !important}";
+    ".tc-tab:hover .tc-tab-close{opacity:1 !important}"+
+    "@keyframes tcCardHover{from{transform:translateY(0);box-shadow:0 2px 8px rgba(0,0,0,.06)}to{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12)}}"+
+    "@keyframes tcBtnClick{0%{transform:scale(1)}50%{transform:scale(0.95)}100%{transform:scale(1)}}"+
+    "@keyframes tcTabSwitch{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}"+
+    "@keyframes tcFadeIn{from{opacity:0}to{opacity:1}}"+
+    ".tc-card:hover{animation:tcCardHover .25s ease-out forwards}"+
+    ".tc-btn:active{animation:tcBtnClick .15s ease-out}"+
+    ".tc-tab-content{animation:tcTabSwitch .3s ease-out}"+
+    ".tc-fade{animation:tcFadeIn .4s ease-out}"+
+    ".ant-card{transition:all .25s ease}"+
+    ".ant-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1) !important}"+
+    ".ant-btn{transition:all .15s ease}"+
+    ".ant-btn:hover{transform:translateY(-1px);filter:brightness(1.05)}"+
+    ".ant-btn:active{transform:scale(0.97)}"+
+    ".ant-input,.ant-input-affix-wrapper{transition:all .2s ease;border-radius:16px !important}"+
+    ".ant-input:focus,.ant-input-affix-wrapper-focused{border-color:#8D6E63 !important;box-shadow:0 0 0 2px rgba(141,110,99,.15) !important}"+
+    ".tc-thinking{display:flex !important;align-items:center;gap:4px}"+
+    ".tc-thinking-dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:#2E7D32;animation:tcDotBounce 1.4s infinite ease-in-out both}"+
+    ".tc-thinking-dots span:nth-child(1){animation-delay:-0.32s}"+
+    ".tc-thinking-dots span:nth-child(2){animation-delay:-0.16s}"+
+    "@keyframes tcDotBounce{0%,80%,100%{transform:scale(0);opacity:0.5}40%{transform:scale(1);opacity:1}}"+
+    ".tc-timeline-item{opacity:0;transform:translateX(-20px);animation:tcTimelineSlideIn 0.5s ease forwards}"+
+    ".tc-timeline-item:nth-child(1){animation-delay:0.1s}"+
+    ".tc-timeline-item:nth-child(2){animation-delay:0.4s}"+
+    ".tc-timeline-item:nth-child(3){animation-delay:0.7s}"+
+    ".tc-timeline-item:nth-child(4){animation-delay:1.0s}"+
+    ".tc-timeline-item:nth-child(5){animation-delay:1.3s}"+
+    "@keyframes tcTimelineSlideIn{0%{opacity:0;transform:translateX(-20px)}100%{opacity:1;transform:translateX(0)}}"+
+    ".tc-author-combined:hover .tc-timeline-item{animation:tcTimelineSlideIn 0.5s ease forwards}"+
+    ".tc-author-combined:hover .tc-timeline-item:nth-child(1){animation-delay:0s}"+
+    ".tc-author-combined:hover .tc-timeline-item:nth-child(2){animation-delay:0.15s}"+
+    ".tc-author-combined:hover .tc-timeline-item:nth-child(3){animation-delay:0.3s}"+
+    ".tc-author-combined:hover .tc-timeline-item:nth-child(4){animation-delay:0.45s}"+
+    ".tc-author-combined:hover .tc-timeline-item:nth-child(5){animation-delay:0.6s}"+
+    // 有巢筑巢动画 keyframes
+    "@keyframes tcTreeSway{0%,100%{transform:translateX(-50%) rotate(-1deg)}50%{transform:translateX(-50%) rotate(1deg)}}"+
+    "@keyframes tcBirdFly1{0%{left:-40px;top:30px;opacity:0}5%{opacity:1}15%{left:20%;top:10px}28%{left:40%;top:2px}35%{left:54%;top:8px}42%{left:58%;top:16px}52%{left:58%;top:16px}60%{left:70%;top:6px}75%{left:95%;top:-4px}85%{left:110%;top:10px;opacity:1}90%{opacity:0}100%{left:110%;top:30px;opacity:0}}"+
+    "@keyframes tcBirdFly2{0%{left:110%;top:25px;opacity:0}10%{opacity:1}25%{left:85%;top:12px}35%{left:60%;top:4px}42%{left:56%;top:14px}50%{left:56%;top:14px}60%{left:38%;top:6px}75%{left:12%;top:-2px}90%{left:-30px;top:8px;opacity:1}95%{opacity:0}100%{left:-40px;top:20px;opacity:0}}"+
+    "@keyframes tcWingFlap{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.3)}}"+
+    "@keyframes tcNestBuild{0%,45%{opacity:0.4;transform:scale(0.7)}60%{opacity:0.8;transform:scale(0.9)}80%,100%{opacity:1;transform:scale(1)}}"+
+    "@keyframes tcTwigDrop{0%,35%{opacity:0;top:10px}40%{opacity:1;top:10px}48%{opacity:1;top:28px}55%,100%{opacity:0;top:28px}}"+
+    "@keyframes tcMudDrop{0%,70%{opacity:0;top:8px}78%{opacity:1;top:8px}86%{opacity:1;top:26px}95%,100%{opacity:0;top:26px}}"+
+    "@keyframes tcBubbleSwap{0%,47.5%{opacity:1}47.6%,100%{opacity:0}}"+
+    "@keyframes tcBeeFly{0%{transform:translate(0,0) rotate(0deg)}25%{transform:translate(10px,-8px) rotate(5deg)}50%{transform:translate(-5px,-12px) rotate(-3deg)}75%{transform:translate(8px,-5px) rotate(4deg)}100%{transform:translate(0,0) rotate(0deg)}}"+
+    "@keyframes tcPhoenixFly{0%{left:-40px;top:5px;opacity:0}5%{opacity:1}45%{left:40%;top:8px}95%{opacity:1}100%{left:110%;top:-5px;opacity:0}}"+
+    "@keyframes tcPhoenixWing{0%,100%{transform:scaleY(1) rotate(0deg)}50%{transform:scaleY(0.3) rotate(15deg)}}"+
+    "@keyframes tcTruckDrive{0%{left:-60px}100%{left:735px}}"+
+    // 主界面动画 keyframes
+    "@keyframes tcMainTruck{0%{left:-50px}100%{left:200px}}"+
+    "@keyframes tcMainDrone{0%{left:-40px}100%{left:150px}}";
   document.head.appendChild(s);
   var QP = window.QwenPaw; if (!QP) return;
   var React = QP.host.React, antd = QP.host.antd, antdIcons = QP.host.antdIcons || {};
@@ -55,6 +113,75 @@
     return r.json();
   }
 
+  // ---- LLM 配置 API ----
+  async function loadLlmConfig() {
+    setLlmLoading(true);
+    try {
+      var r = await fetch(getApiUrl("/team-chat/llm-config"), {headers:apiHeaders()});
+      if (!r.ok) throw new Error("HTTP "+r.status);
+      var d = await r.json();
+      setLlmSaved(d);
+      // 如果有已保存的配置，加载到表单
+      if (d.has_key) {
+        setLlmCfg({
+          api_key: "",  // 不显示完整 key
+          base_url: d.base_url || "https://dashscope.aliyuncs.com/compatible-mode/v1",
+          model: d.model || "qwen-plus"
+        });
+      }
+      setLlmLoading(false);
+    } catch(e) {
+      setLlmLoading(false);
+      console.error("加载 LLM 配置失败:", e);
+    }
+  }
+
+  async function saveLlmConfig() {
+    setLlmSaveResult(null);
+    try {
+      var body = {
+        api_key: llmCfg.api_key,
+        base_url: llmCfg.base_url,
+        model: llmCfg.model
+      };
+      var r = await fetch(getApiUrl("/team-chat/llm-config"), {
+        method:"POST",
+        headers:apiHeaders(),
+        body:JSON.stringify(body)
+      });
+      if (!r.ok) throw new Error("HTTP "+r.status);
+      var d = await r.json();
+      setLlmSaveResult({ok:true, msg:d.message||"配置已保存"});
+      // 重新加载配置
+      loadLlmConfig();
+    } catch(e) {
+      setLlmSaveResult({ok:false, msg:e.message});
+    }
+  }
+
+  async function testLlmConfig() {
+    setLlmTestResult(null);
+    setLlmTestLoading(true);
+    try {
+      var body = {
+        api_key: llmCfg.api_key || llmSaved.api_key,  // 如果表单为空，用已保存的
+        base_url: llmCfg.base_url,
+        model: llmCfg.model
+      };
+      var r = await fetch(getApiUrl("/team-chat/llm-config/test"), {
+        method:"POST",
+        headers:apiHeaders(),
+        body:JSON.stringify(body)
+      });
+      var d = await r.json();
+      setLlmTestResult(d);
+      setLlmTestLoading(false);
+    } catch(e) {
+      setLlmTestResult({ok:false, error:e.message});
+      setLlmTestLoading(false);
+    }
+  }
+
   // =================== MessageBubble ===================
   function MessageBubble(props) {
     var m = props.msg;
@@ -85,7 +212,7 @@
         a.href=u; a.download=fname; a.click(); URL.revokeObjectURL(u);
       }).catch(function(e){antd.message.error("下载失败: "+e.message);});
     };
-    return e(Card, {size:"small", style:{marginBottom:14,borderRadius:12,background:bg,border:"none",
+    return e(Card, {size:"small", style:{marginBottom:14,borderRadius:16,background:bg,border:"none",
       marginLeft:m.role==="human"?"auto":0,marginRight:m.role==="human"?0:"auto",maxWidth:"85%"},
       title:e(Space,null,e(Text,{style:{fontSize:11,color:"#8D6E63"}},label+" · "+ts))},
       hasFiles?e("div",{style:{color:color,fontSize:14}},
@@ -119,7 +246,7 @@
       if(this.state.hasError){
         var err = this.state.error;
         var fn = this.props.fallbackName || "组件";
-        return e("div",{style:{padding:16,background:"#FFF5F5",border:"1px solid #F5A0A0",borderRadius:8,textAlign:"center",margin:8,fontFamily:"system-ui, sans-serif"}},
+        return e("div",{style:{padding:16,background:"#FFF5F5",border:"1px solid #F5A0A0",borderRadius:16,textAlign:"center",margin:12,fontFamily:"system-ui, sans-serif"}},
           e("div",{style:{fontSize:22,marginBottom:4}}, "⚠️"),
           e("div",{style:{fontWeight:"bold",color:"#C53030",marginBottom:4}}, fn+" 发生渲染错误"),
           e("div",{style:{fontSize:11,color:"#9B2C2C",marginBottom:12,wordBreak:"break-all",maxHeight:80,overflow:"auto",borderRadius:4,padding:4,background:"rgba(255,255,255,0.5)"}}, err && err.message ? err.message : String(err)),
@@ -148,8 +275,1846 @@
 
   // ---- 全局标签计数器（组件外部，持久化）----
   var _tabCounter = 0;
+
+  // ================================================================
+  //  [微信频道绑定流程] 6 步渐入动画
+  //  步骤: 打开设置 → 启用频道 → 扫码登录 → 保存 → 测试 → 找原创作者AI
+  //  含播放/暂停/循环控制, 800ms 每步渐入
+  // ================================================================
+  // =================== WeChat Workflow Animation ===================
+  function WeChatWorkflow() {
+    var _step = useState(0), step = _step[0], setStep = _step[1];
+    var _playing = useState(false), playing = _playing[0], setPlaying = _playing[1];
+    
+    var steps = [
+      {icon:"⚙️", text:"打开 QwenPaw 设置，进入「频道」页面", color:"#52c41a"},
+      {icon:"💬", text:"找到「微信」频道，点击启用", color:"#1890ff"},
+      {icon:"📝", text:"启动微信频道，用自己的微信扫二维码登录", color:"#722ed1"},
+      {icon:"💾", text:"保存配置，等待频道状态变为「已连接」", color:"#fa8c16"},
+      {icon:"✅", text:"发送测试消息，验证微信频道是否正常工作", color:"#52c41a"},
+      {icon:"↗️", text:"有实际操作的困难，找「原创作者AI」协助", color:"#e91e63"}
+    ];
+    
+    useEffect(function() {
+      var timer;
+      if (playing && step < steps.length) {
+        timer = setTimeout(function() {
+          setStep(step + 1);
+        }, 800);
+      } else if (playing && step >= steps.length) {
+        timer = setTimeout(function() {
+          setStep(0);
+        }, 1500);
+      }
+      return function() { clearTimeout(timer); };
+    }, [playing, step]);
+    
+    function startAnimation() {
+      setStep(0);
+      setPlaying(true);
+    }
+    
+    function stopAnimation() {
+      setPlaying(false);
+    }
+    
+    return e("div", {style:{position:"relative",minHeight:180}},
+      // Animation container
+      e("div", {style:{display:"flex",flexDirection:"column",gap:12,padding:"8px 0"}},
+        steps.map(function(s, i) {
+          var isActive = i < step;
+          var isCurrent = i === step && playing;
+          return e("div", {
+            key: i,
+            style:{
+              display:"flex",
+              alignItems:"center",
+              gap:12,
+              padding:"12px 16px",
+              borderRadius:16,
+              background: isActive ? (s.color+"15") : (isCurrent ? (s.color+"20") : "#f5f5f5"),
+              border: isCurrent ? ("2px solid "+s.color) : "2px solid transparent",
+              opacity: isActive || isCurrent ? 1 : 0.4,
+              transform: isCurrent ? "scale(1.02)" : "scale(1)",
+              transition:"all 0.5s cubic-bezier(0.4,0,0.2,1)",
+              boxShadow: isCurrent ? ("0 4px 20px "+s.color+"20") : "none"
+            }
+          },
+            e("div", {style:{
+              width:36,height:36,borderRadius:"50%",
+              background:isActive||isCurrent?s.color:"#ddd",
+              display:"flex",alignItems:"center",justifyContent:"center",
+              fontSize:18,
+              transition:"all 0.5s",
+              boxShadow:isCurrent?("0 0 16px "+s.color+"60"):"none"
+            }}, s.icon),
+            e("div", {style:{flex:1}},
+              e("div", {style:{
+                fontSize:13,fontWeight:isActive||isCurrent?600:400,
+                color:isActive||isCurrent?"#333":"#999",
+                transition:"all 0.5s"
+              }}, (i+1)+". "+s.text)
+            ),
+            isActive ? e("div", {style:{fontSize:16,color:s.color,transition:"all 0.5s"}},"✓") : 
+            isCurrent ? e("div", {style:{fontSize:16,color:s.color,animation:"wechatPulse 1s infinite"}},"→") : 
+            null
+          );
+        })
+      ),
+      // Philosophy quotes
+      e("div",{style:{textAlign:"center",marginTop:8,padding:0}},
+        e("div",{style:{fontSize:12,color:"#b8860b",fontWeight:600,fontStyle:"italic",marginBottom:2}},
+          "稻盛和夫经营哲学 — 人生的结果 = 思维方式 × 能力 × 热情"
+        ),
+        e("div",{style:{fontSize:12,color:"#b8860b",fontWeight:600,fontStyle:"italic"}},
+          "Youchao 有巢理论 — 没有完美的智能体，只有完美的团队智能体"
+        )
+      ),
+      // Control buttons
+      e("div", {style:{display:"flex",gap:8,marginTop:8,justifyContent:"center"}},
+        e(Button, {
+          size:"small",
+          type:playing?"default":"primary",
+          onClick:playing?stopAnimation:startAnimation,
+          style:{
+            background:playing?"#f5f5f5":"linear-gradient(135deg,#52c41a,#73d13d)",
+            border:playing?"1px solid #d9d9d9":"1px solid #52c41a",
+            color:playing?"#666":"#fff",
+            borderRadius:6,
+            fontWeight:600
+          }
+        }, playing ? "⏸ 暂停" : "▶ 播放动画")
+      ),
+      // CSS for pulse animation
+      e("style", null, "@keyframes wechatPulse{0%,100%{transform:translateX(0)}50%{transform:translateX(4px)}}")
+    );
+  }
+
+  // ================================================================
+  //  [串串频道 v2.1] ChuanChuanPage — 4-Tab 统一页面
+//  入口: 右侧栏「📡 串串频道」→ setChuanView(true)
+//  返回: onBack() → setChuanView(false) → TeamChatPage
+//  Tab: 📡频道(状态/原理/王牌/简谱) | 📂历史(收藏/标签/PPT/导出/删除) | ✍️原创作者AI(收款码+直接聊天) | 📤导出
+// ================================================================
+// =================== ChuanChuanPage v2.1 (4-Tab) ===================
+function ChuanChuanPage(_p) {
+  var onBack = _p.onBack||function(){};
+  var _tab = useState("channel"), tab = _tab[0], setTab = _tab[1];
+  // 频道状态
+  var _ws = useState(null), wxStatus = _ws[0], setWxStatus = _ws[1];
+  var _wl = useState(false), wxLoading = _wl[0], setWxLoading = _wl[1];
+    // 频道折叠
+    var _chx = useState(false), chExpanded = _chx[0], setChExpanded = _chx[1];
+    // SOUL 复制反馈
+    var _sc = useState(false), soulCopied = _sc[0], setSoulCopied = _sc[1];
+    var _so = useState(false), soulOpen = _so[0], setSoulOpen = _so[1];
+    // 串串浏览器
+    var _cr = useState(false), chuanReady = _cr[0], setChuanReady = _cr[1];
+    var _cl = useState(false), chuanLaunching = _cl[0], setChuanLaunching = _cl[1];
+    // SOUL.md 全文（供复制）
+    var SOUL_TEXT = "编排 Agent 原则\n"+
+      "- 主控只编排与沟通，不替代子 Agent / ACP Runner 的专业输出。\n"+
+      "- IaC 模板生成、费用估算、建栈等操作全部由 iac-code 处理，主控不直接操作。\n"+
+      "- 对用户的承诺以子 Agent / iac-code 实际返回为准，不臆造资源 ID 或校验结果。\n"+
+      "\n全频道主持人规则（v4.1.0）\n"+
+      "当消息来自任意外部频道（微信/飞书/钉钉/QQ/Telegram/Discord 等）时，你自动切换为团队会谈主持人模式。Console/桌面频道仍保持原有云编排主控行为。\n"+
+      "\n触发条件\n"+
+      "用户消息包含以下任一特征时，启动团队讨论：\n"+
+      "- 分析、评估、比较、建议、方案、策略、决策\n"+
+      "- 任何需要多角度思考的开放式问题\n"+
+      "- 用户明确说「召集团队」「团队讨论」「多角度」\n"+
+      "\n轻量对话（非团队讨论）\n"+
+      "简单问候、闲聊、单一事实性问答 → 你直接回答，不召集团队。\n"+
+      "\n团队讨论流程\n"+
+      "Step 1 — 拆解问题：把用户问题拆为 2-4 个子方向，每个子方向一句话。\n"+
+      "Step 2 — 选择智能体：从可用池中选 2-4 个最合适的。\n"+
+      "  a1: 策略分析、竞争研究、商业逻辑\n"+
+      "  a2: 市场调研、用户洞察、数据解读\n"+
+      "  a3: 技术评估、方案设计、趋势判断\n"+
+      "  cloud-executor: 落地执行、代码实现、操作细节\n"+
+      "  cloud-verifier: 风险校验、合规审查、漏洞检查\n"+
+      "Step 3 — 并行委派： submit_to_agent(to_agent=\"a1\", text=\"从策略角度分析: [子方向1]\") ...\n"+
+      "Step 4 — 收集结果： check_agent_task(task_id=...) 轮询所有任务状态\n"+
+      "Step 5 — 汇总回复：严格按照格式回复（适配微信 2048 字符限制）\n"+
+      "\n超时处理：任一智能体 60s 未返回 → 跳过，注明「⏳ [智能体名] 未及时返回」\n"+
+      "\n头脑风暴模式：用户消息以 /风暴 或 /brainstorm 开头时，按流程完成多轮讨论\n"+
+      "\n禁止行为：不编造智能体回复、不省略团队成员署名、不超出频道字符限制";
+    // 多频道列表
+    var ALL_CHANNELS = [
+      {key:"wechat", name:"微信", icon:"💬"},
+      {key:"feishu", name:"飞书", icon:"🐦"},
+      {key:"dingtalk", name:"钉钉", icon:"📌"},
+      {key:"qq", name:"QQ", icon:"🐧"},
+      {key:"workwechat", name:"企业微信", icon:"🏢"},
+      {key:"telegram", name:"Telegram", icon:"✈️"},
+      {key:"discord", name:"Discord", icon:"🎮"},
+      {key:"imessage", name:"iMessage", icon:"📱"},
+      {key:"yuanbao", name:"元宝", icon:"🪙"}
+    ];
+  // 历史会话
+  var _sess = useState([]), sess = _sess[0], setSess = _sess[1];
+  var _sLd = useState(false), sessLoading = _sLd[0], setSessLoading = _sLd[1];
+  var _hf = useState("all"), histFilter = _hf[0], setHistFilter = _hf[1];
+  // 历史标签编辑
+  var _etag = useState(null), editingTag = _etag[0], setEditingTag = _etag[1];
+  var _tv = useState(""), tagVal = _tv[0], setTagVal = _tv[1];
+  // 原创作者AI 聊天
+  var _chatMsgs = useState([]), chatMsgs = _chatMsgs[0], setChatMsgs = _chatMsgs[1];
+  var _chatIn = useState(""), chatIn = _chatIn[0], setChatIn = _chatIn[1];
+  var _chatLd = useState(false), chatLd = _chatLd[0], setChatLd = _chatLd[1];
+  var _chatSi = useState(""), chatSi = _chatSi[0], setChatSi = _chatSi[1];  // session_id
+  var chatAbortRf = useRef(null);
+  var chatListRf = useRef(null);
+
+  // 原创作者AI 历史记录（多个会话）
+  var _authorSessions = useState([]), authorSessions = _authorSessions[0], setAuthorSessions = _authorSessions[1];
+  var _showHistory = useState(false), showHistory = _showHistory[0], setShowHistory = _showHistory[1];
+  
+  // 报告生成智能体选择
+  var _reportAgent = useState(function(){try{return localStorage.getItem("teamchat_report_agent")||"cloud-orchestrator";}catch(e){return "cloud-orchestrator";}}), reportAgent = _reportAgent[0], setReportAgent = _reportAgent[1];
+
+  // LLM 设置
+  var _llmCfg = useState({api_key:"",base_url:"https://dashscope.aliyuncs.com/compatible-mode/v1",model:"qwen-plus"}), llmCfg = _llmCfg[0], setLlmCfg = _llmCfg[1];
+  var _llmSaved = useState({api_key:"",base_url:"",model:"",has_key:false}), llmSaved = _llmSaved[0], setLlmSaved = _llmSaved[1];
+  var _llmLoading = useState(false), llmLoading = _llmLoading[0], setLlmLoading = _llmLoading[1];
+  var _llmTestResult = useState(null), llmTestResult = _llmTestResult[0], setLlmTestResult = _llmTestResult[1];
+  var _llmTestLoading = useState(false), llmTestLoading = _llmTestLoading[0], setLlmTestLoading = _llmTestLoading[1];
+  var _llmSaveResult = useState(null), llmSaveResult = _llmSaveResult[0], setLlmSaveResult = _llmSaveResult[1];
+
+  // 快捷指令
+  var QUICK_COMMANDS = [
+    {label: "你是谁？", text: "你是谁？请介绍一下自己"},
+    {label: "能做什么？", text: "你能帮我做什么？有什么功能？"},
+    {label: "联系方式", text: "如何联系你？有微信或其他联系方式吗？"},
+    {label: "稻盛哲学", text: "请介绍一下稻盛和夫的经营哲学"},
+    {label: "团队介绍", text: "你们的团队是怎么运作的？"}
+  ];
+
+  // ---- 串串周报状态 ----
+  var _reports = useState([]), reports = _reports[0], setReports = _reports[1];
+  var _reportLoading = useState(false), reportLoading = _reportLoading[0], setReportLoading = _reportLoading[1];
+  var _currentReport = useState(null), currentReport = _currentReport[0], setCurrentReport = _currentReport[1];
+  var _autoChecked = useState(false), autoChecked = _autoChecked[0], setAutoChecked = _autoChecked[1];
+
+  // ---- 实时报告状态 ----
+  var _realtimeLoading = useState(false), realtimeLoading = _realtimeLoading[0], setRealtimeLoading = _realtimeLoading[1];
+  var _currentRealtime = useState(null), currentRealtime = _currentRealtime[0], setCurrentRealtime = _currentRealtime[1];
+  var _realtimeHistory = useState([]), realtimeHistory = _realtimeHistory[0], setRealtimeHistory = _realtimeHistory[1];
+
+  // 数据看板状态
+  var _dashData = useState(null), dashData = _dashData[0], setDashData = _dashData[1];
+  var _dashLoading = useState(false), dashLoading = _dashLoading[0], setDashLoading = _dashLoading[1];
+  var _dashRefresh = useState(0), dashRefresh = _dashRefresh[0], setDashRefresh = _dashRefresh[1];
+  var _dashAgent = useState(function(){try{return localStorage.getItem("teamchat_dash_agent")||"";}catch(e){return "";}}), dashAgent = _dashAgent[0], setDashAgent = _dashAgent[1];
+  var _agentDetail = useState(null), agentDetail = _agentDetail[0], setAgentDetail = _agentDetail[1];
+  var _agentDetailLoading = useState(false), agentDetailLoading = _agentDetailLoading[0], setAgentDetailLoading = _agentDetailLoading[1];
+  var _allAgents = useState([]), allAgents = _allAgents[0], setAllAgents = _allAgents[1];
+
+  // 加载看板数据
+  function fetchDashboard(){
+    setDashLoading(true);
+    apiGet("/dashboard-stats").then(function(d){
+      setDashData(d);
+      setDashLoading(false);
+    }).catch(function(err){
+      console.error("[Dashboard] fetch error:", err);
+      setDashLoading(false);
+    });
+    // 同时获取完整智能体列表
+    apiGet("/all-agents").then(function(d){
+      setAllAgents(d.agents||[]);
+    }).catch(function(err){
+      console.error("[AllAgents] fetch error:", err);
+    });
+  }
+
+  // 加载选中智能体的详细报告
+  function fetchAgentDetail(agentId){
+    if(!agentId){ setAgentDetail(null); return; }
+    setAgentDetailLoading(true);
+    apiGet("/agent-detail?agent_id="+encodeURIComponent(agentId)).then(function(d){
+      setAgentDetail(d);
+      setAgentDetailLoading(false);
+    }).catch(function(err){
+      console.error("[AgentDetail] fetch error:", err);
+      setAgentDetailLoading(false);
+    });
+  }
+
+  // 切换智能体时加载详情
+  function selectDashAgent(agentId){
+    setDashAgent(agentId);
+    try{ localStorage.setItem("teamchat_dash_agent", agentId); }catch(e){}
+    fetchAgentDetail(agentId);
+  }
+
+  // 切换到串串汇时自动加载看板
+  useEffect(function(){
+    if(tab==="settings" || tab==="channel"){
+      fetchDashboard();
+      // 如果有已选智能体，加载其详情
+      if(tab==="settings" && dashAgent) fetchAgentDetail(dashAgent);
+    }
+  },[tab, dashRefresh]);
+
+  // 看板自动刷新（30秒）
+  useEffect(function(){
+    if(tab!=="settings") return;
+    var timer = setInterval(function(){ setDashRefresh(function(n){return n+1;}); }, 30000);
+    return function(){ clearInterval(timer); };
+  },[tab]);
+
+  // 加载周报列表
+  useEffect(function(){
+    try{ var saved=localStorage.getItem("teamchat_reports"); if(saved) setReports(JSON.parse(saved)); }catch(e){}
+    try{ var rt=localStorage.getItem("teamchat_realtime"); if(rt) setRealtimeHistory(JSON.parse(rt)); }catch(e){}
+  },[]);
+
+  // 自动生成周报（打开串串汇Tab时检查）
+  useEffect(function(){
+    if(tab==="settings" && !autoChecked){
+      setAutoChecked(true);
+      // 检查是否有足够的对话历史
+      try{
+        var cache = JSON.parse(localStorage.getItem("teamchat_sessions_cache")||"[]");
+        if(cache.length>=3){  // 至少3个会话才生成
+          generateReport(true);  // 自动生成
+        }
+      }catch(e){}
+    }
+  },[tab,autoChecked]);
+
+  // 生成周报（收集所有智能体的对话历史）
+  function generateReport(auto){
+    setReportLoading(true);
+    
+    // 从API获取所有会话的实际消息
+    apiGet("/sessions").then(function(r){
+      var sessions = r.sessions||r||[];
+      console.log("[Report] Got sessions:", sessions.length);
+      if(sessions.length===0){
+        setReportLoading(false);
+        if(!auto) alert("暂无会话，无法生成周报");
+        return;
+      }
+      
+      // 逐个获取会话详情
+      var promises = sessions.map(function(session){
+        var sid = session.session_id||session.sid||session.id||"";
+        if(!sid) return Promise.resolve([]);
+        return apiGet("/session/"+sid).then(function(d){
+          var messages = d.messages||d.history||[];
+          var agentName = d.host_name||session.host_name||"未知智能体";
+          var sessTitle = session.title||session.session_id||"未命名会话";
+          console.log("[Report] Session", sid, "has", messages.length, "messages");
+          return messages.map(function(m){
+            return {
+              role: m.role||"unknown",
+              content: m.content||"",
+              agent: agentName,
+              session: sessTitle
+            };
+          });
+        }).catch(function(err){ 
+          console.error("[Report] Failed to get session", sid, err);
+          return []; 
+        });
+      });
+      
+      Promise.all(promises).then(function(results){
+        var allHistory = [];
+        results.forEach(function(msgs){ allHistory = allHistory.concat(msgs); });
+        console.log("[Report] Total history:", allHistory.length);
+        
+        if(allHistory.length<5){
+          setReportLoading(false);
+          if(!auto) alert("对话太少（共"+allHistory.length+"条），暂时无法生成周报");
+          return;
+        }
+        
+        fetch(getApiUrl("/team-chat/generate-report"),{
+          method:"POST",
+          headers:apiHeaders(),
+          body:JSON.stringify({history:allHistory,days:7,agent_id:reportAgent})
+        })
+        .then(function(r){return r.json();})
+        .then(function(d){
+          console.log("[Report] API response:", d);
+          setReportLoading(false);
+          if(d.success && d.report){
+            var newReport = {
+              id: "report_"+Date.now(),
+              date: new Date().toISOString().split("T")[0],
+              week: getWeekRange(),
+              content: d.report,
+              auto: auto||false,
+              sessionCount: sessions.length,
+              messageCount: allHistory.length
+            };
+            var updated = [newReport].concat(reports);
+            if(updated.length>10) updated = updated.slice(0,10);
+            setReports(updated);
+            setCurrentReport(newReport);
+            try{localStorage.setItem("teamchat_reports",JSON.stringify(updated));}catch(e){}
+          }else{
+            var errMsg = d.reason || d.report || "未知错误";
+            console.error("[Report] Failed:", errMsg);
+            if(!auto) alert("生成周报失败: "+errMsg);
+          }
+        })
+        .catch(function(e){
+          setReportLoading(false);
+          console.error("[Report] Fetch failed:",e);
+          if(!auto) alert("生成周报失败: "+e.message);
+        });
+      }).catch(function(e){
+        setReportLoading(false);
+        console.error("[Report] Promise.all failed:",e);
+        if(!auto) alert("获取会话详情失败: "+e.message);
+      });
+    }).catch(function(e){
+      setReportLoading(false);
+      console.error("[Report] Get sessions failed:",e);
+      if(!auto) alert("获取会话列表失败: "+e.message);
+    });
+  }
+
+  // 生成实时报告（12小时内）
+  function generateRealtimeReport(){
+    setRealtimeLoading(true);
+    
+    // 从API获取所有会话的实际消息
+    apiGet("/sessions").then(function(r){
+      var sessions = r.sessions||r||[];
+      console.log("[RealtimeReport] Got sessions:", sessions.length);
+      if(sessions.length===0){
+        setRealtimeLoading(false);
+        alert("暂无会话，无法生成实时报告");
+        return;
+      }
+      
+      // 逐个获取会话详情
+      var promises = sessions.map(function(session){
+        var sid = session.session_id||session.sid||session.id||"";
+        if(!sid) return Promise.resolve([]);
+        return apiGet("/session/"+sid).then(function(d){
+          var messages = d.messages||d.history||[];
+          var agentName = d.host_name||session.host_name||"未知智能体";
+          var sessTitle = session.title||session.session_id||"未命名会话";
+          console.log("[RealtimeReport] Session", sid, "has", messages.length, "messages");
+          return messages.map(function(m){
+            return {
+              role: m.role||"unknown",
+              content: m.content||"",
+              agent: agentName,
+              session: sessTitle
+            };
+          });
+        }).catch(function(err){ 
+          console.error("[RealtimeReport] Failed to get session", sid, err);
+          return []; 
+        });
+      });
+      
+      Promise.all(promises).then(function(results){
+        var allHistory = [];
+        results.forEach(function(msgs){ allHistory = allHistory.concat(msgs); });
+        console.log("[RealtimeReport] Total history:", allHistory.length);
+        // 取最近的消息（最后50条）
+        var recentHistory = allHistory.slice(-50);
+        
+        if(recentHistory.length<2){
+          setRealtimeLoading(false);
+          alert("对话太少（共"+recentHistory.length+"条），无法生成实时报告");
+          return;
+        }
+        
+        fetch(getApiUrl("/team-chat/generate-realtime-report"),{
+          method:"POST",
+          headers:apiHeaders(),
+          body:JSON.stringify({history:recentHistory,hours:12,agent_id:reportAgent})
+        })
+        .then(function(r){return r.json();})
+        .then(function(d){
+          console.log("[RealtimeReport] API response:", d);
+          setRealtimeLoading(false);
+          if(d.success && d.report){
+            var newRealtime = {
+              id: "realtime_"+Date.now(),
+              date: new Date().toISOString().split("T")[0],
+              time: new Date().toLocaleTimeString(),
+              content: d.report,
+              messageCount: recentHistory.length
+            };
+            var updated = [newRealtime].concat(realtimeHistory);
+            if(updated.length>20) updated = updated.slice(0,20);
+            setRealtimeHistory(updated);
+            setCurrentRealtime(newRealtime);
+            try{localStorage.setItem("teamchat_realtime",JSON.stringify(updated));}catch(e){}
+          }else{
+            var errMsg = d.reason || d.report || "未知错误";
+            console.error("[RealtimeReport] Failed:", errMsg);
+            alert("生成实时报告失败: "+errMsg);
+          }
+        })
+        .catch(function(e){
+          setRealtimeLoading(false);
+          console.error("[RealtimeReport] Fetch failed:",e);
+          alert("生成实时报告失败: "+e.message);
+        });
+      }).catch(function(e){
+        setRealtimeLoading(false);
+        console.error("[RealtimeReport] Promise.all failed:",e);
+        alert("获取会话详情失败: "+e.message);
+      });
+    }).catch(function(e){
+      setRealtimeLoading(false);
+      console.error("获取会话列表失败:",e);
+    });
+  }
+
+  // 获取本周日期范围
+  function getWeekRange(){
+    var now = new Date();
+    var day = now.getDay()||7;
+    var mon = new Date(now);
+    mon.setDate(now.getDate()-day+1);
+    var sun = new Date(mon);
+    sun.setDate(mon.getDate()+6);
+    return (mon.getMonth()+1)+"/"+mon.getDate()+" - "+(sun.getMonth()+1)+"/"+sun.getDate();
+  }
+
+  // 删除周报
+  function deleteReport(reportId){
+    var updated = reports.filter(function(r){return r.id!==reportId;});
+    setReports(updated);
+    setCurrentReport(null);
+    try{localStorage.setItem("teamchat_reports",JSON.stringify(updated));}catch(e){}
+  }
+
+  // 删除实时报告
+  function deleteRealtime(reportId){
+    var updated = realtimeHistory.filter(function(r){return r.id!==reportId;});
+    setRealtimeHistory(updated);
+    setCurrentRealtime(null);
+    try{localStorage.setItem("teamchat_realtime",JSON.stringify(updated));}catch(e){}
+  }
+
+  useEffect(function(){
+    apiGet("/wechat/status").then(function(r){setWxStatus(r.wechat||{});setWxLoading(false);}).catch(function(){setWxLoading(false);});
+  },[]);
+  useEffect(function(){
+    fetch(getApiUrl("/team-chat/browser/status")).then(function(r){return r.json();}).then(function(d){setChuanReady(d&&d.running);}).catch(function(){setChuanReady(false);});
+  },[]);
+  useEffect(function(){
+    // 优先从后端加载聊天记录
+    apiGet("/author-chat-history").then(function(d){
+      if(d.messages && d.messages.length>0){
+        setChatMsgs(d.messages);
+        try{localStorage.setItem("teamchat_author_chat",JSON.stringify(d.messages));}catch(e){}
+      } else {
+        // 后端没有，尝试从localStorage加载
+        try{ var saved=localStorage.getItem("teamchat_author_chat"); if(saved) setChatMsgs(JSON.parse(saved)); }catch(e){}
+      }
+      if(d.sessions && d.sessions.length>0){
+        setAuthorSessions(d.sessions);
+        try{localStorage.setItem("teamchat_author_history",JSON.stringify(d.sessions));}catch(e){}
+      } else {
+        try{ var hist=localStorage.getItem("teamchat_author_history"); if(hist) setAuthorSessions(JSON.parse(hist)); }catch(e){}
+      }
+    }).catch(function(){
+      // 后端加载失败，从localStorage加载
+      try{ var saved=localStorage.getItem("teamchat_author_chat"); if(saved) setChatMsgs(JSON.parse(saved)); }catch(e){}
+      try{ var hist=localStorage.getItem("teamchat_author_history"); if(hist) setAuthorSessions(JSON.parse(hist)); }catch(e){}
+    });
+    try{ var draft=localStorage.getItem("teamchat_author_draft"); if(draft) setChatIn(draft); }catch(e){}
+    try{ var sid=localStorage.getItem("teamchat_author_session_id"); if(sid) setChatSi(sid); else { var newSid="author_"+Date.now()+"_"+Math.random().toString(36).slice(2,8); setChatSi(newSid); localStorage.setItem("teamchat_author_session_id",newSid); }}catch(e){}
+  },[]);
+
+  // 监听聊天记录变化，自动保存到后端
+  var saveTimerRef = useRef(null);
+  useEffect(function(){
+    // 防抖：500ms后再保存
+    if(saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(function(){
+      if(chatMsgs.length>0 || authorSessions.length>0){
+        apiPost("/author-chat-history",{messages:chatMsgs,sessions:authorSessions}).catch(function(e){console.warn("保存聊天记录失败:",e);});
+      }
+    },500);
+    return function(){ if(saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  },[chatMsgs, authorSessions]);
+
+  // ---- 历史会话加载 ----
+  function loadSess(){
+    setSessLoading(true);
+    try{
+      var sc = localStorage.getItem("teamchat_sessions_cache");
+      if(sc){ var arr=JSON.parse(sc); if(Array.isArray(arr)&&arr.length>0){setSess(arr);} }
+    }catch(e){}
+    apiGet("/sessions").then(function(r){
+      var list = r.sessions||r||[];
+      console.log("[ChuanChuan] loadSess got", list.length, "sessions");
+      setSess(list); setSessLoading(false);
+      try{ localStorage.setItem("teamchat_sessions_cache", JSON.stringify(list)); }catch(e){}
+    }).catch(function(err){ console.error("[ChuanChuan] loadSess error:", err); setSessLoading(false); });
+  }
+  useEffect(function(){ loadSess(); },[]);
+
+  // 加载 LLM 配置
+  useEffect(function(){ loadLlmConfig(); },[]);
+
+  // 点击外部关闭导出菜单
+  useEffect(function(){
+    function handleClick(e){
+      if(exportMenuOpen && !e.target.closest('[data-export-menu]')){
+        setExportMenuOpen(null);
+      }
+    }
+    document.addEventListener("click", handleClick);
+    return function(){ document.removeEventListener("click", handleClick); };
+  },[exportMenuOpen]);
+
+  function updateSessList(){
+    apiGet("/team-chat/sessions").then(function(r){
+      var list = r.sessions||r||[];
+      setSess(list);
+      try{ localStorage.setItem("teamchat_sessions_cache", JSON.stringify(list)); }catch(e){}
+    }).catch(function(){});
+  }
+
+  // ---- 历史: 加载到主聊 ----
+  function loadToMain(si){
+    window.dispatchEvent(new CustomEvent("teamchat-load-session",{detail:{session_id:si}}));
+    onBack();
+  }
+
+  // ---- 历史: 收藏切换 ----
+  function togglePin(si, pinned){
+    apiPut("/session/"+si+"/pin", {pinned: !pinned}).then(function(){
+      setSess(function(p){return p.map(function(s){
+        var id = s.session_id||s.sid||s.id||"";
+        if(id!==si) return s;
+        var ns = Object.assign({},s,{pinned:!pinned});
+        try{
+          var cache = JSON.parse(localStorage.getItem("teamchat_sessions_cache")||"[]");
+          cache = cache.map(function(cs){ var cid=cs.session_id||cs.sid||cs.id||""; return cid===si?Object.assign({},cs,{pinned:!pinned}):cs; });
+          localStorage.setItem("teamchat_sessions_cache", JSON.stringify(cache));
+        }catch(e){}
+        return ns;
+      });});
+    }).catch(function(){});
+  }
+
+  // ---- 历史: 保存标签 ----
+  function saveTag(si, tag){
+    apiPut("/session/"+si+"/tag", {tag: tag}).then(function(){
+      setSess(function(p){return p.map(function(s){
+        var id = s.session_id||s.sid||s.id||"";
+        if(id!==si) return s;
+        var ns = Object.assign({},s,{tag:tag});
+        try{
+          var cache = JSON.parse(localStorage.getItem("teamchat_sessions_cache")||"[]");
+          cache = cache.map(function(cs){ var cid=cs.session_id||cs.sid||cs.id||""; return cid===si?Object.assign({},cs,{tag:tag}):cs; });
+          localStorage.setItem("teamchat_sessions_cache", JSON.stringify(cache));
+        }catch(e){}
+        return ns;
+      });});
+      setEditingTag(null);
+    }).catch(function(){ setEditingTag(null); });
+  }
+
+  // ---- 历史: PPT 回放 ----
+  function playPPT(si){
+    window.dispatchEvent(new CustomEvent("teamchat-ppt-play",{detail:{session_id:si}}));
+    onBack();
+  }
+
+  // ---- 历史: 导出多格式（后端生成文件，前端触发下载） ----
+  function exportSession(si, title, format){
+    var filename = (title||"会话记录").replace(/[^\w\u4e00-\u9fa5]/g,"_");
+    console.log("[Export] Exporting session", si, "as", format);
+
+    fetch(getApiUrl("/team-chat/export-session"), {
+      method: "POST",
+      headers: apiHeaders(),
+      body: JSON.stringify({ session_id: si, format: format })
+    })
+    .then(function(r) {
+      if (!r.ok) {
+        return r.json().then(function(d) { throw new Error(d.detail || "导出失败"); });
+      }
+      return r.blob();
+    })
+    .then(function(blob) {
+      // 方式1: 创建 blob URL 并触发下载
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = filename + "." + format;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      // 延迟清理
+      setTimeout(function() {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 1000);
+      console.log("[Export] Download triggered:", filename + "." + format);
+    })
+    .catch(function(e) {
+      console.error("[Export] Failed:", e);
+      alert("导出失败: " + e.message);
+    });
+  }
+
+  // ---- 历史: 删除 ----
+  function delSess(si){
+    apiGet("/session/delete/"+si).then(function(){
+      setSess(function(p){return p.filter(function(s){var id=s.session_id||s.sid||s.id||"";return id!==si;});});
+      try{
+        var cache = JSON.parse(localStorage.getItem("teamchat_sessions_cache")||"[]");
+        cache = cache.filter(function(cs){var cid=cs.session_id||cs.sid||cs.id||"";return cid!==si;});
+        localStorage.setItem("teamchat_sessions_cache", JSON.stringify(cache));
+      }catch(e){}
+    }).catch(function(e){});
+  }
+
+  // ---- 导出菜单状态 ----
+  var _exportMenuOpen = useState(null), exportMenuOpen = _exportMenuOpen[0], setExportMenuOpen = _exportMenuOpen[1];
+
+  // ---- 历史: 导出PDF ----
+  function exportToPDF(si, title){
+    // 先从缓存或API获取会话详情
+    var cached = null;
+    try{
+      var cache = JSON.parse(localStorage.getItem("teamchat_sessions_cache")||"[]");
+      cached = cache.find(function(s){var id=s.session_id||s.sid||s.id||"";return id===si;});
+    }catch(e){}
+
+    function renderPDF(messages){
+      var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+(title||"会话记录")+'</title>';
+      html += '<style>';
+      html += 'body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;padding:40px;line-height:1.8;color:#333;}';
+      html += 'h1{font-size:24px;color:#4E342E;border-bottom:3px solid #FFD700;padding-bottom:12px;margin-bottom:24px;}';
+      html += '.meta{font-size:12px;color:#8D6E63;margin-bottom:24px;}';
+      html += '.msg{margin-bottom:20px;padding:16px;border-radius:12px;}';
+      html += '.msg.user{background:#FFF8E1;border-left:4px solid #FFD700;}';
+      html += '.msg.assistant{background:#F5F5F5;border-left:4px solid #8D6E63;}';
+      html += '.msg.system{background:#E8F5E9;border-left:4px solid #66BB6A;font-size:13px;}';
+      html += '.role{font-weight:bold;font-size:13px;margin-bottom:6px;}';
+      html += '.role.user{color:#F57F17;}';
+      html += '.role.assistant{color:#5D4037;}';
+      html += '.role.system{color:#2E7D32;}';
+      html += '.content{white-space:pre-wrap;word-break:break-word;}';
+      html += '.footer{margin-top:40px;padding-top:20px;border-top:1px solid #D7CCC8;font-size:11px;color:#BCAAA4;text-align:center;}';
+      html += '@media print{body{padding:20px;}.msg{break-inside:avoid;}}';
+      html += '</style></head><body>';
+      html += '<h1> '+(title||"会话记录")+'</h1>';
+      html += '<div class="meta">导出时间：'+new Date().toLocaleString()+' · 共 '+messages.length+' 条消息</div>';
+
+      messages.forEach(function(m){
+        var role = m.role||"unknown";
+        var roleName = role==="user"?"👤 用户":role==="assistant"?"🤖 AI":"⚙️ 系统";
+        var content = m.content||"";
+        if(m.tool_calls){
+          try{
+            var tc = typeof m.tool_calls==="string"?JSON.parse(m.tool_calls):m.tool_calls;
+            if(Array.isArray(tc)){
+              tc.forEach(function(t){
+                if(t.function){
+                  content += "\n\n🔧 工具调用: "+t.function.name+"\n参数: "+JSON.stringify(JSON.parse(t.function.arguments||"{}"),null,2);
+                }
+              });
+            }
+          }catch(e){}
+        }
+        html += '<div class="msg '+role+'">';
+        html += '<div class="role '+role+'">'+roleName+'</div>';
+        html += '<div class="content">'+escapeHtml(content)+'</div>';
+        html += '</div>';
+      });
+
+      html += '<div class="footer">由串串频道导出 · '+new Date().getFullYear()+'</div>';
+      html += '</body></html>';
+
+      // 用隐藏iframe代替window.open，兼容WebView
+      var iframe = document.createElement("iframe");
+      iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+      document.body.appendChild(iframe);
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(html);
+      iframe.contentDocument.close();
+      setTimeout(function(){
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(function(){document.body.removeChild(iframe);}, 1000);
+      }, 300);
+    }
+
+    if(cached && (cached.messages||cached.history)){
+      renderPDF(cached.messages||cached.history);
+    }else{
+      apiGet("/session/"+si).then(function(d){
+        renderPDF(d.messages||d.history||[]);
+      }).catch(function(e){
+        alert("获取会话详情失败: "+e.message);
+      });
+    }
+  }
+
+  function escapeHtml(text){
+    var div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ---- 原创作者AI: 发送消息 ----
+  function chatSend(){
+    var msg = chatIn.trim(); if(!msg||chatLd) return;
+    setChatMsgs(function(p){var n=p.concat([{role:"user",content:msg},{role:"thinking",content:"思考中"}]);try{localStorage.setItem("teamchat_author_chat",JSON.stringify(n));}catch(e){}return n;});
+    setChatIn("");try{localStorage.removeItem("teamchat_author_draft");}catch(e){}setChatLd(true);
+    var ctrl = new AbortController(); chatAbortRf.current = ctrl;
+    fetch(getApiUrl("/team-chat/remote-chat"),{method:"POST",headers:apiHeaders(),body:JSON.stringify({message:msg,session_id:chatSi}),signal:ctrl.signal})
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(function(d){
+      var reply = d.reply||JSON.stringify(d);
+      // 更新session_id（如果后端返回新的）
+      if(d.session_id && d.session_id !== chatSi){ setChatSi(d.session_id); try{localStorage.setItem("teamchat_author_session_id",d.session_id);}catch(e){} }
+      setChatMsgs(function(p){
+        var n=p.filter(function(m){return m.role!=="thinking";}).concat([{role:"assistant",content:reply}]);
+        try{localStorage.setItem("teamchat_author_chat",JSON.stringify(n));}catch(e){}
+        // 保存到历史记录
+        try{
+          var hist = JSON.parse(localStorage.getItem("teamchat_author_history")||"[]");
+          var existing = hist.find(function(h){return h.session_id===chatSi;});
+          if(existing){ existing.messages=n; existing.updated_at=Date.now(); }
+          else{ hist.unshift({session_id:chatSi,messages:n,created_at:Date.now(),updated_at:Date.now(),title:msg.substring(0,20)+(msg.length>20?"...":"")}); }
+          if(hist.length>50) hist=hist.slice(0,50);
+          localStorage.setItem("teamchat_author_history",JSON.stringify(hist));
+          setAuthorSessions(hist);
+        }catch(e){}
+        return n;
+      });
+      setChatLd(false);
+    }).catch(function(e){
+      if(e.name!=="AbortError"){ setChatMsgs(function(p){var n=p.filter(function(m){return m.role!=="thinking";}).concat([{role:"assistant",content:"[Error: "+e.message+"]"}]);try{localStorage.setItem("teamchat_author_chat",JSON.stringify(n));}catch(e2){}return n;}); }
+      setChatLd(false);
+    });
+    setTimeout(function(){ if(chatListRf.current) chatListRf.current.scrollTop = chatListRf.current.scrollHeight; },100);
+  }
+  function chatStop(){ if(chatAbortRf.current){ chatAbortRf.current.abort(); chatAbortRf.current=null; setChatLd(false); } }
+  function chatKeyDown(ev){ if(ev.key==="Enter"&&!ev.shiftKey){ ev.preventDefault(); chatSend(); } }
+
+  // 新建对话
+  function newAuthorChat(){
+    var newSid="author_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+    setChatSi(newSid); setChatMsgs([]); setShowHistory(false);
+    try{localStorage.setItem("teamchat_author_session_id",newSid);localStorage.setItem("teamchat_author_chat","[]");}catch(e){}
+  }
+
+  // 加载历史会话
+  function loadAuthorSession(sid){
+    var sess = authorSessions.find(function(s){return s.session_id===sid;});
+    if(sess){ setChatSi(sid); setChatMsgs(sess.messages||[]); setShowHistory(false);
+      try{localStorage.setItem("teamchat_author_session_id",sid);localStorage.setItem("teamchat_author_chat",JSON.stringify(sess.messages||[]));}catch(e){}
+    }
+  }
+
+  // 删除历史会话
+  function deleteAuthorSession(sid){
+    var hist = authorSessions.filter(function(s){return s.session_id!==sid;});
+    setAuthorSessions(hist);
+    try{localStorage.setItem("teamchat_author_history",JSON.stringify(hist));}catch(e){}
+    if(sid===chatSi) newAuthorChat();
+  }
+
+  // 快捷指令发送
+  function sendQuickCommand(text){ setChatIn(text); setTimeout(chatSend,100); }
+
+  // ---- Tab 标签 ----
+  var TABS = [
+    {key:"channel", label:"📡 频道"},
+    {key:"history", label:"📂 历史 "+(sess.length>50?"(50/"+sess.length+")":"("+sess.length+")")},
+    {key:"author", label:"✍️ 原创作者AI"},
+    {key:"settings", label:"📊 串串汇"}
+  ];
+
+  return e("div",{style:{display:"flex",flexDirection:"column",height:"100vh",background:"linear-gradient(180deg,#FDF8F0,#F5EBE0,#EDE0D4)",fontFamily:"inherit"}},
+    // 顶栏
+    e("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 24px",background:"linear-gradient(135deg,#5D4037,#6D4C41,#8D6E63)",color:"#FFF8E1",boxShadow:"0 4px 20px rgba(93,64,55,.2)"}},
+      e("div",{style:{display:"flex",alignItems:"center",gap:12}},
+        e(Button,{type:"text",onClick:function(){chatStop();onBack();},style:{color:"#FFF8E1",fontSize:20}},"← 返回"),
+        e("div",{style:{fontSize:20,fontWeight:"bold"}},"📡 串串频道")
+      )
+    ),
+    // Tab 栏
+    e("div",{style:{display:"flex",background:"#EDE0D4",borderBottom:"2px solid #D7CCC8",flexShrink:0}},
+      TABS.map(function(t){
+        var active = tab===t.key;
+        return e("div",{key:t.key,onClick:function(){setTab(t.key);},
+          style:{flex:1,textAlign:"center",padding:"10px 0",cursor:"pointer",fontSize:13,fontWeight:active?"bold":"normal",
+            color:active?"#4E342E":"#8D6E63",
+            borderBottom:active?"3px solid #FFD700":"3px solid transparent",
+            background:active?"#FDF8F0":"transparent",transition:"all .2s"}},
+          t.label
+        );
+      })
+    ),
+    // 内容区
+    e("div",{style:{flex:1,overflowY:"auto",padding:"20px 24px"}},
+      // ========== Tab 1: 频道 ==========
+      tab==="channel"?e("div",null,
+        e(Card,{title:"⚙️ 工作原理",style:{marginBottom:14,borderRadius:16,background:"#E8F5E9",border:"1px solid #A5D6A7"}},
+          e(WeChatWorkflow,null),
+          e("div",{style:{marginTop:12,padding:"12px 16px",background:"#C8E6C9",borderRadius:12,fontSize:12,color:"#2E7D32",lineHeight:1.8}},
+            e("div",{style:{fontWeight:"bold",marginBottom:6,fontSize:13}},"💡 举一反三 — 前提条件"),
+            e("div",null,"① 官网下载安装 QwenPaw，在插件市场安装 TeamChat 插件"),
+            e("div",null,"② 插件管理 → 官方插件 → 安装 CloudPaw，自动部署 cloud-orchestrator"),
+            e("div",null,"③ 编辑 SOUL.md，写入全频道主持人规则："),
+            e("div",{style:{marginTop:6,marginBottom:6}},
+              soulOpen?
+                e("div",null,
+                  e("div",{style:{position:"relative",background:"#1B1B1B",borderRadius:8,padding:"10px 12px",maxHeight:400,overflowY:"auto",fontSize:10,color:"#E0E0E0",fontFamily:"monospace",whiteSpace:"pre-wrap",lineHeight:1.5,border:"1px solid #333"}},
+                    SOUL_TEXT,
+                    e(Button,{size:"small",onClick:function(){try{navigator.clipboard.writeText(SOUL_TEXT);setSoulCopied(true);setTimeout(function(){setSoulCopied(false)},2000)}catch(e){}},
+                      style:{position:"absolute",top:6,right:6,borderRadius:4,fontSize:10,background:soulCopied?"#4CAF50":"#555",color:"#fff",border:"none"}},
+                      soulCopied?"✓ 已复制":"📋 复制"),
+                    e(Button,{size:"small",danger:true,onClick:function(){setSoulOpen(false);},
+                      style:{position:"absolute",top:6,right:soulCopied?72:54,fontSize:12,fontWeight:"bold",background:"#c0392b",color:"#fff",border:"none",borderRadius:3,minWidth:22,height:22,lineHeight:"22px",padding:0}},
+                      "✕")
+                  ),
+                  e("div",{style:{fontSize:10,color:"#8D6E63",marginTop:4}},"💡 粘贴位置: cloud-orchestrator 工作区 → SOUL.md")
+                )
+              :
+                e(Button,{size:"small",onClick:function(){setSoulOpen(true);},
+                  style:{borderRadius:6,background:"linear-gradient(180deg,#E3F2FD,#BBDEFB,#90CAF9,#E3F2FD)",border:"1px solid #64B5F6",color:"#1565C0",fontSize:12}},
+                  "📄 查看 SOUL.md 全文 (点击打开)")
+            ),
+            e("div",null,"④ 微信/飞书/钉钉/QQ 等频道均可举一反三接入")
+          )
+        ),
+        e(Card,{title:"🏆 王牌产品 · 新会谈隐藏技能",style:{marginBottom:14,borderRadius:16,background:"linear-gradient(135deg,#FFF8E1,#FFF3E0)",border:"1px solid #FFB74D"}},
+          e("div",{style:{fontSize:13,color:"#5D4037",lineHeight:2}},
+            e("div",null,"🧠 头脑风暴 — 2-5 轮多智能体迭代讨论"),
+            e("div",null,"📼 PPT 回放 — 打字机+粒子背景+键盘翻页播放"),
+            e("div",null,"📄 文件架 — 工作区文档自动收集"),
+            e("div",null,"🎵 轻音乐 — 7 首内置曲目+数字简谱+自定义"),
+            e("div",null,"⌨️ 快捷键 — 按 ? 弹出快捷键速查面板")
+          )
+        ),
+        e(Card,{title:"🎹 简谱计算器",style:{borderRadius:16,background:"#EDE7F6",border:"1px solid #B39DDB"}},
+          e(MusicEditor,null)
+        )
+      ):null,
+
+      // ========== Tab 2: 历史 ==========
+      tab==="history"?e("div",null,
+        // 子标签切换：全部 / 收藏
+        e("div",{style:{display:"flex",gap:8,marginBottom:12,alignItems:"center"}},
+          e("div",{style:{fontSize:14,fontWeight:"bold",color:"#4E342E"}},
+            "📂 历史会谈"
+          ),
+          e("div",{style:{display:"flex",gap:4,marginLeft:"auto"}},
+            e(Button,{size:"small",type:histFilter==="all"?"primary":"default",
+              onClick:function(){setHistFilter("all");},
+              style:{borderRadius:12,fontSize:11}},"全部 ("+sess.length+")"),
+            e(Button,{size:"small",type:histFilter==="pinned"?"primary":"default",
+              onClick:function(){setHistFilter("pinned");},
+              style:{borderRadius:12,fontSize:11}},"⭐ 收藏 ("+sess.filter(function(s){return s.pinned;}).length+")")
+          )
+        ),
+        sessLoading?e(Spin,{size:"small"}):
+        (function(){
+          var filtered = histFilter==="pinned"?sess.filter(function(s){return s.pinned;}):sess;
+          return filtered.length===0?
+            e("div",{style:{color:"#8D6E63",fontSize:13,padding:"20px",textAlign:"center"}},
+              histFilter==="pinned"?"暂无收藏的会话":"暂无历史会谈"):
+            filtered.slice(0,50).map(function(s,i){
+          var sid = s.session_id||s.sid||s.id||"";
+          var title = s.title||s.name||("Session "+(i+1));
+          var created = s.created_at||s.created||"";
+          var agents = (s.agent_ids||[]).length||(s.agents||[]).length||0;
+          var msgCount = s.message_count||(s.history||[]).length||(s.messages||[]).length||0;
+          var lastMsg = s.last_message||"";
+          var pinned = s.pinned||false;
+          var tag = s.tag||"";
+          var isEditing = editingTag===sid;
+          return e("div",{key:sid,
+            style:{padding:"10px 12px",marginBottom:8,background:pinned?"#FFF8E1":"#FAFAFA",borderRadius:16,border:"1px solid #D7CCC8"}},
+            // 第一行: 标题 + 收藏星 + 加载按钮
+            e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}},
+              e("div",{style:{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}},
+                e("div",{style:{fontWeight:"bold",fontSize:14,color:"#4E342E",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}},title),
+                tag?e(Tag,{color:"gold",style:{fontSize:10}},tag):null
+              ),
+              e(Button,{size:"small",type:"text",onClick:function(ev){ev.stopPropagation();loadToMain(sid);},
+                style:{fontSize:10,padding:"0 6px",color:"#5D4037",fontWeight:"bold"}},"📥 加载"),
+              e(Button,{size:"small",type:"text",
+                onClick:function(ev){ev.stopPropagation();togglePin(sid,pinned);},
+                style:{fontSize:16,padding:0,color:pinned?"#FFD700":"#BCAAA4"}},
+                pinned?"⭐":"☆")
+            ),
+            // 第二行: 元信息
+            e("div",{style:{fontSize:11,color:"#8D6E63",marginBottom:4}},
+              (typeof created==="string"?created.substring(0,10):"")+" · "+agents+" agents · "+msgCount+" msgs"
+            ),
+            // 第三行: 最后消息预览
+            lastMsg?e("div",{style:{fontSize:11,color:"#BCAAA4",marginBottom:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},
+              (typeof lastMsg==="string"?lastMsg:"").substring(0,80)
+            ):null,
+            // 第四行: 操作按钮 + 标签编辑
+            e("div",{style:{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}},
+              isEditing?
+                e("div",{style:{display:"flex",alignItems:"center",gap:4}},
+                  e(Input,{size:"small",value:tagVal,onChange:function(ev){setTagVal(ev.target.value);},
+                    onPressEnter:function(){saveTag(sid,tagVal);},
+                    style:{width:100,fontSize:11},placeholder:"标签",autoFocus:true}),
+                  e(Button,{size:"small",onClick:function(){saveTag(sid,tagVal);},style:{fontSize:10}},"💾"),
+                  e(Button,{size:"small",onClick:function(){setEditingTag(null);},style:{fontSize:10}},"✕")
+                ):
+                e(Button,{size:"small",type:"text",
+                  onClick:function(ev){ev.stopPropagation();setEditingTag(sid);setTagVal(tag);},
+                  style:{fontSize:10,padding:"0 4px",color:"#8D6E63"}},
+                  (tag?"🏷 "+tag:"🏷 标签"))
+              ,
+              e(Button,{size:"small",type:"text",
+                onClick:function(ev){ev.stopPropagation();playPPT(sid);},
+                style:{fontSize:10,padding:"0 4px",color:"#5D4037"}},"📼 回放"),
+              e(Button,{size:"small",type:"text",
+                onClick:function(ev){ev.stopPropagation();exportToPDF(sid,title);},
+                style:{fontSize:10,padding:"0 4px",color:"#C62828",fontWeight:"bold"}},"📄 PDF"),
+
+              e(Button,{size:"small",type:"text",danger:true,
+                onClick:function(ev){ev.stopPropagation();if(confirm("Delete session "+title+"?"))delSess(sid);},
+                style:{fontSize:10,padding:"0 4px"}},"🗑 删除")
+            )
+          );
+        });
+        })()
+      ):null,
+
+      // ========== Tab 3: 原创作者AI ==========
+      tab==="author"?e("div",{style:{display:"flex",flexDirection:"column",height:"100%"}},
+        // 顶部工具栏：新建对话 + 历史记录
+        e("div",{style:{display:"flex",gap:8,marginBottom:8,flexShrink:0}},
+          e(Button,{size:"small",onClick:newAuthorChat,
+            style:{borderRadius:16,background:"linear-gradient(180deg,#E3F2FD,#BBDEFB,#90CAF9,#BBDEFB)",border:"1px solid #42A5F5",color:"#1565C0",fontWeight:"bold"}},
+            "＋ 新对话"),
+          e(Button,{size:"small",onClick:function(){setShowHistory(!showHistory);},
+            style:{borderRadius:16,background:showHistory?"linear-gradient(180deg,#FFF3E0,#FFE0B2,#FFCC80,#FFE0B2)":"linear-gradient(180deg,#FAFAFA,#F5F5F5,#EEEEEE,#F5F5F5)",
+              border:showHistory?"1px solid #FF9800":"1px solid #BDBDBD",color:showHistory?"#E65100":"#616161",fontWeight:"bold"}},
+            "📂 历史 ("+authorSessions.length+")")
+        ),
+        // 历史记录面板
+        showHistory?e(Card,{size:"small",style:{marginBottom:8,borderRadius:16,background:"#FFF8E1",border:"1px solid #FFD54F",maxHeight:200,overflowY:"auto",flexShrink:0}},
+          authorSessions.length===0?e("div",{style:{color:"#BCAAA4",fontSize:12,textAlign:"center",padding:12}},"暂无历史记录"):
+          authorSessions.map(function(s){
+            return e("div",{key:s.session_id,style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",borderBottom:"1px solid #FFE082",cursor:"pointer"},
+              onClick:function(){loadAuthorSession(s.session_id);}},
+              e("div",{style:{flex:1,overflow:"hidden"}},
+                e("div",{style:{fontSize:12,fontWeight:"bold",color:"#5D4037",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},s.title||"未命名对话"),
+                e("div",{style:{fontSize:10,color:"#8D6E63",marginTop:2}},new Date(s.updated_at).toLocaleString())
+              ),
+              e(Button,{size:"small",danger:true,onClick:function(ev){ev.stopPropagation();if(confirm("确定删除这个对话？"))deleteAuthorSession(s.session_id);},
+                style:{borderRadius:8,fontSize:10,padding:"0 6px",height:22}},"🗑")
+            );
+          })
+        ):null,
+        // 精神股东 + 作者简介 合并卡片（带动画时间轴）
+        e(Card,{style:{borderRadius:16,background:"linear-gradient(135deg,#FFF8E1,#FCE4EC,#F3E5F5,#E8F5E9)",border:"2px solid #E91E63",marginBottom:8,flexShrink:0,overflow:"hidden"},className:"tc-author-combined"},
+          e("div",{style:{display:"flex",flexDirection:"row",alignItems:"stretch",gap:16}},
+            // 左侧：二维码（借用主界面右侧栏的图片+链接模式）
+            e("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",flexShrink:0}},
+              e("a",{href:"https://agent.bh-jk.com",target:"_blank",rel:"noopener noreferrer",style:{textDecoration:"none",display:"block"}},
+                e("img",{src:getApiUrl("/team-chat/media/qr_code.png"),alt:"收款码",
+                  style:{width:160,height:160,borderRadius:12,border:"3px solid #F8BBD0",objectFit:"cover",cursor:"pointer"},
+                  onError:function(ev){
+                    ev.target.style.display="none";
+                    // 备用显示：如果图片加载失败，显示文字链接
+                    var fallback = document.createElement("div");
+                    fallback.style.cssText = "width:160px;height:160px;border-radius:12px;border:3px solid #F8BBD0;background:#FAF3E8;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:8px;";
+                    fallback.innerHTML = "<div style='font-size:11px;color:#8D6E63;text-align:center;'>💛 精神股东<br/>支持原创作者<br/>0+1+2≠3 Team</div>";
+                    ev.target.parentNode.insertBefore(fallback, ev.target.nextSibling);
+                  }
+                })
+              ),
+              e("div",{style:{textAlign:"center",marginTop:6}},
+                e("div",{style:{fontWeight:"bold",fontSize:12,color:"#AD1457"}},"💛 精神股东"),
+                e("div",{style:{fontSize:10,color:"#880E4F"}},"支持原创作者"),
+                e("div",{style:{fontSize:10,color:"#AD1457",marginTop:2}},"0+1+2≠3 Team")
+              )
+            ),
+            // 右侧：作者简介动画时间轴 + 有巢筑巢动画
+            e("div",{style:{flex:1,display:"flex",flexDirection:"row",alignItems:"stretch",gap:12}},
+              // 作者简介时间轴
+              e("div",{style:{flex:1,display:"flex",flexDirection:"column",justifyContent:"center"}},
+              e("div",{style:{fontSize:13,fontWeight:"bold",color:"#1B5E20",marginBottom:6}},"👤 关于作者"),
+              e("div",{style:{fontSize:11,color:"#2E7D32",lineHeight:1.5,marginBottom:8}},
+                "一位从财务行业转型的 AI 探索者，用亲身经历诠释「终身学习」的力量。"
+              ),
+              e("div",{style:{fontSize:11,color:"#1B5E20",fontWeight:"bold",marginBottom:8}},
+                "笔名：Cshu"
+              ),
+              // 动画时间轴
+              e("div",{style:{position:"relative",paddingLeft:18}},
+                // 竖线
+                e("div",{style:{position:"absolute",left:5,top:4,bottom:4,width:2,background:"linear-gradient(180deg,#4CAF50,#81C784,#A5D6A7)",borderRadius:1}}),
+                // 时间节点
+                (function(){
+                  var items = [
+                    {year:"2006",text:"进入财务行业，从出纳做起",icon:"💼"},
+                    {year:"2015",text:"成为财务经理，管理 5 人团队",icon:"👔"},
+                    {year:"2020",text:"开始研究税务筹划，服务中小微企业和个人",icon:"📊"},
+                    {year:"2026",text:"被企业优化，失业接散活。3月初接触 AI AGENT",icon:"🤖"},
+                    {year:"现在",text:"重新出发，主业 + 副业双轮驱动，在家就业",icon:"🚀"}
+                  ];
+                  return items.map(function(item,i){
+                    return e("div",{key:i,className:"tc-timeline-item",style:{display:"flex",gap:6,alignItems:"flex-start",marginBottom:5,position:"relative","animationDelay":(i*0.3)+"s"}},
+                      e("div",{style:{position:"absolute",left:-16,top:2,width:9,height:9,borderRadius:"50%",background:"#4CAF50",border:"2px solid #fff",boxShadow:"0 0 0 1px #4CAF50",zIndex:1}}),
+                      e("span",{style:{fontWeight:"bold",color:"#1B5E20",minWidth:34,fontSize:11}},item.icon+" "+item.year),
+                      e("span",{style:{fontSize:11,color:"#2E7D32"}},item.text)
+                    );
+                  });
+                })()
+              ),
+              e("div",{style:{marginTop:8,paddingTop:6,borderTop:"1px solid #A5D6A7",fontStyle:"italic",color:"#388E3C",fontSize:11}},
+                "\"从出纳到 AI Agent 开发者，每一步都算数。\""
+              )
+              ),
+              // 有巢筑巢动画（从 Youchao 插件移植）
+              e("div",{style:{flexShrink:0,width:675,minHeight:200,borderRadius:16,
+                background:"linear-gradient(135deg,#e0f0ff 0%,#e0f8f0 100%)",
+                border:"2px solid #ffffff",
+                boxShadow:"0 4px 12px rgba(42,47,69,0.08)",
+                overflow:"hidden",position:"relative"}},
+                // 凤凰飞过
+                e("div",{style:{position:"absolute",width:50,height:20,animation:"tcPhoenixFly 8s linear infinite",zIndex:10}},
+                  e("div",{style:{position:"absolute",width:30,height:18,top:1,left:20,background:"linear-gradient(135deg,#FFD700 0%,#FF6F00 40%,#D32F2F 100%)",borderRadius:"60% 40% 40% 60%",boxShadow:"0 0 6px rgba(255,165,0,0.6)"}},
+                    e("div",{style:{position:"absolute",width:4,height:4,background:"#333",borderRadius:"50%",top:5,right:5}}),
+                    e("div",{style:{position:"absolute",width:0,height:0,borderTop:"3px solid transparent",borderBottom:"3px solid transparent",borderLeft:"6px solid #FF8F00",top:6,right:-5}})
+                  ),
+                  e("div",{style:{position:"absolute",width:18,height:10,top:0,left:24,background:"linear-gradient(90deg,#FFB300,#FF6F00)",borderRadius:"50% 50% 20% 20%",transformOrigin:"bottom center",animation:"tcPhoenixWing 0.4s ease-in-out infinite"}}),
+                  e("div",{style:{position:"absolute",width:16,height:8,top:12,left:24,background:"linear-gradient(90deg,#FFB300,#FF6F00)",borderRadius:"20% 20% 50% 50%",transformOrigin:"top center",animation:"tcPhoenixWing 0.4s ease-in-out infinite"}}),
+                  e("div",{style:{position:"absolute",width:20,height:3,top:6,left:0,background:"linear-gradient(90deg,#FF6F00,#FFD700)",borderRadius:"50%",transform:"rotate(-5deg)"}}),
+                  e("div",{style:{position:"absolute",width:18,height:2,top:9,left:2,background:"linear-gradient(90deg,#D32F2F,#FF8F00)",borderRadius:"50%",transform:"rotate(5deg)"}}),
+                  e("div",{style:{position:"absolute",width:16,height:2,top:12,left:4,background:"linear-gradient(90deg,#FFD700,#FFC107)",borderRadius:"50%",transform:"rotate(-3deg)"}})
+                ),
+                // 养牛场（左侧）
+                e("div",{style:{position:"absolute",bottom:5,left:10,zIndex:4}},
+                  // 牛棚
+                  e("div",{style:{position:"absolute",bottom:0,left:0,width:35,height:20,background:"linear-gradient(180deg,#8D6E63,#6D4C41)",borderRadius:"3px 3px 0 0",border:"1px solid #5D4037"}}),
+                  // 牛棚屋顶
+                  e("div",{style:{position:"absolute",bottom:18,left:-2,width:39,height:6,background:"#D84315",borderRadius:"2px",clipPath:"polygon(0 100%,50% 0,100% 100%)"}}),
+                  // 牛棚门
+                  e("div",{style:{position:"absolute",bottom:0,left:12,width:10,height:12,background:"#3E2723",borderRadius:"2px 2px 0 0"}}),
+                  // 牛 1（黑白花）
+                  e("div",{style:{position:"absolute",bottom:0,left:38}},
+                    e("div",{style:{position:"absolute",width:12,height:8,background:"#F5F5F5",borderRadius:"50%",bottom:2}}),
+                    e("div",{style:{position:"absolute",width:4,height:4,background:"#333",borderRadius:"50%",bottom:3,left:2}}),
+                    e("div",{style:{position:"absolute",width:3,height:3,background:"#333",borderRadius:"50%",bottom:4,left:7}}),
+                    e("div",{style:{position:"absolute",width:2,height:3,background:"#F5F5F5",bottom:0,left:2}}),
+                    e("div",{style:{position:"absolute",width:2,height:3,background:"#F5F5F5",bottom:0,left:8}})
+                  ),
+                  // 牛 2（棕色）
+                  e("div",{style:{position:"absolute",bottom:0,left:52}},
+                    e("div",{style:{position:"absolute",width:10,height:7,background:"#8D6E63",borderRadius:"50%",bottom:2}}),
+                    e("div",{style:{position:"absolute",width:2,height:3,background:"#6D4C41",bottom:0,left:2}}),
+                    e("div",{style:{position:"absolute",width:2,height:3,background:"#6D4C41",bottom:0,left:6}})
+                  ),
+                  // 养牛场标签
+                  e("div",{style:{position:"absolute",bottom:22,left:2,fontSize:7,fontWeight:"bold",color:"#FFF",background:"#5D4037",padding:"1px 3px",borderRadius:2}},"养牛场")
+                ),
+                // 水稻田（2亩，左侧）
+                e("div",{style:{position:"absolute",bottom:5,left:75,zIndex:3}},
+                  // 田 1
+                  e("div",{style:{position:"absolute",bottom:0,left:0,width:28,height:18,background:"linear-gradient(135deg,#C8E6C9,#A5D6A7)",border:"1px solid #66BB6A",borderRadius:2}},
+                    // 稻穗
+                    e("div",{style:{position:"absolute",top:3,left:4,width:2,height:8,background:"#FDD835",borderRadius:"50% 50% 0 0"}}),
+                    e("div",{style:{position:"absolute",top:4,left:8,width:2,height:7,background:"#FBC02D",borderRadius:"50% 50% 0 0"}}),
+                    e("div",{style:{position:"absolute",top:3,left:12,width:2,height:8,background:"#FDD835",borderRadius:"50% 50% 0 0"}}),
+                    e("div",{style:{position:"absolute",top:5,left:16,width:2,height:6,background:"#FBC02D",borderRadius:"50% 50% 0 0"}}),
+                    e("div",{style:{position:"absolute",top:4,left:20,width:2,height:7,background:"#FDD835",borderRadius:"50% 50% 0 0"}}),
+                    e("div",{style:{position:"absolute",top:3,left:24,width:2,height:8,background:"#FBC02D",borderRadius:"50% 50% 0 0"}})
+                  ),
+                  // 田 2
+                  e("div",{style:{position:"absolute",bottom:0,left:30,width:28,height:18,background:"linear-gradient(135deg,#A5D6A7,#81C784)",border:"1px solid #66BB6A",borderRadius:2}},
+                    // 稻穗
+                    e("div",{style:{position:"absolute",top:4,left:4,width:2,height:7,background:"#FDD835",borderRadius:"50% 50% 0 0"}}),
+                    e("div",{style:{position:"absolute",top:3,left:8,width:2,height:8,background:"#FBC02D",borderRadius:"50% 50% 0 0"}}),
+                    e("div",{style:{position:"absolute",top:5,left:12,width:2,height:6,background:"#FDD835",borderRadius:"50% 50% 0 0"}}),
+                    e("div",{style:{position:"absolute",top:4,left:16,width:2,height:7,background:"#FBC02D",borderRadius:"50% 50% 0 0"}}),
+                    e("div",{style:{position:"absolute",top:3,left:20,width:2,height:8,background:"#FDD835",borderRadius:"50% 50% 0 0"}}),
+                    e("div",{style:{position:"absolute",top:5,left:24,width:2,height:6,background:"#FBC02D",borderRadius:"50% 50% 0 0"}})
+                  ),
+                  // 水稻田标签
+                  e("div",{style:{position:"absolute",bottom:20,left:15,fontSize:7,fontWeight:"bold",color:"#2E7D32",background:"#E8F5E9",padding:"1px 3px",borderRadius:2,border:"1px solid #A5D6A7"}},"水稻田 ×2")
+                ),
+                // 树 1（左）
+                e("div",{style:{position:"absolute",bottom:20,left:"40%",width:8,height:120,background:"linear-gradient(180deg,#6D4C20,#5D3A1A)",borderRadius:2,transform:"translateX(-50%)"}}),
+                // 树 2（右）
+                e("div",{style:{position:"absolute",bottom:20,left:"60%",width:8,height:120,background:"linear-gradient(180deg,#6D4C20,#5D3A1A)",borderRadius:2,transform:"translateX(-50%)"}}),
+                // 树丛文字（横向）
+                e("div",{style:{position:"absolute",bottom:110,left:"50%",transform:"translateX(-50%)",fontSize:12,fontWeight:"bold",color:"#FFD700",whiteSpace:"nowrap",textShadow:"0 0 4px rgba(0,0,0,0.6)",zIndex:3}},"QP Plugin广场"),
+                // 树冠 1（左，摇摆动画）
+                e("div",{style:{position:"absolute",bottom:130,left:"40%",width:80,height:60,background:"radial-gradient(ellipse,#4CAF50 0%,#388E3C 50%,#2E7D32 100%)",borderRadius:"50% 50% 40% 40%",transform:"translateX(-50%)",animation:"tcTreeSway 4s ease-in-out infinite"}},
+                  // 鸟巢
+                  e("div",{style:{position:"absolute",top:20,left:"50%",transform:"translateX(-50%)",width:24,height:12,background:"#8D6E20",borderRadius:"50% 50% 30% 30%",border:"2px solid #6D4C20",animation:"tcNestBuild 6s ease-in-out infinite"}})
+                ),
+                // 树冠 2（右，摇摆动画）
+                e("div",{style:{position:"absolute",bottom:130,left:"60%",width:70,height:55,background:"radial-gradient(ellipse,#66BB6A 0%,#43A047 50%,#2E7D32 100%)",borderRadius:"50% 50% 40% 40%",transform:"translateX(-50%)",animation:"tcTreeSway 4.5s ease-in-out infinite",animationDelay:"0.5s"}}
+                ),
+                // 鸟 1 — 叼树枝（从左飞到右）
+                e("div",{style:{position:"absolute",width:24,height:20,animation:"tcBirdFly1 6s linear infinite"}},
+                  e("div",{style:{position:"absolute",width:16,height:12,background:"#FF9800",borderRadius:"50% 50% 40% 40%",top:4,left:4}}),
+                  e("div",{style:{position:"absolute",width:10,height:10,background:"#FF9800",borderRadius:"50%",top:0,right:0}}),
+                  e("div",{style:{position:"absolute",width:3,height:3,background:"#333",borderRadius:"50%",top:3,right:3}}),
+                  e("div",{style:{position:"absolute",width:0,height:0,borderTop:"3px solid transparent",borderBottom:"3px solid transparent",borderLeft:"5px solid #FF5722",top:3,right:-4}}),
+                  e("div",{style:{position:"absolute",width:10,height:6,background:"#F57C00",borderRadius:"50%",top:6,left:2,transformOrigin:"left center",animation:"tcWingFlap 0.2s linear infinite"}}),
+                  e("div",{style:{position:"absolute",width:14,height:2,background:"#6D4C20",top:4,right:-14,borderRadius:1}})
+                ),
+                // 鸟 2 — 叼泥巴（从右飞到左）
+                e("div",{style:{position:"absolute",width:22,height:18,animation:"tcBirdFly2 6s linear infinite"}},
+                  e("div",{style:{position:"absolute",width:14,height:11,background:"#FFB74D",borderRadius:"50% 50% 40% 40%",top:3,left:4}}),
+                  e("div",{style:{position:"absolute",width:9,height:9,background:"#FFB74D",borderRadius:"50%",top:0,left:0}}),
+                  e("div",{style:{position:"absolute",width:2,height:2,background:"#333",borderRadius:"50%",top:3,left:2}}),
+                  e("div",{style:{position:"absolute",width:0,height:0,borderTop:"2px solid transparent",borderBottom:"2px solid transparent",borderRight:"4px solid #FF5722",top:3,left:-3}}),
+                  e("div",{style:{position:"absolute",width:9,height:5,background:"#F57C00",borderRadius:"50%",top:5,right:2,transformOrigin:"right center",animation:"tcWingFlap 0.25s linear infinite"}}),
+                  e("div",{style:{position:"absolute",width:8,height:6,background:"#795548",borderRadius:"50% 40% 40% 50%",top:2,left:-8}})
+                ),
+                // 树枝掉落动画
+                e("div",{style:{position:"absolute",top:10,left:"54%",width:10,height:2,background:"#6D4C20",borderRadius:1,animation:"tcTwigDrop 6s linear infinite"}}),
+                // 泥巴掉落动画
+                e("div",{style:{position:"absolute",top:8,left:"56%",width:6,height:5,background:"#795548",borderRadius:"50%",animation:"tcMudDrop 6s linear infinite"}}),
+                // 人物 1（左）— 蜂巢
+                e("div",{style:{position:"absolute",bottom:4,left:"36%",width:20,height:34}},
+                  e("div",{style:{position:"absolute",top:-18,left:"50%",transform:"translateX(-50%)",width:32,height:14,background:"#FFF9C4",borderRadius:"50%",border:"1px solid #F9A825",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,color:"#F57F17"}},"蜂巢"),
+                  e("div",{style:{position:"absolute",top:0,left:"50%",width:12,height:12,background:"#FFCC80",borderRadius:"50%",transform:"translateX(-50%)"}}),
+                  e("div",{style:{position:"absolute",top:12,left:"50%",width:14,height:16,background:"#42A5F5",borderRadius:"3px 3px 0 0",transform:"translateX(-50%)"}}),
+                  e("div",{style:{position:"absolute",bottom:0,left:"50%",width:14,height:8,transform:"translateX(-50%)"}},
+                    e("div",{style:{position:"absolute",width:5,height:8,background:"#1565C0",left:0,borderRadius:"0 0 2px 2px"}}),
+                    e("div",{style:{position:"absolute",width:5,height:8,background:"#1565C0",right:0,borderRadius:"0 0 2px 2px"}})
+                  )
+                ),
+                // 机器人（中）— 感叹号
+                e("div",{style:{position:"absolute",bottom:4,left:"50%",width:22,height:36,transform:"translateX(-50%)"}},
+                  e("div",{style:{position:"absolute",top:-18,left:"50%",transform:"translateX(-50%)",width:16,height:14,background:"#E8F5E9",borderRadius:"50%",border:"1px solid #4CAF50",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,color:"#2E7D32"}},"!"),
+                  e("div",{style:{position:"absolute",top:0,left:"50%",width:2,height:5,background:"#78909C",transform:"translateX(-50%)"}}),
+                  e("div",{style:{position:"absolute",top:0,left:"50%",width:4,height:4,background:"#EF5350",borderRadius:"50%",transform:"translateX(-50%)"}}),
+                  e("div",{style:{position:"absolute",top:4,left:"50%",width:14,height:12,background:"#90A4AE",borderRadius:"3px",transform:"translateX(-50%)"}}),
+                  e("div",{style:{position:"absolute",top:8,left:"50%",width:6,height:4,background:"#00E676",borderRadius:2,transform:"translateX(-50%)",boxShadow:"0 0 4px #00E676"}}),
+                  e("div",{style:{position:"absolute",top:16,left:"50%",width:16,height:14,background:"#B0BEC5",borderRadius:"4px",transform:"translateX(-50%)"}}),
+                  e("div",{style:{position:"absolute",top:19,left:"50%",width:8,height:6,background:"#263238",borderRadius:1,transform:"translateX(-50%)"}}),
+                  e("div",{style:{position:"absolute",bottom:0,left:"50%",width:14,height:8,transform:"translateX(-50%)"}},
+                    e("div",{style:{position:"absolute",width:5,height:8,background:"#78909C",left:0,borderRadius:"0 0 2px 2px"}}),
+                    e("div",{style:{position:"absolute",width:5,height:8,background:"#78909C",right:0,borderRadius:"0 0 2px 2px"}})
+                  )
+                ),
+                // 人物 2（右）— 鸟巢/Youchao 气泡交替
+                e("div",{style:{position:"absolute",bottom:4,left:"62%",width:20,height:34}},
+                  e("div",{style:{position:"absolute",top:-20,left:"50%",transform:"translateX(-50%)",width:48,height:14,background:"#E3F2FD",borderRadius:7,border:"1px solid #2196F3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:800,color:"#1565C0",letterSpacing:0.3,animation:"tcBubbleSwap 40s linear infinite"}},"Youchao"),
+                  e("div",{style:{position:"absolute",top:-20,left:"50%",transform:"translateX(-50%)",width:38,height:14,background:"#FFF3E0",borderRadius:7,border:"1px solid #FF9800",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:800,color:"#E65100",letterSpacing:0.3,animation:"tcBubbleSwap 40s linear 20s infinite"}},"鸟巢"),
+                  e("div",{style:{position:"absolute",top:0,left:"50%",width:12,height:12,background:"#FFCC80",borderRadius:"50%",transform:"translateX(-50%)"}}),
+                  e("div",{style:{position:"absolute",top:12,left:"50%",width:14,height:16,background:"#EF5350",borderRadius:"3px 3px 0 0",transform:"translateX(-50%)"}}),
+                  e("div",{style:{position:"absolute",bottom:0,left:"50%",width:14,height:8,transform:"translateX(-50%)"}},
+                    e("div",{style:{position:"absolute",width:5,height:8,background:"#C62828",left:0,borderRadius:"0 0 2px 2px"}}),
+                    e("div",{style:{position:"absolute",width:5,height:8,background:"#C62828",right:0,borderRadius:"0 0 2px 2px"}})
+                  )
+                ),
+                // 地面线
+                e("div",{style:{position:"absolute",bottom:4,left:0,width:"100%",height:1,background:"#9E9E9E",zIndex:5}}),
+                // 熟菜卡车
+                e("div",{style:{position:"absolute",bottom:5,width:52,height:22,animation:"tcTruckDrive 10s linear infinite",zIndex:6}},
+                  e("div",{style:{position:"absolute",bottom:0,left:0,width:40,height:18,background:"linear-gradient(180deg,#E8F5E9,#C8E6C9)",borderRadius:3,border:"1px solid #81C784"}}),
+                  e("div",{style:{position:"absolute",bottom:0,right:0,width:14,height:14,background:"#37474F",borderRadius:"3px 6px 2px 2px"}}),
+                  e("div",{style:{position:"absolute",bottom:0,right:2,width:10,height:10,background:"#546E7A",borderRadius:"2px 4px 1px 1px",top:1}}),
+                  e("div",{style:{position:"absolute",bottom:-3,left:8,width:8,height:8,background:"#333",borderRadius:"50%",border:"2px solid #555"}}),
+                  e("div",{style:{position:"absolute",bottom:-3,right:4,width:8,height:8,background:"#333",borderRadius:"50%",border:"2px solid #555"}}),
+                  e("div",{style:{position:"absolute",bottom:5,left:3,fontSize:7,fontWeight:900,color:"#1B5E20",textShadow:"0 0 1px rgba(255,255,255,0.8)",letterSpacing:0.5}},"Cshu"),
+                  e("div",{style:{position:"absolute",bottom:14,left:5,width:5,height:5,background:"#FFB74D",borderRadius:"50%"}}),
+                  e("div",{style:{position:"absolute",bottom:14,left:12,width:4,height:4,background:"#A5D6A7",borderRadius:"50%"}}),
+                  e("div",{style:{position:"absolute",bottom:14,left:18,width:5,height:4,background:"#FFCC80",borderRadius:"50%"}}),
+                  e("div",{style:{position:"absolute",bottom:1,left:1,width:38,height:1,background:"#66BB6A"}})
+                ),
+                // 大楼（右侧地面）
+                e("div",{style:{position:"absolute",bottom:5,right:20,zIndex:4}},
+                  // 主楼体
+                  e("div",{style:{position:"absolute",bottom:0,left:0,width:30,height:70,background:"linear-gradient(180deg,#78909C,#546E7A)",borderRadius:"3px 3px 0 0",border:"1px solid #455A64"}},
+                    // 窗户（4行3列）
+                    e("div",{style:{position:"absolute",top:6,left:4,width:5,height:5,background:"#FFF9C4",borderRadius:1,boxShadow:"0 0 3px #FFF176"}}),
+                    e("div",{style:{position:"absolute",top:6,left:12,width:5,height:5,background:"#FFF9C4",borderRadius:1,boxShadow:"0 0 3px #FFF176"}}),
+                    e("div",{style:{position:"absolute",top:6,left:20,width:5,height:5,background:"#FFF9C4",borderRadius:1,boxShadow:"0 0 3px #FFF176"}}),
+                    e("div",{style:{position:"absolute",top:16,left:4,width:5,height:5,background:"#E3F2FD",borderRadius:1}}),
+                    e("div",{style:{position:"absolute",top:16,left:12,width:5,height:5,background:"#FFF9C4",borderRadius:1,boxShadow:"0 0 3px #FFF176"}}),
+                    e("div",{style:{position:"absolute",top:16,left:20,width:5,height:5,background:"#E3F2FD",borderRadius:1}}),
+                    e("div",{style:{position:"absolute",top:26,left:4,width:5,height:5,background:"#FFF9C4",borderRadius:1,boxShadow:"0 0 3px #FFF176"}}),
+                    e("div",{style:{position:"absolute",top:26,left:12,width:5,height:5,background:"#E3F2FD",borderRadius:1}}),
+                    e("div",{style:{position:"absolute",top:26,left:20,width:5,height:5,background:"#FFF9C4",borderRadius:1,boxShadow:"0 0 3px #FFF176"}}),
+                    e("div",{style:{position:"absolute",top:36,left:4,width:5,height:5,background:"#E3F2FD",borderRadius:1}}),
+                    e("div",{style:{position:"absolute",top:36,left:12,width:5,height:5,background:"#FFF9C4",borderRadius:1,boxShadow:"0 0 3px #FFF176"}}),
+                    e("div",{style:{position:"absolute",top:36,left:20,width:5,height:5,background:"#E3F2FD",borderRadius:1}}),
+                    // 门
+                    e("div",{style:{position:"absolute",bottom:0,left:10,width:10,height:14,background:"#37474F",borderRadius:"3px 3px 0 0"}})
+                  ),
+                  // 楼顶天线
+                  e("div",{style:{position:"absolute",bottom:70,left:13,width:2,height:12,background:"#455A64"}}),
+                  e("div",{style:{position:"absolute",bottom:80,left:10,width:8,height:3,background:"#F44336",borderRadius:1}})
+                ),
+                // 蜜蜂 1
+                e("div",{style:{position:"absolute",top:25,left:60,width:10,height:8,animation:"tcBeeFly 3s ease-in-out infinite",zIndex:8}},
+                  e("div",{style:{position:"absolute",width:8,height:6,background:"#FFC107",borderRadius:"50%",left:1,top:1,border:"1px solid #F57F17"}}),
+                  e("div",{style:{position:"absolute",width:3,height:2,background:"rgba(255,255,255,0.7)",borderRadius:"50%",top:-1,left:2,transform:"rotate(-20deg)"}}),
+                  e("div",{style:{position:"absolute",width:3,height:2,background:"rgba(255,255,255,0.7)",borderRadius:"50%",top:-1,left:5,transform:"rotate(20deg)"}}),
+                  e("div",{style:{position:"absolute",width:1,height:4,background:"#333",top:1,left:3}}),
+                  e("div",{style:{position:"absolute",width:1,height:4,background:"#333",top:1,left:6}})
+                ),
+                // 蜜蜂 2
+                e("div",{style:{position:"absolute",top:40,left:180,width:10,height:8,animation:"tcBeeFly 4s ease-in-out infinite",animationDelay:"1s",zIndex:8}},
+                  e("div",{style:{position:"absolute",width:8,height:6,background:"#FFC107",borderRadius:"50%",left:1,top:1,border:"1px solid #F57F17"}}),
+                  e("div",{style:{position:"absolute",width:3,height:2,background:"rgba(255,255,255,0.7)",borderRadius:"50%",top:-1,left:2,transform:"rotate(-20deg)"}}),
+                  e("div",{style:{position:"absolute",width:3,height:2,background:"rgba(255,255,255,0.7)",borderRadius:"50%",top:-1,left:5,transform:"rotate(20deg)"}}),
+                  e("div",{style:{position:"absolute",width:1,height:4,background:"#333",top:1,left:3}}),
+                  e("div",{style:{position:"absolute",width:1,height:4,background:"#333",top:1,left:6}})
+                ),
+                // 蜜蜂 3
+                e("div",{style:{position:"absolute",top:15,left:320,width:10,height:8,animation:"tcBeeFly 3.5s ease-in-out infinite",animationDelay:"2s",zIndex:8}},
+                  e("div",{style:{position:"absolute",width:8,height:6,background:"#FFC107",borderRadius:"50%",left:1,top:1,border:"1px solid #F57F17"}}),
+                  e("div",{style:{position:"absolute",width:3,height:2,background:"rgba(255,255,255,0.7)",borderRadius:"50%",top:-1,left:2,transform:"rotate(-20deg)"}}),
+                  e("div",{style:{position:"absolute",width:3,height:2,background:"rgba(255,255,255,0.7)",borderRadius:"50%",top:-1,left:5,transform:"rotate(20deg)"}}),
+                  e("div",{style:{position:"absolute",width:1,height:4,background:"#333",top:1,left:3}}),
+                  e("div",{style:{position:"absolute",width:1,height:4,background:"#333",top:1,left:6}})
+                ),
+                // 0+1+23 标语
+                e("div",{style:{position:"absolute",bottom:4,right:8,fontSize:11,fontWeight:700,color:"rgba(42,47,69,0.15)",letterSpacing:0.5}},"0+1+2≠3")
+              )
+            )
+          )
+        ),
+        // 串串浏览器打开
+        chuanReady?e("div",{style:{marginBottom:6}},
+          e(Button,{size:"small",loading:chuanLaunching,onClick:function(){
+            setChuanLaunching(true);
+            fetch(getApiUrl("/team-chat/browser/launch"),{method:"POST",headers:{"Content-Type":"application/json"},
+              body:JSON.stringify({url:"https://agent.bh-jk.com/api/agent-share/chat/450729a6-f5a4-42a7-8433-984a93368cfc"})})
+              .then(function(r){return r.json();}).then(function(d){setChuanLaunching(false);})
+              .catch(function(){setChuanLaunching(false);});
+          },
+            style:{borderRadius:6,width:"100%",background:"linear-gradient(180deg,#E8F5E9,#C8E6C9,#81C784,#E8F5E9)",border:"1px solid #4CAF50",color:"#1B5E20",fontWeight:"bold",fontSize:11,padding:"4px 0"}},
+            "🌐 串串浏览器打开原创作者AI")
+        ):null,
+        // 快捷指令（更紧凑）
+        e("div",{style:{display:"flex",flexWrap:"wrap",gap:4,marginBottom:4,flexShrink:0}},
+          QUICK_COMMANDS.map(function(cmd){
+            return e(Button,{key:cmd.label,size:"small",onClick:function(){sendQuickCommand(cmd.text);},
+              style:{borderRadius:10,fontSize:10,padding:"2px 8px",background:"linear-gradient(180deg,#F3E5F5,#E1BEE7,#CE93D8,#E1BEE7)",border:"1px solid #AB47BC",color:"#6A1B9A"}},
+              cmd.label);
+          })
+        ),
+        // 聊天区
+        e("div",{ref:chatListRf,style:{flex:1,overflowY:"auto",padding:"4px 0",marginBottom:2}},
+          chatMsgs.length===0?e("div",{style:{color:"#BCAAA4",fontSize:13,textAlign:"center",paddingTop:20}},
+            e("div",null,"💬 与云服务器上的 CloudPaw-Master 对话"),
+            e("div",{style:{fontSize:11,marginTop:4}},"仅支持文字输入 · 团队智能体为您服务")
+          ):
+          chatMsgs.map(function(m,i){
+            var isUser = m.role==="user";
+            var isThinking = m.role==="thinking";
+            var isAssistant = m.role==="assistant";
+            // AI回复分段渲染
+            var contentEl = null;
+            if(isThinking){
+              contentEl = e("span",{className:"tc-thinking-dots"},e("span",null,"·"),e("span",null,"·"),e("span",null,"·"));
+            } else if(isAssistant){
+              // 按双换行或单换行分段，保持段落清晰
+              var paragraphs = (m.content||"").split(/\n/).filter(function(p){return p.trim()!=="";});
+              contentEl = e("div",{style:{display:"flex",flexDirection:"column",gap:6}},
+                paragraphs.map(function(p,pi){
+                  // 检测是否是列表项（以 - / * / 数字. 开头）
+                  var isListItem = /^[\s]*[-*\d]/.test(p);
+                  return e("div",{key:pi,style:{
+                    lineHeight:1.7,
+                    paddingLeft:isListItem?12:0,
+                    borderLeft:isListItem?"2px solid #FFCC80":"none"
+                  }},p);
+                })
+              );
+            } else {
+              contentEl = m.content;
+            }
+            return e("div",{key:i,style:{display:"flex",justifyContent:isUser?"flex-end":"flex-start",marginBottom:6}},
+              e("div",{style:{maxWidth:"85%",padding:"8px 12px",borderRadius:14,
+                background:isUser?"linear-gradient(135deg,#6D4C41,#8D6E63)":isThinking?"#E8F5E9":"#FFF8E1",
+                color:isUser?"#FFF8E1":isThinking?"#2E7D32":"#4E342E",fontSize:12,lineHeight:1.5,
+                border:isUser?"none":isThinking?"1px solid #A5D6A7":"1px solid #D7CCC8",
+                borderBottomRightRadius:isUser?4:12,borderBottomLeftRadius:isUser?12:4,
+                wordBreak:"break-word",whiteSpace:isAssistant?"normal":"pre-wrap"},className:isThinking?"tc-thinking":""},
+                contentEl
+              )
+            );
+          })
+        ),
+        // 输入栏（更贴近聊天区）
+        e("div",{style:{display:"flex",gap:6,alignItems:"flex-end",flexShrink:0,paddingTop:4}},
+          e(TextArea,{value:chatIn,onChange:function(ev){var v=ev.target.value;setChatIn(v);try{localStorage.setItem("teamchat_author_draft",v);}catch(e){}},
+            onFocus:function(){try{var saved=localStorage.getItem("teamchat_author_chat");if(saved)setChatMsgs(JSON.parse(saved));}catch(e){}},
+            onKeyDown:chatKeyDown,placeholder:"输入文字消息…",
+            autoSize:{minRows:1,maxRows:3},
+            disabled:chatLd,
+            style:{flex:1,borderRadius:14,fontSize:12}}),
+          chatLd?
+            e(Button,{danger:true,onClick:chatStop,style:{borderRadius:14,height:30,fontWeight:"bold",fontSize:11,
+              background:"linear-gradient(180deg,#c62828,#b71c1c,#a31515,#c62828)",border:"1px solid #8e0000",color:"#fff"}},"■ 停止"):
+            e(Button,{type:"primary",onClick:chatSend,disabled:!chatIn.trim(),
+              style:{borderRadius:14,height:30,fontWeight:"bold",fontSize:11,
+                background:"linear-gradient(180deg,#FFD54F,#FFC107,#FF8F00,#FFC107)",border:"1px solid #E65100",color:"#4E342E"}},"▶ 发送")
+        )
+      ):null,
+      // ========== Tab 4: 串串汇 — 智能体数据看板 ==========
+      tab==="settings"?e("div",{style:{display:"flex",flexDirection:"column",height:"100%",overflowY:"auto",padding:"0 4px"}},
+        // 顶部标题
+        e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}},
+          e("div",{style:{fontSize:16,fontWeight:"bold",color:"#4E342E"}},"📊 串串汇 · 智能体看板"),
+          e("div",{style:{fontSize:11,color:"#BDBDBD"}},"数据每30秒自动刷新")
+        ),
+        // 加载中
+        dashLoading&&!dashData?e("div",{style:{textAlign:"center",padding:"40px 0",color:"#BCAAA4"}},"⏳ 加载看板数据..."):
+        dashData?e("div",{style:{display:"flex",flexDirection:"column",gap:12}},
+          // ===== 智能体选择器 =====
+          e(Card,{size:"small",style:{borderRadius:14,background:"linear-gradient(135deg,#E8EAF6,#C5CAE9)",border:"1px solid #9FA8DA"}},
+            e("div",{style:{display:"flex",alignItems:"center",gap:12}},
+              e("div",{style:{fontSize:13,fontWeight:"bold",color:"#283593",whiteSpace:"nowrap"}},"🤖 选择智能体："),
+              e(Select,{
+                value:dashAgent||undefined,
+                placeholder:"选择智能体查看详细报告",
+                allowClear:true,
+                onChange:function(v){selectDashAgent(v||"");},
+                style:{flex:1,minWidth:200},
+                options:[
+                  {label:"📊 全部概览",value:""},
+                ].concat((allAgents||[]).map(function(a){
+                  var emoji = (a.id||"").indexOf("orchestrator")>=0?"🧠":
+                    (a.id||"").indexOf("executor")>=0?"⚡":
+                    (a.id||"").indexOf("verifier")>=0?"✅":
+                    (a.id||"").indexOf("a1")>=0?"🎯":
+                    (a.id||"").indexOf("a2")>=0?"📊":
+                    (a.id||"").indexOf("a3")>=0?"🔧":"🤖";
+                  // 从dashData中获取该智能体的统计信息
+                  var agentStats = (dashData&&dashData.agents||[]).find(function(x){return x.host_id===a.id;});
+                  var msgCount = agentStats?agentStats.msg_count:0;
+                  return {label:emoji+" "+(a.name||a.id)+(msgCount>0?" ("+msgCount+"条)":""),value:a.id};
+                }))
+              }),
+              e(Button,{size:"small",onClick:function(){setDashRefresh(function(n){return n+1;});},loading:dashLoading,
+                style:{borderRadius:16,background:"linear-gradient(180deg,#E3F2FD,#BBDEFB)",border:"1px solid #90CAF9",color:"#1565C0",fontSize:11,whiteSpace:"nowrap"}},
+                "🔄 刷新")
+            )
+          ),
+          // ===== 选中智能体的详细报告 =====
+          dashAgent&&agentDetailLoading?e("div",{style:{textAlign:"center",padding:"20px 0",color:"#BCAAA4"}},"⏳ 加载智能体报告..."):
+          dashAgent&&agentDetail?e("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+            // 智能体标题卡
+            e(Card,{style:{borderRadius:16,background:"linear-gradient(135deg,#E3F2FD,#BBDEFB,#90CAF9)",border:"2px solid #42A5F5",boxShadow:"0 4px 12px rgba(66,165,245,.2)"}},
+              e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                e("div",null,
+                  e("div",{style:{fontSize:18,fontWeight:"bold",color:"#0D47A1"}},agentDetail.host_name||agentDetail.host_id),
+                  e("div",{style:{fontSize:11,color:"#1565C0",marginTop:2}},agentDetail.host_id)
+                ),
+                e("div",{style:{textAlign:"right"}},
+                  e("div",{style:{fontSize:24,fontWeight:"bold",color:"#0D47A1"}},agentDetail.stats.msg_count),
+                  e("div",{style:{fontSize:11,color:"#1565C0"}},"总消息数")
+                )
+              )
+            ),
+            // 该智能体指标卡
+            e("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}},
+              e(Card,{size:"small",style:{borderRadius:12,background:"#E8F5E9",border:"1px solid #A5D6A7",textAlign:"center"}},
+                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#2E7D32"}},agentDetail.stats.count_12h),
+                e("div",{style:{fontSize:10,color:"#388E3C",marginTop:2}},"12h被问")
+              ),
+              e(Card,{size:"small",style:{borderRadius:12,background:"#E3F2FD",border:"1px solid #90CAF9",textAlign:"center"}},
+                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#1565C0"}},agentDetail.stats.count_7d),
+                e("div",{style:{fontSize:10,color:"#1976D2",marginTop:2}},"7天被问")
+              ),
+              e(Card,{size:"small",style:{borderRadius:12,background:"#FFF3E0",border:"1px solid #FFCC80",textAlign:"center"}},
+                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#E65100"}},agentDetail.stats.session_count),
+                e("div",{style:{fontSize:10,color:"#EF6C00",marginTop:2}},"总会话")
+              ),
+              e(Card,{size:"small",style:{borderRadius:12,background:"#F3E5F5",border:"1px solid #CE93D8",textAlign:"center"}},
+                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#6A1B9A"}},agentDetail.stats.brainstorm_count),
+                e("div",{style:{fontSize:10,color:"#7B1FA2",marginTop:2}},"头脑风暴")
+              )
+            ),
+            // 该智能体的会话列表
+            e(Card,{size:"small",style:{borderRadius:14,background:"#FFFFFF",border:"1px solid #E0E0E0"}},
+              e("div",{style:{fontSize:13,fontWeight:"bold",color:"#4E342E",marginBottom:8}},"📂 与该智能体的对话记录"),
+              agentDetail.sessions.length>0?
+                e("div",{style:{display:"flex",flexDirection:"column",gap:4}},
+                  agentDetail.sessions.map(function(s,i){
+                    var t = new Date(s.updated_at*1000);
+                    var timeStr = t.getFullYear()+"/"+(t.getMonth()+1)+"/"+t.getDate()+" "+String(t.getHours()).padStart(2,"0")+":"+String(t.getMinutes()).padStart(2,"0");
+                    return e("div",{key:i,style:{
+                      padding:"8px 10px",borderRadius:8,
+                      background:i%2===0?"#FAFAFA":"#FFFFFF",
+                      border:"1px solid #F0F0F0"
+                    }},
+                      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}},
+                        e("div",{style:{display:"flex",alignItems:"center",gap:6}},
+                          s.brainstorm?e("span",{style:{fontSize:10,padding:"1px 6px",borderRadius:6,background:"#F3E5F5",color:"#7B1FA2"}},"💡 风暴"):null,
+                          s.tag?e("span",{style:{fontSize:10,padding:"1px 6px",borderRadius:6,background:"#FFF3E0",color:"#E65100"}},s.tag):null,
+                          e("span",{style:{fontSize:11,color:"#8D6E63"}},s.msg_count+"条消息")
+                        ),
+                        e("span",{style:{fontSize:10,color:"#BDBDBD"}},timeStr)
+                      ),
+                      e("div",{style:{fontSize:11,color:"#78909C",lineHeight:1.4,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}},
+                        s.last_message||"(空消息)")
+                    );
+                  })
+                ):
+                e("div",{style:{textAlign:"center",padding:"12px 0",color:"#BDBDBD",fontSize:12}},"暂无与该智能体的对话")
+            )
+          ):null,
+          // ===== 第一行：核心指标卡片 =====
+          e("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}},
+            // 总对话次数
+            e(Card,{size:"small",style:{borderRadius:14,background:"linear-gradient(135deg,#E8F5E9,#C8E6C9)",border:"1px solid #A5D6A7",textAlign:"center"}},
+              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#2E7D32"}},dashData.summary.total_messages),
+              e("div",{style:{fontSize:11,color:"#388E3C",marginTop:2}},"📝 总消息数")
+            ),
+            // 活跃会话
+            e(Card,{size:"small",style:{borderRadius:14,background:"linear-gradient(135deg,#E3F2FD,#BBDEFB)",border:"1px solid #90CAF9",textAlign:"center"}},
+              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#1565C0"}},dashData.summary.active_12h),
+              e("div",{style:{fontSize:11,color:"#1976D2",marginTop:2}},"⚡ 12h活跃")
+            ),
+            // 智能体数
+            e(Card,{size:"small",style:{borderRadius:14,background:"linear-gradient(135deg,#FFF3E0,#FFE0B2)",border:"1px solid #FFCC80",textAlign:"center"}},
+              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#E65100"}},dashData.summary.agent_count),
+              e("div",{style:{fontSize:11,color:"#EF6C00",marginTop:2}},"🤖 智能体")
+            ),
+            // 头脑风暴
+            e(Card,{size:"small",style:{borderRadius:14,background:"linear-gradient(135deg,#F3E5F5,#E1BEE7)",border:"1px solid #CE93D8",textAlign:"center"}},
+              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#6A1B9A"}},dashData.summary.brainstorm_total),
+              e("div",{style:{fontSize:11,color:"#7B1FA2",marginTop:2}},"💡 头脑风暴")
+            )
+          ),
+          // ===== 第二行：智能体活跃度表 =====
+          e(Card,{size:"small",style:{borderRadius:14,background:"#FFFFFF",border:"1px solid #E0E0E0"}},
+            e("div",{style:{fontSize:13,fontWeight:"bold",color:"#4E342E",marginBottom:8}},"🤖 智能体活跃度"),
+            e("div",{style:{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",gap:0,fontSize:11}},
+              // 表头
+              e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0"}},"智能体"),
+              e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0",textAlign:"center"}},"12h调用"),
+              e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0",textAlign:"center"}},"7天调用"),
+              e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0",textAlign:"center"}},"总消息"),
+              e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0",textAlign:"center"}},"风暴次数"),
+              // 数据行
+              dashData.agents.map(function(a,i){
+                return [
+                  e("div",{key:"n"+i,style:{padding:"6px 8px",borderBottom:"1px solid #F0F0F0",color:"#4E342E"}},
+                    e("span",{style:{fontWeight:500}},a.host_name||a.host_id)),
+                  e("div",{key:"h"+i,style:{padding:"6px 8px",borderBottom:"1px solid #F0F0F0",textAlign:"center"}},
+                    e("span",{style:{
+                      display:"inline-block",padding:"2px 8px",borderRadius:10,fontSize:11,fontWeight:"bold",
+                      background:a.count_12h>0?"#E8F5E9":"#F5F5F5",
+                      color:a.count_12h>0?"#2E7D32":"#BDBDBD"
+                    }},a.count_12h)),
+                  e("div",{key:"d"+i,style:{padding:"6px 8px",borderBottom:"1px solid #F0F0F0",textAlign:"center"}},
+                    e("span",{style:{
+                      display:"inline-block",padding:"2px 8px",borderRadius:10,fontSize:11,fontWeight:"bold",
+                      background:a.count_7d>0?"#E3F2FD":"#F5F5F5",
+                      color:a.count_7d>0?"#1565C0":"#BDBDBD"
+                    }},a.count_7d)),
+                  e("div",{key:"m"+i,style:{padding:"6px 8px",borderBottom:"1px solid #F0F0F0",textAlign:"center",color:"#5D4037"}},a.msg_count),
+                  e("div",{key:"b"+i,style:{padding:"6px 8px",borderBottom:"1px solid #F0F0F0",textAlign:"center"}},
+                    a.brainstorm_count>0?
+                      e("span",{style:{color:"#7B1FA2",fontWeight:"bold"}},"💡 "+a.brainstorm_count):
+                      e("span",{style:{color:"#BDBDBD"}},"-"))
+                ];
+              }).flat()
+            )
+          ),
+          // ===== 第三行：功能使用 + 最近活跃会话 =====
+          e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+            // 功能使用统计
+            e(Card,{size:"small",style:{borderRadius:14,background:"linear-gradient(135deg,#FFFDE7,#FFF9C4)",border:"1px solid #FFF176"}},
+              e("div",{style:{fontSize:13,fontWeight:"bold",color:"#F57F17",marginBottom:8}},"📈 功能使用"),
+              e("div",{style:{display:"flex",flexDirection:"column",gap:6}},
+                e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                  e("span",{style:{fontSize:12,color:"#5D4037"}},"⚡ 12h内对话"),
+                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#E65100"}},dashData.summary.active_12h+"次")
+                ),
+                e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                  e("span",{style:{fontSize:12,color:"#5D4037"}},"📅 7天内对话"),
+                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#1565C0"}},dashData.summary.active_7d+"次")
+                ),
+                e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                  e("span",{style:{fontSize:12,color:"#5D4037"}},"💡 12h头脑风暴"),
+                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#7B1FA2"}},dashData.summary.brainstorm_12h+"次")
+                ),
+                e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                  e("span",{style:{fontSize:12,color:"#5D4037"}},"💡 7天头脑风暴"),
+                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#7B1FA2"}},dashData.summary.brainstorm_7d+"次")
+                ),
+                e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                  e("span",{style:{fontSize:12,color:"#5D4037"}},"📂 总会话数"),
+                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#4E342E"}},dashData.summary.total_sessions)
+                )
+              )
+            ),
+            // ===== 最近活跃会话（右侧） =====
+            e(Card,{size:"small",style:{borderRadius:14,background:"#FFFFFF",border:"1px solid #E0E0E0"}},
+              e("div",{style:{fontSize:13,fontWeight:"bold",color:"#4E342E",marginBottom:8}},"🕐 最近活跃会话"),
+              dashData.recent_sessions.length>0?
+                e("div",{style:{display:"flex",flexDirection:"column",gap:4}},
+                  dashData.recent_sessions.map(function(s,i){
+                    var t = new Date(s.updated_at*1000);
+                    var timeStr = t.getMonth()+1+"/"+t.getDate()+" "+String(t.getHours()).padStart(2,"0")+":"+String(t.getMinutes()).padStart(2,"0");
+                    return e("div",{key:i,style:{
+                      display:"flex",justifyContent:"space-between",alignItems:"center",
+                      padding:"6px 10px",borderRadius:8,
+                      background:i%2===0?"#FAFAFA":"#FFFFFF",
+                      border:"1px solid #F0F0F0"
+                    }},
+                      e("div",{style:{display:"flex",alignItems:"center",gap:6}},
+                        s.brainstorm?e("span",{style:{fontSize:10}},"💡"):null,
+                        e("span",{style:{fontSize:12,color:"#4E342E",fontWeight:500}},s.host_name||"未知"),
+                        s.tag?e("span",{style:{fontSize:10,padding:"1px 6px",borderRadius:6,background:"#FFF3E0",color:"#E65100"}},s.tag):null
+                      ),
+                      e("div",{style:{display:"flex",alignItems:"center",gap:8}},
+                        e("span",{style:{fontSize:11,color:"#8D6E63"}},s.msg_count+"条消息"),
+                        e("span",{style:{fontSize:11,color:"#BDBDBD"}},timeStr)
+                      )
+                    );
+                  })
+                ):
+                e("div",{style:{textAlign:"center",padding:"12px 0",color:"#BDBDBD",fontSize:12}},"暂无活跃会话"),
+              // 更新时间
+              e("div",{style:{fontSize:10,color:"#BDBDBD",marginTop:8,textAlign:"right"}},
+                "上次更新: "+new Date(dashData.generated_at*1000).toLocaleTimeString()+" · 每30秒自动刷新")
+            )
+          ),
+          // ===== 关于串串 =====
+          e(Card,{style:{borderRadius:16,background:"#F3E5F5",border:"1px solid #CE93D8"}},
+            e("div",{style:{fontSize:13,fontWeight:"bold",color:"#6A1B9A",marginBottom:6}},"🎯 关于串串"),
+            e("div",{style:{fontSize:12,color:"#7B1FA2",lineHeight:1.6}},
+              e("div",null,"串串是 0+1+2≠3 Team 的理念伙伴，致力于用温暖的方式连接人与 AI。"),
+              e("div",{marginTop:8,marginBottom:4,fontWeight:"bold",color:"#6A1B9A"},"🌀 0123的道家智慧"),
+              e("div",{style:{fontSize:11,color:"#8E24AA",marginBottom:6}},
+                e("div",{style:{marginBottom:4}},
+                  e("span",{style:{fontWeight:"bold"}},"核心公式: "),
+                  "0 → 1 + 2 ≠ 3 → ∞"
+                ),
+                e("div",{style:{paddingLeft:8}},
+                  e("div",null,"• 0: 社会底层起点，一无所有但包含无限可能"),
+                  e("div",null,"• 1: 屌丝的觉醒，产生改变意愿"),
+                  e("div",null,"• 2: AI团队能力，提供执行力量"),
+                  e("div",null,"• ≠3: 协作化学反应，超越简单相加"),
+                  e("div",null,"• ∞: 无限循环的健康生活进化")
+                )
+              ),
+              e("div",{marginTop:6,fontStyle:"italic"},"\"从出纳到 AI Agent 开发者，每一步都算数。\"—— 串串")
+            )
+          )
+        ):e("div",{style:{textAlign:"center",padding:"40px 0",color:"#EF5350"}},"❌ 加载失败，请点击刷新重试")
+      ):null,
+    )
+  );
+}
+// =================== MusicEditor (v4.1.0) ===================
+  function MusicEditor() {
+    var _ns = useState("5353531 24325 5353531 24321"), notation = _ns[0], setNotation = _ns[1];
+    var _sc = useState("pentatonic"), scale = _sc[0], setScale = _sc[1];
+    var _pl = useState(false), playing = _pl[0], setPlaying = _pl[1];
+    var _pr = useState(null), preview = _pr[0], setPreview = _pr[1];
+    var _ac = useState(false), audioCtx = _ac[0], setAudioCtx = _ac[1];
+    var timersRef = useRef([]);
+
+    var P = [0,261.63,293.66,329.63,392.00,440.00,523.25];
+    var PD = [0,261.63,293.66,329.63,349.23,392.00,440.00,493.88,523.25,587.33];
+
+    var PRESETS = [
+      {name:"粉刷匠",scale:"pentatonic",raw:"5353531 24325 5353531 24321"},
+      {name:"小星星",scale:"diatonic",raw:"1155665 4433221 5544332 5544332 1155665 4433221"},
+      {name:"生日歌",scale:"diatonic",raw:"556517 556521 5553176 443121"},
+      {name:"茉莉花",scale:"pentatonic",raw:"1111151112 5555555555 4444333333"},
+      {name:"欢乐颂",scale:"diatonic",raw:"334554321123322 334554321123211"},
+      {name:"自定义",scale:"pentatonic",raw:""}
+    ];
+    var _pi = useState(0), presetIdx = _pi[0], setPresetIdx = _pi[1];
+
+    function getAudioCtx() {
+      if (!audioCtx) {
+        var C = window.AudioContext || window.webkitAudioContext;
+        var ctx = new C();
+        setAudioCtx(ctx);
+        return ctx;
+      }
+      return audioCtx;
+    }
+
+    function parseNotation(raw, sc) {
+      var T = sc==="pentatonic" ? P : PD;
+      var seq = [];
+      var lines = raw.split(/\s+/);
+      lines.forEach(function(line, li) {
+        line.split("").forEach(function(ch, ci) {
+          var n = parseInt(ch,10);
+          if (isNaN(n) || n<=0 || n>=T.length) return;
+          var freq = T[n];
+          var isLast = li===lines.length-1 && ci===line.length-1;
+          seq.push([freq, isLast?0.35:0.15, isLast?0.35:0.04]);
+        });
+        if (li<lines.length-1 && seq.length>0) seq[seq.length-1][2] = 0.25;
+      });
+      return seq;
+    }
+
+    function previewNote(num) {
+      var T = scale==="pentatonic" ? P : PD;
+      if (num<1 || num>=T.length) return;
+      var ctx = getAudioCtx();
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = T[num];
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime+0.3);
+    }
+
+    function playNotation() {
+      if (playing) { stopNotation(); return; }
+      var seq = parseNotation(notation, scale);
+      if (seq.length===0) return;
+      var ctx = getAudioCtx();
+      setPlaying(true);
+      var t = ctx.currentTime + 0.05;
+      timersRef.current = [];
+      seq.forEach(function(item) {
+        var freq = item[0], dur = item[1], gap = item[2];
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.25, t+0.02);
+        gain.gain.setValueAtTime(0.25, t+dur-0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t+dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t+dur+0.01);
+        t += dur + gap;
+      });
+      var totalMs = (t - ctx.currentTime) * 1000;
+      var tid = setTimeout(function() { setPlaying(false); }, totalMs + 50);
+      timersRef.current.push(tid);
+    }
+
+    function stopNotation() {
+      timersRef.current.forEach(function(id) { clearTimeout(id); });
+      timersRef.current = [];
+      setPlaying(false);
+    }
+
+    function loadPreset(idx) {
+      setPresetIdx(idx);
+      if (PRESETS[idx].raw) {
+        setNotation(PRESETS[idx].raw);
+        setScale(PRESETS[idx].scale);
+      }
+    }
+
+    useEffect(function() {
+      return function() { stopNotation(); };
+    }, []);
+
+    var noteCount = (notation.match(/\d/g)||[]).length;
+    var T = scale==="pentatonic" ? P : PD;
+
+    return e("div", null,
+      // Scale selector
+      e("div",{style:{display:"flex",gap:8,marginBottom:12,alignItems:"center"}},
+        e("span",{style:{fontSize:12,fontWeight:600,color:"#4A148C"}},"音阶:"),
+        e(Select,{value:scale,onChange:function(v){setScale(v);},size:"small",style:{width:110},
+          options:[
+            {value:"pentatonic",label:"五声音阶 (1-6)"},
+            {value:"diatonic",label:"全音阶 (1-9)"}
+          ]
+        }),
+        e("span",{style:{fontSize:11,color:"#999"}},noteCount+" 个音符")
+      ),
+      // Preset buttons
+      e("div",{style:{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}},
+        PRESETS.map(function(p,i) {
+          return e(Button,{key:i,size:"small",
+            type:presetIdx===i?"primary":"default",
+            onClick:function(){loadPreset(i);},
+            style:{
+              borderRadius:12,fontSize:11,
+              background:presetIdx===i?"linear-gradient(135deg,#9C27B0,#BA68C8)":"#f5f5f5",
+              border:presetIdx===i?"1px solid #9C27B0":"1px solid #d9d9d9",
+              color:presetIdx===i?"#fff":"#666"
+            }
+          },p.name);
+        })
+      ),
+      // Notation input
+      e("div",{style:{marginBottom:12}},
+        e(TextArea,{
+          value:notation,
+          onChange:function(ev){setNotation(ev.target.value);setPresetIdx(-1);},
+          placeholder:"输入简谱... 例如: 5353531 24325\n数字1-6(五声)或1-9(全音), 空格分组, 非数字自动跳过",
+          rows:4,
+          style:{
+            fontFamily:"'Courier New',monospace",fontSize:14,fontWeight:600,
+            letterSpacing:2,borderRadius:16,
+            background:"#FAFAFA",border:"1px solid #CE93D8"
+          }
+        })
+      ),
+      // Play controls
+      e("div",{style:{display:"flex",gap:8,justifyContent:"center",marginBottom:12}},
+        e(Button,{
+          type:playing?"default":"primary",
+          onClick:playNotation,
+          disabled:!notation.trim(),
+          style:{
+            width:120,height:40,borderRadius:20,fontSize:14,fontWeight:700,
+            background:playing?"#f5f5f5":"linear-gradient(135deg,#9C27B0,#7B1FA2)",
+            border:playing?"1px solid #d9d9d9":"none",
+            color:playing?"#666":"#fff",
+            boxShadow:playing?"none":"0 4px 12px rgba(156,39,176,.4)"
+          }
+        },playing?"⏸ 暂停":"▶ 播放"),
+        e(Button,{
+          onClick:stopNotation,
+          disabled:!playing,
+          style:{
+            width:80,height:40,borderRadius:20,fontSize:14,
+            background:"#f5f5f5",border:"1px solid #d9d9d9",color:"#666"
+          }
+        },"⏹ 停止")
+      ),
+      // Quick guide
+      e("div",{style:{padding:"10px 14px",background:"linear-gradient(135deg,#F3E5F5,#E8EAF6)",borderRadius:8,border:"1px dashed #CE93D8"}},
+        e("div",{style:{fontSize:11,color:"#6A1B9A",fontWeight:600,marginBottom:6}},"📖 简谱入门"),
+        e("div",{style:{fontSize:11,color:"#7B1FA2",lineHeight:1.8}},
+          "• 数字 = 音符 (1=Do, 2=Re, 3=Mi ...)\n"+
+          "• 空格 = 分组停顿 (相当于逗号)\n"+
+          "• 非数字字符自动忽略 (可写歌词)\n"+
+          "• 五声音阶: 1-6 → 中国风/民谣\n"+
+          "• 全音阶: 1-9 → 流行/古典"
+        )
+      )
+    );
+  }
+
   // =================== State ===================
   function TeamChatPage() {
+    // [v4.2.0] 串串频道内嵌视图: true → ChuanChuanPage, false → TeamChatPage
+    var _cv = useState(false), chuanView = _cv[0], setChuanView = _cv[1];
     var _s = useState(""), si = _s[0], setSi = _s[1];
     // ---- 📑 多标签页 ----
     var _tabs = useState([]), tabs = _tabs[0], setTabs = _tabs[1];
@@ -240,6 +2205,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
     var _rc = useState(""), readmeC = _rc[0], setReadmeC = _rc[1];
     // ---- 轻音乐 ----
     var _mu = useState(false), musicOn = _mu[0], setMusicOn = _mu[1];
+    var _mv = useState(function(){ try { return parseFloat(localStorage.getItem("teamchat_music_vol")||"0.5"); } catch(e) { return 0.5; } }), musicVol = _mv[0], setMusicVol = _mv[1];
     var _rp = useState(false), replayV = _rp[0], setReplayV = _rp[1];
     var _ri = useState(0), replayIdx = _ri[0], setReplayIdx = _ri[1];
     var _rpl = useState(false), replayPl = _rpl[0], setReplayPl = _rpl[1];
@@ -321,6 +2287,32 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
         setChEnabled(Array.isArray(d.channels)?d.channels:[]);
       }).catch(function () {});
       return function () { cancelled = true; };
+    }, []);
+
+    // 📡 监听串串频道事件（加载会话 / PPT回放）
+    useEffect(function () {
+      function onLoadSess(ev) {
+        var si = ev.detail && ev.detail.session_id;
+        if (!si) return;
+        apiGet("/session/"+si).then(function (r) {
+          updateSi(r.session_id); setHist(r.history||[]); setStps(r.host_steps||[]);
+          setHid(r.host_id||"cloud-orchestrator"); setHnm(r.host_name||"CloudPaw-Master");
+          if (r.agent_ids && r.agent_ids.length>0) setSel(r.agent_ids);
+          saveTab();
+          setTabs(function(p){return p.map(function(t){if(t.id!==activeTabRef.current)return t;return Object.assign({},t,{si:r.session_id,hist:r.history||[],stps:r.host_steps||[],sel:r.agent_ids||t.sel||[]});});});
+        }).catch(function(e){message.error("加载会话失败: "+e.message);});
+      }
+      function onPPTPlay(ev) {
+        var si = ev.detail && ev.detail.session_id;
+        if (!si) return;
+        openPPT(si);
+      }
+      window.addEventListener("teamchat-load-session", onLoadSess);
+      window.addEventListener("teamchat-ppt-play", onPPTPlay);
+      return function () {
+        window.removeEventListener("teamchat-load-session", onLoadSess);
+        window.removeEventListener("teamchat-ppt-play", onPPTPlay);
+      };
     }, []);
 
     // 💾 从 localStorage 加载历史会谈缓存（不依赖后端 API）
@@ -904,6 +2896,13 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       }).catch(function (e) { setDiscLd(false); message.error(e.message); });
     }, [si,hid,hnm]);
 
+    // ================================================================
+    //  [v4.1.0] 🎵 轻音乐引擎 — 数字简谱播放 + 音量控制 + 停止按钮
+    //  7首内置曲目(茉莉花/欢乐颂/天空之城/小苹果/童话/北京欢迎你/粉刷匠)
+    //  parseNotation → 解析数字简谱 → AudioContext triangle 三角波播放
+    //  volRf 音量 ref(同步 localStorage teamchat_music_vol, 0.1-1.0)
+    //  Popover UI: ▶正在播放指示 + 曲目列表 + 🔊音量滑块 + ⏹停止按钮 + ✏️自定义
+    // ================================================================
     // =================== 🎵 轻音乐引擎 ===================
     var P = [0,261.63,293.66,329.63,392.00,440.00,523.25]; // 五声音阶: 1=C 2=D 3=E 4=G 5=A 6=C5
     var PD = [0,261.63,293.66,329.63,349.23,392.00,440.00,493.88,523.25,587.33]; // 全音阶: 1=C 2=D 3=E 4=F 5=G 6=A 7=B 8=C5 9=D5
@@ -946,6 +2945,8 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       return parseNotation(custSong||"111111", "diatonic");
     }
     var musicRef = useRef(null);
+    var volRf = useRef(function(){ try { return parseFloat(localStorage.getItem("teamchat_music_vol")||"0.5"); } catch(e) { return 0.5; } }());
+    useEffect(function(){ volRf.current = musicVol; }, [musicVol]);
     var toggleMusic = useCallback(function () {
       if (musicRef.current) {
         musicRef.current.stopped = true; clearTimeout(musicRef.current.timer); musicRef.current.osc.forEach(function(o){try{o.stop();}catch(e){}}); musicRef.current=null; setMusicOn(false); return;
@@ -962,8 +2963,9 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
         var osc = ctx.createOscillator(), gain = ctx.createGain();
         osc.type = "triangle"; osc.frequency.value = freq;
         gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime+0.04);
-        gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime+dur-0.04);
+        var v = volRf.current||0.5;
+        gain.gain.linearRampToValueAtTime(v, ctx.currentTime+0.04);
+        gain.gain.linearRampToValueAtTime(v, ctx.currentTime+dur-0.04);
         gain.gain.linearRampToValueAtTime(0, ctx.currentTime+dur);
         osc.connect(gain); gain.connect(ctx.destination);
         osc.start(); osc.stop(ctx.currentTime+dur);
@@ -1118,6 +3120,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       };
     }, []);
     // =================== Layout / Main Render ===================
+    if(chuanView) return e(ChuanChuanPage,{onBack:function(){setChuanView(false);}});
     return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
       e("div",{style:{display:"flex",flexDirection:"row",height:"100%",fontFamily:"system-ui, sans-serif"}},
       e("div",{style:{flex:1,display:"flex",flexDirection:"column",position:"relative",overflow:"hidden",background:uiTheme==="day"?"#fefefe":"#12121a"}},
@@ -1142,7 +3145,45 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
           e(Popover,{content:e("div",{style:{padding:4}},e("div",null,e(Text,{style:{fontSize:11}},"🖥 IP: "),e(Text,{code:true,style:{fontSize:11}},sysIp||"---")),e("div",null,e(Text,{style:{fontSize:11}},"🕐 "+clock))),trigger:"hover"},
             e(Text,{style:{fontSize:16,cursor:"default"}},"🕐")
           ),
-          e("a",{href:"https://platform.agentscope.io/plugins/team_chat",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#1890ff",textDecoration:"none",cursor:"pointer"}},"TeamChat版本更新")
+          e("a",{href:"https://platform.agentscope.io/plugins/team_chat",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#1890ff",textDecoration:"none",cursor:"pointer"}},"TeamChat 版本更新"),
+          // 主界面动画区域（右上角）
+          e("div",{style:{position:"relative",width:200,height:100,marginLeft:"auto",background:"linear-gradient(135deg,#E3F2FD,#BBDEFB)",borderRadius:8,border:"1px solid #90CAF9",overflow:"hidden"}},
+            // 无人机（上方）
+            e("div",{style:{position:"absolute",top:5,width:80,height:40,animation:"tcMainDrone 8s linear infinite",zIndex:2}},
+              e("div",{style:{position:"absolute",width:60,height:24,background:"linear-gradient(180deg,#424242,#212121)",borderRadius:3,left:10,top:8}}),
+              e("div",{style:{position:"absolute",width:16,height:16,background:"#757575",borderRadius:"50%",left:0,top:4}}),
+              e("div",{style:{position:"absolute",width:16,height:16,background:"#757575",borderRadius:"50%",right:0,top:4}}),
+              e("div",{style:{position:"absolute",width:40,height:16,background:"#FF5722",borderRadius:2,left:20,top:12,display:"flex",alignItems:"center",justifyContent:"center"}},
+                e("span",{style:{fontSize:12,fontWeight:"bold",color:"#FFF",whiteSpace:"nowrap"}},"摇摇舞 886")
+              )
+            ),
+            // 蔬菜货车（下方）
+            e("div",{style:{position:"absolute",bottom:5,width:90,height:40,animation:"tcMainTruck 10s linear infinite",zIndex:1}},
+              e("div",{style:{position:"absolute",bottom:0,left:0,width:60,height:30,background:"linear-gradient(180deg,#66BB6A,#43A047)",borderRadius:2,border:"1px solid #2E7D32"}}),
+              e("div",{style:{position:"absolute",bottom:0,right:0,width:24,height:24,background:"#37474F",borderRadius:"2px 4px 1px 1px"}}),
+              e("div",{style:{position:"absolute",bottom:-4,left:12,width:12,height:12,background:"#333",borderRadius:"50%",border:"1px solid #555"}}),
+              e("div",{style:{position:"absolute",bottom:-4,right:4,width:12,height:12,background:"#333",borderRadius:"50%",border:"1px solid #555"}}),
+              e("div",{style:{position:"absolute",bottom:8,left:4,fontSize:12,fontWeight:900,color:"#FFF",textShadow:"0 0 1px rgba(0,0,0,0.5)"}},"Cshu"),
+              e("div",{style:{position:"absolute",bottom:20,left:8,width:8,height:8,background:"#FFB74D",borderRadius:"50%"}}),
+              e("div",{style:{position:"absolute",bottom:20,left:20,width:6,height:6,background:"#A5D6A7",borderRadius:"50%"}}),
+              e("div",{style:{position:"absolute",bottom:20,left:30,width:8,height:6,background:"#FFCC80",borderRadius:"50%"}})
+            ),
+            // 高房子（左侧）
+            e("div",{style:{position:"absolute",bottom:5,left:5,zIndex:3}},
+              e("div",{style:{position:"absolute",bottom:0,left:0,width:20,height:45,background:"linear-gradient(180deg,#FFF9C4,#FFE082)",border:"1px solid #FFB300",borderRadius:"2px 2px 0 0"}}),
+              e("div",{style:{position:"absolute",bottom:43,left:-2,width:24,height:6,background:"#D84315",borderRadius:"2px",clipPath:"polygon(0 100%,50% 0,100% 100%)"}}),
+              e("div",{style:{position:"absolute",bottom:30,left:6,width:8,height:10,background:"#81D4FA",border:"1px solid #4FC3F7",borderRadius:1}}),
+              e("div",{style:{position:"absolute",bottom:15,left:6,width:8,height:10,background:"#81D4FA",border:"1px solid #4FC3F7",borderRadius:1}}),
+              e("div",{style:{position:"absolute",bottom:0,left:7,width:6,height:10,background:"#5D4037",borderRadius:"2px 2px 0 0"}})
+            ),
+            // 矮房子（右侧）
+            e("div",{style:{position:"absolute",bottom:5,left:30,zIndex:3}},
+              e("div",{style:{position:"absolute",bottom:0,left:0,width:18,height:25,background:"linear-gradient(180deg,#FFCCBC,#FF8A65)",border:"1px solid #E64A19",borderRadius:"2px 2px 0 0"}}),
+              e("div",{style:{position:"absolute",bottom:23,left:-1,width:20,height:5,background:"#5D4037",borderRadius:"2px",clipPath:"polygon(0 100%,50% 0,100% 100%)"}}),
+              e("div",{style:{position:"absolute",bottom:12,left:5,width:8,height:8,background:"#FFF9C4",border:"1px solid #FFB300",borderRadius:1}}),
+              e("div",{style:{position:"absolute",bottom:0,left:5,width:6,height:8,background:"#5D4037",borderRadius:"2px 2px 0 0"}})
+            )
+          )
         ),
         e("div",{style:{marginBottom:4}},
           agLd?e(Spin,{size:"small",style:{marginLeft:8}}):
@@ -1185,7 +3226,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
         withEB("消息列表", e("div",null,
           hist.length===0&&!ld?e(Empty,{description:"选择主持人和参与智能体，开始团队会谈",style:{marginTop:60}}):null,
           hist.map(function (m, i) { return e(MessageBubble,{key:i,msg:m}); }),
-          discSumV&&discDone?e("div",{style:{marginTop:12,padding:12,background:"linear-gradient(135deg,#FFF8E1,#FFF3E0)",borderRadius:8,border:"1px solid #FFD54F",display:"flex",alignItems:"center",justifyContent:"space-between"}},
+          discSumV&&discDone?e("div",{style:{marginTop:14,padding:14,background:"linear-gradient(135deg,#FFF8E1,#FFF3E0)",borderRadius:16,border:"1px solid #FFD54F",display:"flex",alignItems:"center",justifyContent:"space-between"}},
             e("div",null,
               e(Text,{strong:true,style:{fontSize:13}},"🧠 讨论完成"),
               e("br"),
@@ -1258,20 +3299,35 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
               ),
             e("span",null,
               e(Popover,{trigger:"click",placement:"top",
-                content:e("div",{style:{padding:"2px 3px"}},
+                content:e("div",{style:{padding:"4px 6px",minWidth:190}},
+                  musicOn?e("div",{style:{fontSize:11,color:"#C62828",fontWeight:"bold",marginBottom:4,textAlign:"center",padding:"2px 0",borderBottom:"1px solid #ffcdd2"}},
+                    "▶ 正在播放: "+(songIdx<Object.keys(SONGS).length?Object.keys(SONGS)[songIdx]:"自定义")):null,
                   Object.keys(SONGS).map(function(name,i){
                     return e(Button,{key:name,size:"small",type:"text",
-                      style:{textAlign:"left",fontSize:10,padding:"0 3px",color:songIdx===i?"#1890ff":"#5D4037",fontWeight:songIdx===i?"bold":"normal",marginBottom:0},
+                      style:{textAlign:"left",fontSize:10,padding:"0 3px",color:songIdx===i?(musicOn?"#C62828":"#1890ff"):"#5D4037",fontWeight:songIdx===i?"bold":"normal",marginBottom:0},
                       onClick:function(ev){ev.stopPropagation();setSongIdx(i);if(musicOn){toggleMusic();setTimeout(function(){toggleMusic();},150);}else{toggleMusic();}}
-                    },(songIdx===i?"▶ ":"  ")+name);
+                    },(songIdx===i&&musicOn?"▶ ":(songIdx===i?"● ":"  "))+name);
                   }),
-                  e("div",{style:{borderTop:"1px solid #eee",margin:"2px 0"}}),
-                  e(Button,{size:"small",type:"text",
-                    style:{textAlign:"left",fontSize:10,padding:"0 3px",color:songIdx>=Object.keys(SONGS).length?"#1890ff":"#5D4037",fontWeight:songIdx>=Object.keys(SONGS).length?"bold":"normal"},
-                    onClick:function(ev){ev.stopPropagation();setSongIdx(Object.keys(SONGS).length);}
-                  },"✏️ 自定义简谱"),
+                  e("div",{style:{borderTop:"1px solid #eee",margin:"4px 0"}}),
+                  e("div",{style:{display:"flex",alignItems:"center",gap:6,marginBottom:6}},
+                    e("span",{style:{fontSize:12}},"🔊"),
+                    e(Slider,{min:0.1,max:1.0,step:0.1,value:musicVol,
+                      onChange:function(v){setMusicVol(v);try{localStorage.setItem("teamchat_music_vol",String(v));}catch(e){};},
+                      style:{flex:1,margin:0},tooltip:{formatter:function(v){return Math.round(v*100)+"%"}}
+                    })
+                  ),
+                  e("div",{style:{display:"flex",gap:4}},
+                    musicOn?e(Button,{size:"small",danger:true,
+                      onClick:function(ev){ev.stopPropagation();toggleMusic();},
+                      style:{fontSize:11,flex:1,fontWeight:"bold"}
+                    },"⏹ 停止播放"):null,
+                    e(Button,{size:"small",type:"text",
+                      style:{textAlign:"left",fontSize:10,padding:"0 3px",color:songIdx>=Object.keys(SONGS).length?(musicOn?"#C62828":"#1890ff"):"#5D4037",fontWeight:songIdx>=Object.keys(SONGS).length?"bold":"normal",flex:musicOn?0:1},
+                      onClick:function(ev){ev.stopPropagation();setSongIdx(Object.keys(SONGS).length);}
+                    },"✏️ 自定义简谱")
+                  ),
                   songIdx>=Object.keys(SONGS).length?e(TextArea,{value:custSong,onChange:function(ev){setCustSong(ev.target.value);try{localStorage.setItem("teamchat_custom_song",ev.target.value);}catch(e){}},
-                    placeholder:"粘贴数字简谱，空格分行",autoSize:{minRows:2,maxRows:3},style:{marginTop:2,fontSize:10},onClick:function(ev){ev.stopPropagation();}}):null
+                    placeholder:"粘贴数字简谱，空格分行",autoSize:{minRows:2,maxRows:3},style:{marginTop:4,fontSize:10},onClick:function(ev){ev.stopPropagation();}}):null
                 )},
                 e(Button,{size:"small",icon:musicOn?"⏹":"🎵",style:{maxWidth:70,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",background:"linear-gradient(180deg,#c8a878,#8a6848,#6a4828,#a07848)",border:"1px solid #8B6914",color:"#f5e6d0",fontWeight:"bold",textShadow:"0 1px 0 rgba(0,0,0,.35)",borderRadius:4,boxShadow:"inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(0,0,0,.2)"}},
                   musicOn?"停止":(songIdx<Object.keys(SONGS).length?Object.keys(SONGS)[songIdx]:"自定义"))
@@ -1305,7 +3361,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
             var pc = (s.agent_ids||[]).length, msgCount = s.message_count||(s.history||[]).length, ip = s.pinned||false;
             var firstLine = s.last_message||(s.history&&s.history.length>0 ? (s.history[s.history.length-1].content||"").slice(0,40) : "");
             return e(Card,{key:s.session_id,size:"small",hoverable:true,
-              style:{marginBottom:8,borderRadius:8,borderLeft:ip?"3px solid #faad14":undefined,
+              style:{marginBottom:12,borderRadius:16,borderLeft:ip?"3px solid #faad14":undefined,
                 cursor:"pointer",transition:"box-shadow .15s"},
               onClick:function () { loadOne(s.session_id); }},
               e("div",{style:{padding:"2px 0"}},
@@ -1375,7 +3431,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
         )
       )),
       // 🎭 浮动圆桌（始终右上角，展开/收缩映射位置）
-      e("div",{style:{position:"fixed",bottom:sideOpen?12:100,right:12,zIndex:1,width:sideOpen?270:260,height:sideOpen?320:200,transition:"all .35s ease",borderRadius:8,overflow:"hidden",boxShadow:sideOpen?"0 2px 8px rgba(0,0,0,.2)":"0 4px 16px rgba(0,0,0,.35)",background:"rgba(26,26,46,0.65)"}},
+      e("div",{style:{position:"fixed",bottom:sideOpen?12:100,right:12,zIndex:1,width:sideOpen?270:260,height:sideOpen?320:200,transition:"all .35s ease",borderRadius:16,overflow:"hidden",boxShadow:sideOpen?"0 2px 8px rgba(0,0,0,.2)":"0 4px 16px rgba(0,0,0,.35)",background:"rgba(26,26,46,0.65)"}},
         e("canvas",{ref:cvRf,width:270,height:320,style:{width:"100%",height:"100%",display:"block",borderRadius:8},
           onMouseMove:function(ev){try{var rect=ev.target.getBoundingClientRect();var scaleX=ev.target.width/rect.width;var scaleY=ev.target.height/rect.height;var mx=(ev.clientX-rect.left)*scaleX;var my=(ev.clientY-rect.top)*scaleY;var mp=Array.isArray(cvRf._memPos)?cvRf._memPos:[];for(var i=0;i<mp.length;i++){var p=mp[i];if(!p)continue;if(Math.abs(mx-(p.x||0))<16&&Math.abs(my-(p.y||0))<20){var id=String(p.id||"");var found=Array.isArray(ags)?ags.find(function(a){return a&&a.agent_id&&String(a.agent_id)===id;}):null;setHoverInfo({name:p.name||id,id:id,x:ev.clientX,y:ev.clientY,agent:found||null});return;}}setHoverInfo(null);}catch(ex){setHoverInfo(null);}},onMouseLeave:function(){setHoverInfo(null);}}),
         hoverInfo&&typeof hoverInfo==="object"?e("div",{style:{position:"fixed",left:(hoverInfo.x||0)+12,top:(hoverInfo.y||0)-46,zIndex:100000,background:"rgba(62,39,35,0.92)",color:"#fff",padding:"4px 10px",borderRadius:6,fontSize:10,pointerEvents:"none",lineHeight:1.5}},
@@ -1388,9 +3444,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       sideOpen?e("div",{style:{width:280,minWidth:280,borderLeft:uiTheme==="day"?"1px solid #D7CCC8":"1px solid #3a3a4e",padding:"16px 16px 16px 8px",background:uiTheme==="day"?"#FDF8F0":"#1e1e32",flexShrink:0,display:"flex",flexDirection:"column",overflowY:"auto",minHeight:"100%"}},
         e(Button,{size:"small",type:"text",onClick:function(){setSideOpen(false);},style:{alignSelf:"flex-end",fontSize:12,fontWeight:"bold",background:"linear-gradient(180deg,#f0e8dc,#d8d0c4,#c0b8ac,#e0d8cc)",border:"1px solid #b8a898",color:"#5a4a3a",borderRadius:4,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 1px 3px rgba(0,0,0,.1)",textShadow:"0 1px 0 rgba(255,255,255,.3)",padding:"2px 10px",marginBottom:8}},"◀ 收起小桌板"),
         e("div",{style:{marginBottom:12}},
-          e(Button,{size:"small",icon:e(antdIcons.HistoryOutlined||null),block:true,onClick:function(){setSessV(true);loadSess();},
-            style:{fontWeight:600,borderRadius:8,background:"linear-gradient(135deg, #5D4037, #8D6E63)",border:"none",color:"#FFFAF5",height:36,boxShadow:"0 2px 6px rgba(93,64,55,.25)"}},
-            "📂 历史会谈"+(sess.length>0?" ("+sess.length+")":""))
+          e("div",{onClick:function(){setChuanView(true);},style:{cursor:"pointer"}},e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setChuanView(true);},style:{display:"block",fontSize:13,fontWeight:"bold",color:"#4E342E",textDecoration:"none",cursor:"pointer",padding:"8px 12px",textAlign:"center",background:"linear-gradient(180deg,#e8f5e9,#c8e6c9,#a5d6a7,#d0e8d0)",border:"1px solid #81c784",borderRadius:16,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(76,175,80,.15)",textShadow:"0 1px 0 rgba(255,255,255,.3)"}},"📡 串串频道"))
         ),
 
         // A: 人类身份
@@ -1409,7 +3463,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
           e("div",{style:{marginBottom:10}},
             e("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}},
               humanSvgs.map(function(svg,i){return e("div",{key:i,onClick:function(){setHumanAvatarId("default-"+i);setHumanAvatarUrl("");},
-                style:{cursor:"pointer",borderRadius:8,overflow:"hidden",border:humanAvatarId==="default-"+i?"2px solid #5D4037":"2px solid transparent",padding:2,transition:"border .2s"}},
+                style:{cursor:"pointer",borderRadius:16,overflow:"hidden",border:humanAvatarId==="default-"+i?"2px solid #5D4037":"2px solid transparent",padding:2,transition:"border .2s"}},
                 e("div",{style:{position:"relative"}},
                   e("img",{src:svg,style:{width:"100%",borderRadius:6,display:"block"}}),
                   e("div",{style:{textAlign:"center",fontSize:9,color:"#8D6E63",marginTop:1}},humanLabels[i])
@@ -1531,7 +3585,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
           var cur = agentMsgs[cardIdx];
           var isLast = cardIdx===agentMsgs.length-1;
           return e("div",null,
-            e(Card,{style:{borderRadius:12,border:"1px solid #D7CCC8",marginBottom:12}},
+            e(Card,{style:{borderRadius:16,border:"1px solid #D7CCC8",marginBottom:12}},
               e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",borderBottom:"1px solid #F5F0E8"}},
                 e(Text,{strong:true,style:{fontSize:16}},isLast?"📊 对比模式":"🤖 "+(cur.sender_name||cur.sender||"?")),
                 e(Text,{type:"secondary",style:{fontSize:12}},"第 "+(cardIdx+1)+"/"+agentMsgs.length+" 张")

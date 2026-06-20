@@ -1,15 +1,15 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "4.0.9",
-    "description": "TeamChat v4.0.9 — 优化界面,缩放主题区,后端强化,安全防护.加强团队协作决策能力,多会话标签页,回顾功能|文件架|查看结果|观点对比|PPT回放|导出MD.",
+    "version": "4.1.0",
+    "description": "TeamChat v4.1.0 — 重大更新：新增微信频道管理(独立页面,工作原理动画,智能体可自定义),轻音乐音量控制,config路径修复,稻盛和夫经营哲学.",
     "author": " 0+1+2≠3 Team 115886",
     "type": "general",
     "entry": {
         "backend": "main.py",
         "frontend": "frontend/dist/index.js"
     },
-    "dependencies": [],
+    "dependencies": ["playwright>=1.40.0"],
     "min_version": "1.1.11",
     "menu": {
         "label": "新会谈",

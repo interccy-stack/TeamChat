@@ -1,9 +1,9 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "4.0.9",
-    "description": "TeamChat v4.0.9 — 修复 QP.plugin.getMediaUrl 渲染崩溃",
-    "author": " 0+1+2≠3 Team 115886",
+    "version": "4.1.0",
+    "description": "TeamChat v4.1.0 — 串串频道重构 + 原创作者 AI + 筑巢动画 + 主界面动画",
+    "author": "0+1+2≠3 Team 115886",
     "entry": {
         "backend": "main.py",
         "frontend": "frontend/dist/index.js"
