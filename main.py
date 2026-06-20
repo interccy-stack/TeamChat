@@ -48,7 +48,7 @@ logger = logging.getLogger("qwenpaw.team_chat")
 # 配置常量
 # ============================================================
 
-CURRENT_VERSION = "4.0.9"
+CURRENT_VERSION = "4.1.0"
 DEFAULT_HOST_ID = "cloud-orchestrator"
 MAX_HISTORY = 200
 SESSION_KEEPALIVE_DAYS = 7
@@ -225,6 +225,22 @@ class AgentCache:
                     logger.warning(f"AgentCache: Failed to import read_last_api: {e}")
                 except Exception as e:
                     logger.warning(f"AgentCache: Error calling read_last_api: {e}")
+                
+                # ── 第二兜底：直接从 config.json 读取（与 mentx-doctor 对齐） ──
+                if not base:
+                    try:
+                        config_path = os.path.join(os.path.expanduser("~"), ".qwenpaw", "config.json")
+                        if os.path.exists(config_path):
+                            with open(config_path, "r") as f:
+                                cfg = json.load(f)
+                            last_api = cfg.get("last_api", {})
+                            host = last_api.get("host", "")
+                            port = last_api.get("port", 0)
+                            if host and port:
+                                base = f"http://{host}:{port}"
+                                logger.info(f"AgentCache: 从 config.json 读取地址: {base}")
+                    except Exception as cfg_err:
+                        logger.warning(f"AgentCache: 读取 config.json 失败: {cfg_err}")
                 
                 if not base:
                     base = os.environ.get("QWENPAW_BASE_URL", "http://127.0.0.1:56411")
@@ -1482,26 +1498,6 @@ def build_router():
             "generated_at": now,
         })
 
-    @router.get("/all-agents")
-    async def get_all_agents():
-        """获取所有已配置的智能体列表"""
-        config_path = os.path.join(os.path.expanduser("~"), ".qwenpaw", "config.json")
-        agents = []
-        
-        if os.path.exists(config_path):
-            with open(config_path, "r", encoding="utf-8") as f:
-                config = json.load(f)
-            
-            # 从 agents.profiles 读取智能体列表
-            profiles = config.get("agents", {}).get("profiles", {})
-            for agent_id, profile in profiles.items():
-                agents.append({
-                    "id": agent_id,
-                    "name": profile.get("name", agent_id)
-                })
-        
-        return {"agents": agents}
-
     @router.get("/agent-detail")
     async def agent_detail(agent_id: str = ""):
         """返回指定智能体的详细数据：统计 + 会话列表"""
@@ -1594,31 +1590,50 @@ def build_router():
 
     @router.get("/all-agents")
     async def get_all_agents():
-        """获取QwenPaw配置的所有智能体列表"""
+        """通过QwenPaw API获取真实智能体列表"""
         agents = []
-        config_path = os.path.join(os.path.expanduser("~"), ".qwenpaw", "config.json")
-        try:
-            if os.path.isfile(config_path):
-                with open(config_path, "r", encoding="utf-8") as f:
-                    cfg = json.load(f)
-                # 从agents配置中获取
-                agents_cfg = cfg.get("agents", [])
-                for a in agents_cfg:
-                    agents.append({
-                        "id": a.get("id", ""),
-                        "name": a.get("name", a.get("id", "")),
-                        "description": a.get("description", ""),
-                    })
-        except Exception as e:
-            logger.warning(f"读取智能体列表失败: {e}")
         
-        # 如果配置中没有，返回默认列表
+        # 尝试从QwenPaw API获取真实智能体列表
+        try:
+            base = None
+            try:
+                from qwenpaw.config.utils import read_last_api
+                last = read_last_api()
+                if last:
+                    host, port = last
+                    base = f"http://{host}:{port}"
+            except ImportError:
+                pass
+            except Exception:
+                pass
+            
+            if not base:
+                base = os.environ.get("QWENPAW_BASE_URL", "http://127.0.0.1:56411")
+            
+            headers = {"Content-Type": "application/json"}
+            if api_key := os.environ.get("QWENPAW_API_KEY"):
+                headers["Authorization"] = f"Bearer {api_key}"
+            
+            async with httpx.AsyncClient(timeout=httpx.Timeout(10.0), trust_env=False) as client:
+                resp = await client.get(f"{base}/api/agents", headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    raw_agents = data.get("agents", [])
+                    for a in raw_agents:
+                        agents.append({
+                            "id": a.get("id", ""),
+                            "name": a.get("name", a.get("id", "")),
+                            "description": a.get("description", ""),
+                        })
+                    if agents:
+                        logger.info(f"获取到 {len(agents)} 个智能体")
+        except Exception as e:
+            logger.warning(f"通过QwenPaw API获取智能体列表失败: {e}")
+        
+        # 如果API获取失败，返回默认列表
         if not agents:
             agents = [
                 {"id": "cloud-orchestrator", "name": "CloudPaw-Master", "description": "主控智能体"},
-                {"id": "a1", "name": "策略分析师", "description": "商业策略、竞争分析"},
-                {"id": "a2", "name": "市场分析师", "description": "市场调研、用户洞察"},
-                {"id": "a3", "name": "技术顾问", "description": "技术评估、方案设计"},
                 {"id": "cloud-executor", "name": "执行者", "description": "代码、部署、操作"},
                 {"id": "cloud-verifier", "name": "校验者", "description": "风险审查、合规验证"},
             ]
