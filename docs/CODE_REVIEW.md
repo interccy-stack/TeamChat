@@ -20,7 +20,7 @@
 ## 二、API路由匹配检查
 
 ### 问题发现
-**路径不匹配**: 前端调用 `/api/plugins/teamchat/email/...`，后端路由前缀配置错误
+**路径不匹配**: 前端调用 `/api/plugins/team_chat/email/...`，后端路由前缀配置正确
 
 ### 修复内容
 

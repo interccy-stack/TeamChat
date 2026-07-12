@@ -1,13 +1,21 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "5.0.15",
-    "description": "TeamChat v5.0.15 — 新会谈，融合AI分身、巢邮箱系统。包含AI主持人团队会谈、多标签页管理、轻音乐控制、微信频道管理、传统邮箱（收件/发件/草稿/联系人/回收站/设置）、蜂巢邮箱（工业智能消息互通）、AI分身（智能对话/邮件处理）、轻量安全提示。",
+    "version": "5.0.16",
+    "description": "TeamChat v5.0.16 — 新会谈，融合AI分身、巢邮箱系统。包含AI主持人团队会谈、多标签页管理、轻音乐控制、微信频道管理、传统邮箱（收件/发件/草稿/联系人/回收站/设置）、蜂巢邮箱（工业智能消息互通）、AI分身（智能对话/邮件处理）、轻量安全提示。",
     "author": "0+1+2≠3 Team 115886",
     "type": "general",
     "qwenpaw_version": {
         "min": "1.1.11",
         "max": "2.1.0"
+    },
+    "description_i18n": {
+        "zh-CN": "TeamChat v5.0.16 — 新会谈，融合AI分身、巢邮箱系统。包含AI主持人团队会谈、多标签页管理、轻音乐控制、微信频道管理、传统邮箱（收件/发件/草稿/联系人/回收站/设置）、蜂巢邮箱（工业智能消息互通）、AI分身（智能对话/邮件处理）、轻量安全提示。",
+        "en-US": "TeamChat v5.0.16 — Integrated Hive Mail System. Features: AI-hosted team discussions, multi-tab management, music control, WeChat channel management, traditional mailbox (inbox/sent/drafts/contacts/trash/settings), P2P Hive Mail (friends/messaging/attachments/guestbook), AI avatars (smart chat/email processing/desktop pet), lightweight security tips."
+    },
+    "meta": {
+        "category": "productivity",
+        "tags": ["team-chat", "email", "ai-agent", "webrtc", "hive-mail"]
     },
     "entry": {
         "backend": "team_chat_main.py",

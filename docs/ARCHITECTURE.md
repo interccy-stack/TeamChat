@@ -143,7 +143,7 @@ TeamChat/
 
 ### 4.1 RESTful API规范
 
-**基础URL**: `/api/plugins/teamchat/email`
+**基础URL**: `/api/plugins/team_chat/email`
 
 | 方法 | 路径 | 描述 |
 |------|------|------|

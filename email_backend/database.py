@@ -24,6 +24,10 @@ _DB_PATH = _PLUGIN_DATA_DIR / "teamchat_email.db"
 # 确保数据目录存在
 _PLUGIN_DATA_DIR.mkdir(exist_ok=True)
 
+# 附件存储目录
+_ATTACHMENT_DIR = _PLUGIN_DATA_DIR / "attachments"
+_ATTACHMENT_DIR.mkdir(exist_ok=True)
+
 # 密码加密（简化版：base64混淆）
 _ENCRYPTION_KEY = "teamchat-email-key-2026".encode()
 
@@ -181,12 +185,107 @@ def init_db():
             )
         """)
 
+        # 附件表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS attachments (
+                id TEXT PRIMARY KEY,
+                email_id INTEGER,
+                email_subject TEXT,
+                filename TEXT,
+                content_type TEXT,
+                size INTEGER,
+                file_path TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # AI记事本
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS notepads (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                content TEXT DEFAULT '',
+                tags TEXT DEFAULT '[]',
+                color TEXT DEFAULT '#ffd700',
+                pinned INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         # 创建索引
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_inbox_uid ON inbox(uid)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_inbox_date ON inbox(sent_date DESC)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sent_date ON sent(sent_date DESC)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_notepads_pinned ON notepads(pinned DESC, updated_at DESC)")
 
+        # 为 inbox 表添加 starred 字段（老表兼容）
+        try:
+            cursor.execute("ALTER TABLE inbox ADD COLUMN starred INTEGER DEFAULT 0")
+        except:
+            pass  # 字段已存在
+
+        # 为 inbox 表添加 account_email 字段（老表兼容）
+        try:
+            cursor.execute("ALTER TABLE inbox ADD COLUMN account_email TEXT DEFAULT ''")
+        except:
+            pass
+
+        # 为 sent 表添加 account_email 字段（老表兼容）
+        try:
+            cursor.execute("ALTER TABLE sent ADD COLUMN account_email TEXT DEFAULT ''")
+        except:
+            pass
+
+        # 为 drafts 表添加 account_email 字段（老表兼容）
+        try:
+            cursor.execute("ALTER TABLE drafts ADD COLUMN account_email TEXT DEFAULT ''")
+        except:
+            pass
+
+        # 为 trash 表添加 account_email 字段（老表兼容）
+        try:
+            cursor.execute("ALTER TABLE trash ADD COLUMN account_email TEXT DEFAULT ''")
+        except:
+            pass
+
+        # FTS5 全文搜索虚表（inbox + sent）
+        cursor.execute("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS email_fts USING fts5(
+                subject, from_addr, body,
+                content='inbox', content_rowid='rowid',
+                tokenize='unicode61 remove_diacritics 2'
+            )
+        """)
+        cursor.execute("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS email_fts_sent USING fts5(
+                subject, to_addr, body,
+                content='sent', content_rowid='rowid',
+                tokenize='unicode61 remove_diacritics 2'
+            )
+        """)
+        # 触发器：inbox 插入/更新/删除时同步 FTS
+        cursor.execute("""
+            CREATE TRIGGER IF NOT EXISTS inbox_fts_insert AFTER INSERT ON inbox BEGIN
+                INSERT INTO email_fts(rowid, subject, from_addr, body)
+                VALUES (new.rowid, new.subject, new.from_addr, new.body);
+            END
+        """)
+        cursor.execute("""
+            CREATE TRIGGER IF NOT EXISTS inbox_fts_delete AFTER DELETE ON inbox BEGIN
+                INSERT INTO email_fts(email_fts, rowid, subject, from_addr, body)
+                VALUES ('delete', old.rowid, old.subject, old.from_addr, old.body);
+            END
+        """)
+        cursor.execute("""
+            CREATE TRIGGER IF NOT EXISTS inbox_fts_update AFTER UPDATE ON inbox BEGIN
+                INSERT INTO email_fts(email_fts, rowid, subject, from_addr, body)
+                VALUES ('delete', old.rowid, old.subject, old.from_addr, old.body);
+                INSERT INTO email_fts(rowid, subject, from_addr, body)
+                VALUES (new.rowid, new.subject, new.from_addr, new.body);
+            END
+        """)
         # 初始化默认分组
         cursor.execute("""
             INSERT OR IGNORE INTO contact_groups (name, description, color)
@@ -251,8 +350,16 @@ class EmailDB:
                 smtp_pwd = _encrypt(config.get('smtp_password', ''))
                 imap_pwd = _encrypt(config.get('imap_password', ''))
 
-                # 如果有ID则更新，否则插入
+                email = config.get('email')
                 config_id = config.get('id')
+                
+                # 如果没有ID但提供了email，检查是否已存在（避免UNIQUE约束冲突）
+                if not config_id and email:
+                    cursor.execute("SELECT id FROM email_configs WHERE email = ?", (email,))
+                    existing = cursor.fetchone()
+                    if existing:
+                        config_id = existing[0]
+                
                 if config_id:
                     cursor.execute("""
                         UPDATE email_configs SET
@@ -340,6 +447,32 @@ class EmailDB:
                 """, (folder, limit, offset))
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
+
+    @staticmethod
+    def get_inbox_with_count(limit: int = 50, offset: int = 0, folder: str = 'INBOX', account_email: str = '') -> Dict[str, Any]:
+        """获取收件箱邮件（带总数）"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            if account_email:
+                cursor.execute("SELECT COUNT(*) FROM inbox WHERE folder = ? AND (account_email = ? OR account_email IS NULL OR account_email = '')", (folder, account_email))
+                total = cursor.fetchone()[0]
+                cursor.execute("""
+                    SELECT * FROM inbox
+                    WHERE folder = ? AND (account_email = ? OR account_email IS NULL OR account_email = '')
+                    ORDER BY sent_date DESC
+                    LIMIT ? OFFSET ?
+                """, (folder, account_email, limit, offset))
+            else:
+                cursor.execute("SELECT COUNT(*) FROM inbox WHERE folder = ?", (folder,))
+                total = cursor.fetchone()[0]
+                cursor.execute("""
+                    SELECT * FROM inbox
+                    WHERE folder = ?
+                    ORDER BY sent_date DESC
+                    LIMIT ? OFFSET ?
+                """, (folder, limit, offset))
+            rows = cursor.fetchall()
+            return {"emails": [dict(row) for row in rows], "total": total}
 
     @staticmethod
     def add_inbox_email(email: Dict[str, Any]) -> bool:
@@ -683,13 +816,14 @@ class EmailDB:
                 cursor.execute("""
                     INSERT INTO trash (
                         original_folder, original_id, folder_type,
-                        from_addr, subject, body, sent_date
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        from_addr, to_addr, subject, body, sent_date
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     'inbox',
                     email_id,
                     'inbox',
                     email_dict.get('from_addr'),
+                    email_dict.get('to_addr'),
                     email_dict.get('subject'),
                     email_dict.get('body'),
                     email_dict.get('sent_date')
@@ -703,6 +837,38 @@ class EmailDB:
         except Exception as e:
             logger.error(f"[EmailDB] Failed to move inbox email to trash: {e}")
             return False
+
+    @staticmethod
+    def batch_delete_inbox(ids: List[int]) -> Dict[str, Any]:
+        """批量删除收件箱邮件（移入回收站）"""
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                deleted = 0
+                for email_id in ids:
+                    cursor.execute("SELECT * FROM inbox WHERE id = ?", (email_id,))
+                    email = cursor.fetchone()
+                    if not email:
+                        continue
+                    email_dict = dict(email)
+                    cursor.execute("""
+                        INSERT INTO trash (
+                            original_folder, original_id, folder_type,
+                            from_addr, to_addr, subject, body, sent_date
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        'inbox', email_id, 'inbox',
+                        email_dict.get('from_addr'), email_dict.get('to_addr'),
+                        email_dict.get('subject'), email_dict.get('body'),
+                        email_dict.get('sent_date')
+                    ))
+                    cursor.execute("DELETE FROM inbox WHERE id = ?", (email_id,))
+                    deleted += 1
+                conn.commit()
+                return {"success": True, "deleted": deleted}
+        except Exception as e:
+            logger.error(f"[EmailDB] Failed to batch delete inbox: {e}")
+            return {"success": False, "deleted": 0, "error": str(e)}
 
     @staticmethod
     def move_sent_to_trash(email_id: int) -> bool:
@@ -724,12 +890,13 @@ class EmailDB:
                 cursor.execute("""
                     INSERT INTO trash (
                         original_folder, original_id, folder_type,
-                        to_addr, subject, body, sent_date
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        from_addr, to_addr, subject, body, sent_date
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     'sent',
                     email_id,
                     'sent',
+                    email_dict.get('from_addr'),
                     email_dict.get('to_addr'),
                     email_dict.get('subject'),
                     email_dict.get('body'),
@@ -767,6 +934,31 @@ class EmailDB:
             return [dict(row) for row in rows]
 
     @staticmethod
+
+    @staticmethod
+    def get_trash_with_count(limit: int = 50, offset: int = 0, account_email: str = '') -> tuple:
+        """获取回收站邮件（含总数）"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            if account_email:
+                cursor.execute("SELECT COUNT(*) FROM trash WHERE account_email = ? OR account_email IS NULL OR account_email = ''", (account_email,))
+                total = cursor.fetchone()[0]
+                cursor.execute("""
+                    SELECT * FROM trash
+                    WHERE account_email = ? OR account_email IS NULL OR account_email = ''
+                    ORDER BY id DESC
+                    LIMIT ? OFFSET ?
+                """, (account_email, limit, offset))
+            else:
+                cursor.execute("SELECT COUNT(*) FROM trash")
+                total = cursor.fetchone()[0]
+                cursor.execute("""
+                    SELECT * FROM trash
+                    ORDER BY id DESC
+                    LIMIT ? OFFSET ?
+                """, (limit, offset))
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows], total
     def delete_trash_email_permanent(email_id: int) -> bool:
         """永久删除回收站邮件"""
         try:
@@ -815,8 +1007,8 @@ class EmailDB:
             row = cursor.fetchone()
             return dict(row) if row else None
 
-    # ========== AI知识库：搜索和附件管理 ==========
-    
+    # ========== 未读邮件 / 已读 ==========
+
     @staticmethod
     def mark_as_read(email_id: int) -> bool:
         """标记邮件为已读"""
@@ -825,6 +1017,89 @@ class EmailDB:
             cursor.execute("UPDATE inbox SET read_status = 1 WHERE id = ?", (email_id,))
             conn.commit()
             return cursor.rowcount > 0
+
+    @staticmethod
+    def mark_as_unread(email_id: int) -> bool:
+        """标记邮件为未读"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE inbox SET read_status = 0 WHERE id = ?", (email_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    @staticmethod
+    def batch_mark_as_read(email_ids: List[int]) -> int:
+        """批量标记为已读"""
+        if not email_ids:
+            return 0
+        with get_db() as conn:
+            cursor = conn.cursor()
+            placeholders = ','.join(['?' for _ in email_ids])
+            cursor.execute(
+                f"UPDATE inbox SET read_status = 1 WHERE id IN ({placeholders}) AND read_status = 0",
+                email_ids
+            )  # safe: placeholders built from count, not user input
+            conn.commit()
+            return cursor.rowcount
+
+    @staticmethod
+    def get_unread_count(account_email: str = '') -> int:
+        """获取未读邮件数量"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            if account_email:
+                cursor.execute(
+                    "SELECT COUNT(*) FROM inbox WHERE read_status = 0 AND (account_email = ? OR account_email IS NULL OR account_email = '')",
+                    (account_email,)
+                )
+            else:
+                cursor.execute("SELECT COUNT(*) FROM inbox WHERE read_status = 0")
+            row = cursor.fetchone()
+            return row[0] if row else 0
+
+    @staticmethod
+    def get_stats(account_email: str = '') -> Dict[str, Any]:
+        """获取邮箱统计数据"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            stats = {}
+            # inbox
+            if account_email:
+                cursor.execute(
+                    "SELECT COUNT(*) FROM inbox WHERE (account_email = ? OR account_email IS NULL OR account_email = '')",
+                    (account_email,)
+                )
+                cursor.execute(
+                    "SELECT COUNT(*) FROM inbox WHERE read_status = 0 AND (account_email = ? OR account_email IS NULL OR account_email = '')",
+                    (account_email,)
+                )
+            else:
+                cursor.execute("SELECT COUNT(*) FROM inbox")
+                cursor.execute("SELECT COUNT(*) FROM inbox WHERE read_status = 0")
+            row = cursor.fetchone()
+            stats['inbox_total'] = row[0] if row else 0
+            row = cursor.fetchone()
+            stats['inbox_unread'] = row[0] if row else 0
+
+            # sent
+            cursor.execute("SELECT COUNT(*) FROM sent")
+            stats['sent_total'] = (cursor.fetchone() or [0])[0]
+
+            # drafts
+            cursor.execute("SELECT COUNT(*) FROM drafts")
+            stats['drafts_total'] = (cursor.fetchone() or [0])[0]
+
+            # trash
+            cursor.execute("SELECT COUNT(*) FROM trash")
+            stats['trash_total'] = (cursor.fetchone() or [0])[0]
+
+            # contacts
+            cursor.execute("SELECT COUNT(*) FROM contacts")
+            stats['contacts_total'] = (cursor.fetchone() or [0])[0]
+
+            return stats
+
+    # ========== 星标邮件 ==========
 
     @staticmethod
     def toggle_star(email_id: int, starred: int) -> bool:
@@ -841,70 +1116,90 @@ class EmailDB:
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT id, from_addr, from_name, subject, body, received_date, read_status, starred, size
-                FROM inbox 
+                SELECT * FROM inbox 
                 WHERE starred = 1
                 ORDER BY received_date DESC LIMIT ?
             """, (limit,))
             return [dict(row) for row in cursor.fetchall()]
 
+    # ========== 搜索 ==========
+
     @staticmethod
     def search_emails(keyword: str, limit: int = 50) -> List[Dict[str, Any]]:
-        """搜索邮件内容"""
+        """搜索邮件内容（FTS5 全文索引）"""
         with get_db() as conn:
             cursor = conn.cursor()
-            search_pattern = f"%{keyword}%"
-            
-            # 搜索收件箱
+            # FTS5 查询，同时对 inbox 和 sent 两张虚表搜
+            fts_query = keyword.replace('"', '""')
             cursor.execute("""
-                SELECT id, subject, sender as from_addr, received_at as date, 
-                       body_text as body, 'inbox' as folder
-                FROM inbox 
-                WHERE subject LIKE ? OR sender LIKE ? OR body_text LIKE ?
-                ORDER BY received_at DESC LIMIT ?
-            """, (search_pattern, search_pattern, search_pattern, limit))
-            
+                SELECT inbox.rowid as id, inbox.subject, inbox.from_addr,
+                       inbox.sent_date as received_date, inbox.body, 'inbox' as folder,
+                       rank
+                FROM email_fts
+                JOIN inbox ON inbox.rowid = email_fts.rowid
+                WHERE email_fts MATCH ?
+                ORDER BY rank
+                LIMIT ?
+            """, (fts_query, limit))
             results = []
             for row in cursor.fetchall():
                 row_dict = dict(row)
-                row_dict['preview'] = row_dict.get('body', '')[:200] if row_dict.get('body') else ''
+                row_dict['preview'] = (row_dict.get('body') or '')[:200]
                 results.append(row_dict)
-            
+            # 如果 inbox FTS 结果不足，补 sent
+            if len(results) < limit:
+                remaining = limit - len(results)
+                cursor.execute("""
+                    SELECT sent.rowid as id, sent.subject, sent.to_addr as from_addr,
+                           sent.sent_date as received_date, sent.body, 'sent' as folder,
+                           rank
+                    FROM email_fts_sent
+                    JOIN sent ON sent.rowid = email_fts_sent.rowid
+                    WHERE email_fts_sent MATCH ?
+                    ORDER BY rank
+                    LIMIT ?
+                """, (fts_query, remaining))
+                for row in cursor.fetchall():
+                    row_dict = dict(row)
+                    row_dict['preview'] = (row_dict.get('body') or '')[:200]
+                    results.append(row_dict)
             return results
-    
+
+    @staticmethod
+    def get_emails_by_sender(sender_email: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """按发件人精确查询收件箱邮件（支持模糊匹配）"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            pattern = f"%{sender_email}%"
+            cursor.execute("""
+                SELECT id, subject, from_addr, from_name,
+                       sent_date, received_date, body, html_body,
+                       read_status, starred
+                FROM inbox
+                WHERE from_addr LIKE ?
+                ORDER BY sent_date DESC LIMIT ?
+            """, (pattern, limit))
+            results = []
+            for row in cursor.fetchall():
+                row_dict = dict(row)
+                row_dict['preview'] = (row_dict.get('body') or '')[:200]
+                results.append(row_dict)
+            return results
+
+    # ========== 附件管理 ==========
+
     @staticmethod
     def get_attachments(limit: int = 100) -> List[Dict[str, Any]]:
         """获取附件列表"""
         with get_db() as conn:
             cursor = conn.cursor()
-            
-            # 检查attachments表是否存在
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='attachments'")
-            if not cursor.fetchone():
-                # 创建attachments表
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS attachments (
-                        id TEXT PRIMARY KEY,
-                        email_id INTEGER,
-                        email_subject TEXT,
-                        filename TEXT,
-                        content_type TEXT,
-                        size INTEGER,
-                        file_path TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
-                conn.commit()
-                return []
-            
             cursor.execute("""
                 SELECT id, email_id, email_subject, filename, content_type, size, file_path, created_at
                 FROM attachments 
                 ORDER BY created_at DESC LIMIT ?
             """, (limit,))
-            
             return [dict(row) for row in cursor.fetchall()]
-    
+
     @staticmethod
     def get_attachment(attachment_id: str) -> Optional[Dict[str, Any]]:
         """根据ID获取附件信息"""
@@ -913,22 +1208,170 @@ class EmailDB:
             cursor.execute("SELECT * FROM attachments WHERE id = ?", (attachment_id,))
             row = cursor.fetchone()
             return dict(row) if row else None
-    
+
     @staticmethod
-    def save_attachment(email_id: int, email_subject: str, filename: str, 
+    def save_attachment(email_id: int, email_subject: str, filename: str,
                          content_type: str, size: int, file_path: str) -> str:
         """保存附件信息"""
         with get_db() as conn:
             cursor = conn.cursor()
             attachment_id = str(uuid.uuid4())
-            
             cursor.execute("""
                 INSERT INTO attachments (id, email_id, email_subject, filename, content_type, size, file_path)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (attachment_id, email_id, email_subject, filename, content_type, size, file_path))
-            
             conn.commit()
             return attachment_id
+
+    # ========== AI记事本 ==========
+
+    @staticmethod
+    def get_notepads(limit: int = 50) -> List[Dict[str, Any]]:
+        """获取所有笔记（置顶优先，最近更新在前）"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM notepads
+                ORDER BY pinned DESC, updated_at DESC
+                LIMIT ?
+            """, (limit,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
+    def get_notepad(note_id: int) -> Optional[Dict[str, Any]]:
+        """获取单个笔记"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM notepads WHERE id = ?", (note_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    @staticmethod
+    def create_notepad(title: str, content: str = '', tags: str = '[]', color: str = '#ffd700') -> Optional[int]:
+        """创建笔记"""
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO notepads (title, content, tags, color)
+                    VALUES (?, ?, ?, ?)
+                """, (title, content, tags, color))
+                return cursor.lastrowid
+        except Exception as e:
+            logger.error(f"[EmailDB] Failed to create notepad: {e}")
+            return None
+
+    @staticmethod
+    def update_notepad(note_id: int, data: Dict[str, Any]) -> bool:
+        """更新笔记"""
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE notepads SET
+                        title = ?, content = ?, tags = ?, color = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (
+                    data.get('title'),
+                    data.get('content'),
+                    data.get('tags', '[]'),
+                    data.get('color', '#ffd700'),
+                    note_id
+                ))
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"[EmailDB] Failed to update notepad: {e}")
+            return False
+
+    @staticmethod
+    def delete_notepad(note_id: int) -> bool:
+        """删除笔记"""
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM notepads WHERE id = ?", (note_id,))
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"[EmailDB] Failed to delete notepad: {e}")
+            return False
+
+    @staticmethod
+    def toggle_pin(note_id: int, pinned: int) -> bool:
+        """切换笔记置顶状态"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE notepads SET pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                           (pinned, note_id))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    @staticmethod
+    def search_notepads(keyword: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """搜索笔记"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            pattern = f"%{keyword}%"
+            cursor.execute("""
+                SELECT * FROM notepads
+                WHERE title LIKE ? OR content LIKE ? OR tags LIKE ?
+                ORDER BY pinned DESC, updated_at DESC
+                LIMIT ?
+            """, (pattern, pattern, pattern, limit))
+            return [dict(row) for row in cursor.fetchall()]
+
+    @staticmethod
+    def restore_trash_email(email_id: int) -> bool:
+        """从回收站恢复邮件到原表"""
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM trash WHERE id = ?", (email_id,))
+                row = cursor.fetchone()
+                if not row:
+                    return False
+                data = dict(row)
+                original_folder = data.get('original_folder', 'inbox')
+                if original_folder == 'sent':
+                    cursor.execute("""
+                        INSERT INTO sent (to_addr, to_name, subject, body, html_body,
+                                          sent_date, attachments, size)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        data.get('to_addr', ''),
+                        data.get('from_name', ''),
+                        data.get('subject', ''),
+                        data.get('body', ''),
+                        data.get('html_body', ''),
+                        data.get('sent_date', ''),
+                        data.get('attachments', ''),
+                        data.get('size', 0)
+                    ))
+                else:
+                    # Determine original folder (INBOX or sent)
+                    original = data.get('original_folder', 'inbox').upper()
+                    table = 'inbox' if original != 'SENT' else 'sent'
+                    cursor.execute(f"""
+                        INSERT INTO {table} (uid, from_addr, from_name, subject, body,
+                                           html_body, sent_date, folder, size)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        'restored_' + str(email_id),
+                        data.get('from_addr', ''),
+                        data.get('from_name', ''),
+                        data.get('subject', ''),
+                        data.get('body', ''),
+                        data.get('html_body', ''),
+                        data.get('sent_date', ''),
+                        'INBOX',
+                        data.get('size', 0)
+                    ))
+                cursor.execute("DELETE FROM trash WHERE id = ?", (email_id,))
+                return True
+        except Exception as e:
+            logger.error(f"[EmailDB] Failed to restore trash email: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return False
 
 # 初始化数据库
 init_db()

@@ -35,7 +35,7 @@ except ImportError:
 
 class PetConfig:
     """桌面宠物配置"""
-    DEFAULT_PORT = 18765  # AI分身桌面宠物端口
+    DEFAULT_PORT = int(os.environ.get("TEAMCHAT_PET_PORT", "18765"))  # AI分身桌面宠物端口
     DEFAULT_SCALE = 0.8
     AVATAR_SIZE = 80
     WINDOW_WIDTH = 350

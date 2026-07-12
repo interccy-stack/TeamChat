@@ -9,7 +9,10 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import logging
 
-from .security_scanner import scanner, scan_email, scan_attachment
+try:
+    from .security_scanner import scanner, scan_email, scan_attachment
+except ImportError:
+    from security_scanner import scanner, scan_email, scan_attachment
 
 logger = logging.getLogger(__name__)
 

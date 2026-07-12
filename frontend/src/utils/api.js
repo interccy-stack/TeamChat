@@ -4,7 +4,7 @@
  */
 
 // 基础API配置
-const API_BASE = "/api/plugins/teamchat";
+const API_BASE = "/api/plugins/team_chat";
 
 // 通用请求封装
 async function apiRequest(url, options = {}) {

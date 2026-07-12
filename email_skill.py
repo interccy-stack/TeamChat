@@ -7,7 +7,10 @@ TeamChat 邮件技能模块 - 供AI分身调用
 import sys, json, urllib.request, urllib.parse
 sys.stdout.reconfigure(encoding='utf-8')
 
-API_BASE = 'http://127.0.0.1:18888/api/v1/email'
+import os as _os
+_API_PORT = _os.environ.get("QWENPAW_API_PORT", "18888")
+_API_HOST = _os.environ.get("QWENPAW_API_HOST", "127.0.0.1")
+API_BASE = f'http://{_API_HOST}:{_API_PORT}/api/v1/email'
 
 def list_emails(folder='INBOX', limit=10, offset=0):
     """列出邮件 (himalaya envelope list)"""
@@ -16,7 +19,11 @@ def list_emails(folder='INBOX', limit=10, offset=0):
     url = f'{API_BASE}{ep}?limit={limit}&offset={offset}'
     try:
         resp = urllib.request.urlopen(url, timeout=10)
-        data = json.loads(resp.read())
+        raw = resp.read()
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return {'success': False, 'error': f'非JSON响应: {raw[:200]}'}
         return data
     except Exception as e:
         return {'success': False, 'error': str(e)}
@@ -28,7 +35,11 @@ def read_email(folder, id):
     url = f'{API_BASE}{ep}/{id}'
     try:
         resp = urllib.request.urlopen(url, timeout=10)
-        data = json.loads(resp.read())
+        raw = resp.read()
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return {'success': False, 'error': f'非JSON响应: {raw[:200]}'}
         return data
     except Exception as e:
         return {'success': False, 'error': str(e)}
@@ -39,7 +50,11 @@ def send_email(to_addr, subject, body):
     req = urllib.request.Request(f'{API_BASE}/send', data=data, headers={'Content-Type': 'application/json'})
     try:
         resp = urllib.request.urlopen(req, timeout=30)
-        return json.loads(resp.read())
+        raw = resp.read()
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {'success': False, 'error': f'非JSON响应: {raw[:200]}'}
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
@@ -47,7 +62,11 @@ def get_stats():
     """获取邮箱统计"""
     try:
         resp = urllib.request.urlopen(f'{API_BASE}/stats', timeout=5)
-        return json.loads(resp.read())
+        raw = resp.read()
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {'success': False, 'error': f'非JSON响应: {raw[:200]}'}
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
@@ -55,7 +74,11 @@ def get_config():
     """获取邮箱配置"""
     try:
         resp = urllib.request.urlopen(f'{API_BASE}/config', timeout=5)
-        return json.loads(resp.read())
+        raw = resp.read()
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {'success': False, 'error': f'非JSON响应: {raw[:200]}'}
     except Exception as e:
         return {'success': False, 'error': str(e)}
 

@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    const API_BASE = 'http://127.0.0.1:18888/api/v1/email';
+    const API_BASE = '/api/plugins/team_chat/email';
 
     // 从localStorage加载联系人
     function loadContactsFromStorage() {

@@ -1,0 +1,47 @@
+{
+  "session_id": "b567850c-4682-42f3-bed7-258642ce467b",
+  "host_id": "cloud-orchestrator",
+  "host_name": "CloudPaw-Master",
+  "agent_ids": [
+    "default"
+  ],
+  "history": [
+    {
+      "role": "human",
+      "sender": "human",
+      "sender_name": "人类用户",
+      "content": "今天星期几？",
+      "timestamp": 1783870952.38566
+    },
+    {
+      "role": "agent",
+      "sender": "default",
+      "sender_name": "Default",
+      "content": "[空输出] default",
+      "timestamp": 1783870966.057681
+    },
+    {
+      "role": "host",
+      "sender": "cloud-orchestrator",
+      "sender_name": "CloudPaw-Master",
+      "content": "[空输出] cloud-orchestrator",
+      "timestamp": 1783870974.244714
+    }
+  ],
+  "host_steps": [
+    {
+      "id": "cloud-orchestrator",
+      "content": "你是团队主持人。以下是多智能体讨论的内容：\n\n[用户] 今天星期几？\n[Default] [空输出] default\n\n请做一个简洁的总结（200字以内），指出各智能体的观点异同，并给出你的建议。",
+      "response": "[空输出] cloud-orchestrator",
+      "time": 1783870974.2447107,
+      "action": "主持人 CloudPaw-Master 汇总回复",
+      "detail": "[空输出] cloud-orchestrator"
+    }
+  ],
+  "brainstorm": false,
+  "discussion_done": false,
+  "created_at": 1783870952.38566,
+  "updated_at": 1783870952.38566,
+  "tag": "",
+  "pinned": ""
+}

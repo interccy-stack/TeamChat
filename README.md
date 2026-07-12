@@ -1,5 +1,5 @@
 ================================================================================
-  TeamChat v5.0.15  —  一次跨界的扩展，团队会谈· 工业级巢邮箱系统· AI分身·多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 串串频道 · 频道隐藏技能 · 原创作者AI  
+  TeamChat v5.0.16  —  一次跨界的扩展，团队会谈· 工业级巢邮箱系统· AI分身·多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 串串频道 · 频道隐藏技能 · 原创作者AI  
 ================================================================================
 编辑者：AI CC咨询  ·  0+1+2≠3 Team 115886
 
@@ -11,7 +11,9 @@
 ================================================================================
   一、版本历史
 ================================================================================
-  v5.0.15 (2026-07-12) — 当前版本
+  v5.0.16 (2026-07-12) 
+    +  更正云端和本地的智能体API    
+  v5.0.15 (2026-07-12) 
     +  🧠AI分身跨过插件平台       — 工作搭子
     +  📊传统邮箱（收件/发件/草稿/联系人/回收站/设置）
     +  🤖智能体邮箱工业智能应用初始版本
@@ -321,37 +323,30 @@
 ================================================================================
 
   运行目录:
-  C:\Users\Administrator\.qwenpaw\plugins\team_chat\
-  ├── plugin.json            插件元数据 (version: "5.0.15")
-  ├── manifest.json          发布清单
-  ├── team_chat_main.py      后端 (30 routes, ~1100 行)
-  ├── README.md              本文档
-  ├── frontend/
-  │   ├── dist/index.js      构建产物 (~2131 行)
-  │   └── src/index.js       前端源码 (同步副本)
-  ├── data/
-  │   ├── *.json             会话文件 (SessionStore)
-  │   └── collected/         文件架收集目录
-  ├── media/
-  │   ├── SOUL.md            智能体配置参考模板 (3 KB)
-  │   └── a0123.png          服务频道团队图片 (72 KB)
-  └── __pycache__/           Python 缓存 (升级时清除)
+  ```
+team_chat/
+├── plugin.json              # 插件清单（合规）
+├── team_chat_main.py         # 后端入口（FastAPI 路由 + PluginApi 注册）
+├── __init__.py
+├── README.md                # 历史版本说明
+├── email_backend/            # 邮箱后端模块
+├── frontend/
+│   └── dist/
+│       └── index.js          # 前端构建产物（561KB）
+├── extension/                # Chrome 扩展
+├── bookmarklet/              # 书签工具
+├── avatars/                  # 智能体头像
+├── data/                     # 会话数据存储
+├── docs/                     # 架构与开发文档
+├── tests/                    # 测试模块
+├── media/                    # 媒体资源
+├── files/media/              # 文件媒体
+├── aifenshen_pet.py          # AI 分身桌面宠物
+├── email_server.py           # 邮箱服务
+├── email_skill.py            # 邮箱技能
+├── reset_ai_avatar.js        # 头像重置脚本
+└── pigeon_thumb.png          # 鸽子缩略图
 
-  源码目录:
-  C:\Users\Administrator\Desktop\team_chat\
-  ├── plugin.json
-  ├── main.py
-  ├── README.md
-  └── frontend/
-      ├── dist/index.js
-      └── src/index.js
-
-  串串频道相关 (v4.1.0):
-  C:\Users\Administrator\.qwenpaw\workspaces\cloud-orchestrator\
-  ├── SOUL.md                cloud-orchestrator 智能体定义 (主持规则+可用池)
-  └── PROFILE.md             cloud-orchestrator 双重角色 (云编排+频道主持)
-  C:\Users\Administrator\.qwenpaw\config.json
-      └── channels.wechat    串串频道配置 (enabled, bot_token 等)
 
 ================================================================================
   七、升级 / 部署

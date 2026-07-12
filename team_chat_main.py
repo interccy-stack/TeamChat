@@ -57,81 +57,117 @@ EmailDB = None
 init_db = None
 email_router = None
 
-try:
-    if str(email_backend_dir) not in sys.path:
-        sys.path.insert(0, str(email_backend_dir))
 
-    database_spec = importlib.util.spec_from_file_location(
-        "email_backend.database",
-        email_backend_dir / "database.py"
-    )
-    if database_spec and database_spec.loader:
-        database_module = importlib.util.module_from_spec(database_spec)
-        sys.modules["email_backend.database"] = database_module
-        database_spec.loader.exec_module(database_module)
-        EmailDB = database_module.EmailDB
-        init_db = database_module.init_db
+# ── 邮箱后端回退桩（模块加载失败时使用） ──
+class _FallbackEmailDB:
+    @staticmethod
+    def get_config(): return None
+    @staticmethod
+    def save_config(config): return False
+    @staticmethod
+    def get_inbox(limit=50, offset=0): return []
+    @staticmethod
+    def add_inbox_email(email): return False
+    @staticmethod
+    def get_sent(limit=50, offset=0): return []
+    @staticmethod
+    def add_sent_email(email): return False
+    @staticmethod
+    def get_drafts(limit=50, offset=0): return []
+    @staticmethod
+    def add_draft(email): return 0
+    @staticmethod
+    def update_draft(id, email): return False
+    @staticmethod
+    def delete_draft(id): return False
+    @staticmethod
+    def get_contacts(limit=100, offset=0, group_name=None): return []
+    @staticmethod
+    def add_contact(contact): return 0
+    @staticmethod
+    def update_contact(id, contact): return False
+    @staticmethod
+    def delete_contact(id): return False
+    @staticmethod
+    def get_contact_groups(): return []
+    @staticmethod
+    def add_contact_group(name, description=None, color="#1890ff"): return 0
+    @staticmethod
+    def delete_contact_group(name): return False
+    @staticmethod
+    def get_trash(limit=50, offset=0): return []
+    @staticmethod
+    def move_inbox_to_trash(email_id): return False
+    @staticmethod
+    def move_sent_to_trash(email_id): return False
+    @staticmethod
+    def delete_trash_email_permanent(email_id): return False
+    @staticmethod
+    def restore_trash_email(email_id): return False
+    @staticmethod
+    def get_all_configs(): return []
+    @staticmethod
+    def get_last_uid(account_email, folder): return None
+    @staticmethod
+    def get_email_count(account_email, folder_type): return 0
+    @staticmethod
+    def get_stats(account=None): return {}
+    @staticmethod
+    def delete_config(config_id): return False
 
-    routes_spec = importlib.util.spec_from_file_location(
-        "email_backend.routes",
-        email_backend_dir / "routes.py"
-    )
-    if routes_spec and routes_spec.loader:
-        routes_module = importlib.util.module_from_spec(routes_spec)
-        sys.modules["email_backend.routes"] = routes_module
-        routes_spec.loader.exec_module(routes_module)
-        email_router = routes_module.router
 
-    EMAIL_BACKEND_AVAILABLE = True
-    logger.info("[TeamChat] 邮箱后端模块加载成功")
+def _fallback_init_db():
+    logger.info("[TeamChat] 邮箱数据库初始化跳过（模块未加载）")
 
-except Exception as e:
-    logger.warning(f"[TeamChat] 邮箱后端模块加载失败: {e}")
-    EMAIL_BACKEND_AVAILABLE = False
 
-    class EmailDB:
-        @staticmethod
-        def get_config(): return None
-        @staticmethod
-        def save_config(config): return False
-        @staticmethod
-        def get_inbox(limit=50, offset=0): return []
-        @staticmethod
-        def add_inbox_email(email): return False
-        @staticmethod
-        def get_sent(limit=50, offset=0): return []
-        @staticmethod
-        def add_sent_email(email): return False
-        @staticmethod
-        def get_drafts(limit=50, offset=0): return []
-        @staticmethod
-        def add_draft(email): return 0
-        @staticmethod
-        def update_draft(id, email): return False
-        @staticmethod
-        def delete_draft(id): return False
-        @staticmethod
-        def get_contacts(limit=100, offset=0, group_name=None): return []
-        @staticmethod
-        def add_contact(contact): return 0
-        @staticmethod
-        def update_contact(id, contact): return False
-        @staticmethod
-        def delete_contact(id): return False
-        @staticmethod
-        def get_contact_groups(): return []
-        @staticmethod
-        def add_contact_group(name, description=None, color='#1890ff'): return 0
-        @staticmethod
-        def delete_contact_group(name): return False
+# ── 延迟加载邮箱后端（在 register() 中调用，用完即还原 sys.path） ──
+def _load_email_backend():
+    """在 register() 阶段加载 email_backend，避免 import 时污染 sys.path。"""
+    global EMAIL_BACKEND_AVAILABLE, EmailDB, init_db, email_router
+    _saved_path = list(sys.path)
+    try:
+        if str(plugin_dir) not in sys.path:
+            sys.path.insert(0, str(plugin_dir))
+        if str(email_backend_dir) not in sys.path:
+            sys.path.insert(0, str(email_backend_dir))
 
-    def init_db():
-        logger.info("[TeamChat] 邮箱数据库初始化跳过（模块未加载）")
+        database_spec = importlib.util.spec_from_file_location(
+            "email_backend.database",
+            email_backend_dir / "database.py"
+        )
+        if database_spec and database_spec.loader:
+            database_module = importlib.util.module_from_spec(database_spec)
+            sys.modules["email_backend.database"] = database_module
+            database_spec.loader.exec_module(database_module)
+            EmailDB = database_module.EmailDB
+            init_db = database_module.init_db
 
-    class EmailRouter:
-        pass
+        routes_spec = importlib.util.spec_from_file_location(
+            "email_backend.routes",
+            email_backend_dir / "routes.py"
+        )
+        if routes_spec and routes_spec.loader:
+            routes_module = importlib.util.module_from_spec(routes_spec)
+            routes_module.database = database_module
+            sys.modules["email_backend"] = type(sys)("email_backend")
+            sys.modules["email_backend"].database = database_module
+            sys.modules["email_backend.routes"] = routes_module
+            routes_spec.loader.exec_module(routes_module)
+            email_router = routes_module.router
 
-    email_router = EmailRouter()
+        EMAIL_BACKEND_AVAILABLE = True
+        logger.info("[TeamChat] 邮箱后端模块加载成功")
+    except Exception as e:
+        logger.warning(f"[TeamChat] 邮箱后端模块加载失败: {e}")
+        EMAIL_BACKEND_AVAILABLE = False
+        EmailDB = _FallbackEmailDB
+        init_db = _fallback_init_db
+        email_router = type("EmailRouter", (), {})()
+    finally:
+        sys.path[:] = _saved_path
+
+
+# ============================================================    email_router = EmailRouter()
 
 
 
@@ -139,7 +175,7 @@ except Exception as e:
 # 配置常量
 # ============================================================
 
-CURRENT_VERSION = "5.0.15"
+CURRENT_VERSION = "5.0.16"
 DEFAULT_HOST_ID = "cloud-orchestrator"
 MAX_HISTORY = 200
 SESSION_KEEPALIVE_DAYS = 7
@@ -301,10 +337,13 @@ class AgentCache:
             if now - self._last_refresh <= 30:
                 return
             try:
-                # Use QwenPaw's official last_api resolver (no hardcoded port)
+                # ── 三层兜底获取 QwenPaw API 地址 ──
+                # L1: 官方 read_last_api（内部 API，QwenPaw 版本升级可能变，有 ImportError 保护）
+                # L2: 直接读 ~/.qwenpaw/config.json（内部文件路径，同上保护）
+                # L3: 环境变量 QWENPAW_BASE_URL 或默认 127.0.0.1:56411
                 base = None
                 try:
-                    from qwenpaw.config.utils import read_last_api
+                    from qwenpaw.config.utils import read_last_api  # 内部 API，兼容 QwenPaw 1.x/2.0
                     last = read_last_api()
                     if last:
                         host, port = last
@@ -313,16 +352,15 @@ class AgentCache:
                     else:
                         logger.warning("AgentCache: read_last_api() returned None")
                 except ImportError as e:
-                    logger.warning(f"AgentCache: Failed to import read_last_api: {e}")
+                    logger.warning(f"AgentCache: read_last_api 不可用 (QwenPaw 版本可能已变更): {e}")
                 except Exception as e:
-                    logger.warning(f"AgentCache: Error calling read_last_api: {e}")
+                    logger.warning(f"AgentCache: read_last_api 调用失败: {e}")
                 
-                # ── 第二兜底：直接从 config.json 读取（与 mentx-doctor 对齐） ──
                 if not base:
                     try:
                         config_path = os.path.join(os.path.expanduser("~"), ".qwenpaw", "config.json")
                         if os.path.exists(config_path):
-                            with open(config_path, "r") as f:
+                            with open(config_path, "r", encoding="utf-8") as f:
                                 cfg = json.load(f)
                             last_api = cfg.get("last_api", {})
                             host = last_api.get("host", "")
@@ -370,9 +408,9 @@ class AgentCache:
                     else:
                         logger.warning(f"AgentCache: HTTP {resp.status_code} from {url}")
             except httpx.ConnectError as e:
-                logger.warning(f"AgentCache: Connection failed to {base if 'base' in dir() else 'unknown'}: {e}")
+                logger.warning(f"AgentCache: Connection failed to {base}: {e}")
             except httpx.TimeoutException as e:
-                logger.warning(f"AgentCache: Timeout connecting to {base if 'base' in dir() else 'unknown'}: {e}")
+                logger.warning(f"AgentCache: Timeout connecting to {base}: {e}")
             except Exception as e:
                 logger.warning(f"AgentCache refresh failed: {type(e).__name__}: {e}")
 
@@ -407,7 +445,7 @@ async def _call_agent_async(agent_id: str, prompt: str, timeout: float = 120.0) 
     try:
         base = await _get_api_base()
         async with httpx.AsyncClient(timeout=timeout, trust_env=False) as c:
-            async with c.stream("POST", f"{base}/api/agent/process", json=payload, headers=headers) as r:
+            async with c.stream("POST", f"{base}/api/console/chat", json=payload, headers=headers) as r:
                 r.raise_for_status()
                 last_data = None
                 async for line in r.aiter_lines():
@@ -2385,6 +2423,36 @@ def build_router():
         except Exception as e:
             return JSONResponse(content={"ok": False, "error": str(e)})
 
+    @router.get("/cron-summary")
+    async def cron_summary():
+        """返回 cron 摘要：活跃任务数、最近运行状态等"""
+        try:
+            base = await _get_api_base()
+            async with httpx.AsyncClient(timeout=httpx.Timeout(10.0), trust_env=False) as client:
+                resp = await client.get(f"{base}/api/cron")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    jobs = data.get("jobs", data if isinstance(data, list) else [])
+                    tc_jobs = [j for j in jobs if j.get("agent_id") == "cloud-orchestrator" or "teamchat" in str(j.get("description", ""))]
+                    active = [j for j in tc_jobs if j.get("state") in ("running", "active", "paused")]
+                    last_run = None
+                    for j in tc_jobs:
+                        lr = j.get("last_run") or j.get("last_execution")
+                        if lr and (last_run is None or lr > last_run):
+                            last_run = lr
+                    return JSONResponse(content={
+                        "jobs": tc_jobs,
+                        "summary": {
+                            "total": len(tc_jobs),
+                            "active": len(active),
+                            "paused": len([j for j in tc_jobs if j.get("state") == "paused"]),
+                            "last_run": last_run,
+                        }
+                    })
+        except Exception as e:
+            logger.warning(f"cron-summary failed: {e}")
+        return JSONResponse(content={"jobs": [], "summary": {"total": 0, "active": 0, "paused": 0, "last_run": None}})
+
     # ---- 系统信息 ----
 
     @router.get("/system-info")
@@ -2613,348 +2681,6 @@ def build_router():
         bm = BrowserManager.get_instance()
         return await _run_in_thread(bm.close)
 
-    # ---- 邮箱管理页面 ----
-
-    @router.get("/email-management")
-    async def email_management_page():
-        """返回邮箱管理页面 v0.5.1 - 增强版"""
-        plugin_dir = Path(__file__).parent
-        email_js_path = plugin_dir / "frontend" / "email-management-v2.js"
-        email_compose_path = plugin_dir / "frontend" / "email-compose.js"
-        email_enhancements_path = plugin_dir / "frontend" / "email-enhancements-integration.js"
-
-        if not email_js_path.exists():
-            return PlainTextResponse(content="邮箱管理组件未找到", status_code=404)
-
-        email_js_content = email_js_path.read_text(encoding='utf-8')
-
-        # 加载写邮件组件
-        email_compose_content = ""
-        if email_compose_path.exists():
-            email_compose_content = email_compose_path.read_text(encoding='utf-8')
-
-        # 加载功能增强集成脚本
-        email_enhancements_content = ""
-        if email_enhancements_path.exists():
-            email_enhancements_content = email_enhancements_path.read_text(encoding='utf-8')
-
-        html_content = f"""
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TeamChat 邮箱系统 v0.5.1 - 增强版</title>
-    <style>
-        body {{ margin: 0; padding: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }}
-
-        /* 增强样式 */
-        .modal-overlay {{
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }}
-
-        .modal-content {{
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            max-width: 90%;
-            max-height: 90%;
-            overflow: auto;
-            animation: modalSlideIn 0.3s ease;
-        }}
-
-        @keyframes modalSlideIn {{
-            from {{
-                opacity: 0;
-                transform: translateY(-20px);
-            }}
-            to {{
-                opacity: 1;
-                transform: translateY(0);
-            }}
-        }}
-
-        .modal-header {{
-            padding: 20px 24px;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }}
-
-        .modal-header h3 {{
-            margin: 0;
-            font-size: 20px;
-            color: #1f2937;
-        }}
-
-        .close-btn {{
-            background: none;
-            border: none;
-            font-size: 28px;
-            color: #6b7280;
-            cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: all 0.2s;
-        }}
-
-        .close-btn:hover {{
-            background: #f3f4f6;
-            color: #1f2937;
-        }}
-
-        .modal-body {{
-            padding: 24px;
-        }}
-
-        .modal-footer {{
-            padding: 20px 24px;
-            border-top: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        }}
-
-        .form-group {{
-            margin-bottom: 16px;
-        }}
-
-        .form-group label {{
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #374151;
-            font-size: 14px;
-        }}
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {{
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.2s;
-            box-sizing: border-box;
-        }}
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {{
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }}
-
-        .required {{
-            color: #ef4444;
-        }}
-
-        .btn-primary {{
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }}
-
-        .btn-primary:hover {{
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }}
-
-        .btn-secondary {{
-            padding: 10px 20px;
-            background: #f3f4f6;
-            color: #374151;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }}
-
-        .btn-secondary:hover {{
-            background: #e5e7eb;
-        }}
-
-        .config-selector-container {{
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            backdrop-filter: blur(10px);
-        }}
-    </style>
-</head>
-<body>
-    <script>
-        {email_js_content}
-
-        // 写邮件组件
-        {email_compose_content}
-
-        // 功能增强集成
-        {email_enhancements_content}
-    </script>
-</body>
-</html>
-        """
-        return PlainTextResponse(content=html_content, media_type="text/html; charset=utf-8")
-
-    
-    # ---- 邮箱 API 代理 (转发到独立后端服务) ----
-
-    @router.get("/email/{tab}")
-    async def get_email_list(tab: str, limit: int = 50, offset: int = 0):
-        """直接从数据库获取邮件列表"""
-        try:
-            from email_backend.database import EmailDB
-            
-            # 根据tab调用对应的方法
-            if tab == "inbox":
-                emails = EmailDB.get_inbox(limit=limit, offset=offset)
-            elif tab == "sent":
-                emails = EmailDB.get_sent(limit=limit, offset=offset)
-            elif tab == "drafts":
-                emails = EmailDB.get_drafts(limit=limit, offset=offset)
-            elif tab == "trash":
-                emails = EmailDB.get_trash(limit=limit, offset=offset)
-            else:
-                emails = EmailDB.get_inbox(limit=limit, offset=offset)
-            
-            return JSONResponse(content={
-                "success": True,
-                "emails": emails,
-                "total": len(emails)
-            }, status_code=200)
-        except Exception as e:
-            logger.error(f"获取邮件列表失败: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return JSONResponse(content={"success": False, "message": str(e)}, status_code=500)
-
-    # 邮箱API已改为直接调用email_backend，不再使用18888端口
-    # 所有邮件功能通过email_backend/routes.py直接实现
-
-    @router.post("/email/sync")
-    async def proxy_email_sync(request: Request):
-        """直接执行邮件同步（不依赖独立后端）"""
-        try:
-            from email_backend.database import EmailDB
-            from email_backend.routes import EmailClient
-            
-            configs = EmailDB.get_all_configs()
-            if not configs:
-                return JSONResponse(content={"success": False, "message": "没有邮箱配置"}, status_code=200)
-            
-            total_synced = 0
-            total_inbox = 0
-            messages = []
-            
-            for config in configs:
-                try:
-                    client = EmailClient(config)
-                    account_email = config.get('email')
-                    
-                    # 获取上次同步的UID
-                    last_uid = EmailDB.get_last_uid(account_email, 'INBOX')
-                    
-                    # 增量同步
-                    initial_sync = last_uid is None
-                    sync_limit = 100 if initial_sync else 50
-                    inbox_emails = client.fetch_emails_incremental(folder="INBOX", last_uid=last_uid, limit=sync_limit)
-                    
-                    # 保存到数据库
-                    synced_count = 0
-                    for email_data in inbox_emails:
-                        try:
-                            if EmailDB.add_inbox_email(email_data):
-                                synced_count += 1
-                        except Exception as e:
-                            logger.warning(f"保存邮件失败: {e}")
-                    
-                    total_synced += synced_count
-                    inbox_count = EmailDB.get_email_count(account_email, 'inbox')
-                    total_inbox += inbox_count
-                    
-                    messages.append(f"{account_email}: 新增 {synced_count} 封，共 {inbox_count} 封")
-                    
-                except Exception as e:
-                    logger.error(f"同步 {config.get('email')} 失败: {e}")
-                    messages.append(f"{config.get('email')}: 失败 - {str(e)}")
-            
-            result = {
-                "success": True,
-                "message": "; ".join(messages),
-                "synced": total_synced,
-                "total": total_inbox
-            }
-            return JSONResponse(content=result, status_code=200)
-            
-        except Exception as e:
-            logger.error(f"邮件同步失败: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return JSONResponse(content={"success": False, "message": str(e)}, status_code=500)
-    
-    # TeamChat专用同步入口（供定时任务调用）
-    @router.post("/sync")
-    async def team_chat_sync(request: dict = None):
-        """TeamChat插件专用的邮件同步入口"""
-        try:
-            from email_backend.routes import do_sync_emails
-            result = await do_sync_emails()
-            return JSONResponse(content=result, status_code=200)
-        except Exception as e:
-            logger.error(f"TeamChat邮件同步失败: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return JSONResponse(content={"success": False, "message": str(e)}, status_code=500)
-
-    @router.get("/api/plugins/team_chat/email/stats")
-    async def proxy_email_stats():
-        """代理邮件统计到独立后端"""
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"http://127.0.0.1:18888/api/v1/email/stats",
-                    timeout=10.0
-                )
-                return JSONResponse(content=response.json(), status_code=response.status_code)
-        except Exception as e:
-            logger.error(f"邮件统计API代理错误: {e}")
-            return JSONResponse(content={"success": False, "message": str(e)}, status_code=500)
-
-    # ============================================================
-    # AI分身消息路由
-    # ============================================================
-    import json
-    import time
-    from pathlib import Path
     
     AI_FENSHEN_MSG_FILE = Path.home() / '.qwenpaw' / 'ai_fenshen_messages.json'
     
@@ -3062,6 +2788,7 @@ def build_router():
     # 桌面宠物 API
     # ============================================================
     _pet_process = None
+    _pet_port = int(os.environ.get("TEAMCHAT_PET_PORT", "18765"))
     
     @router.post("/pet/start")
     async def pet_start():
@@ -3074,11 +2801,11 @@ def build_router():
         try:
             # 检查宠物是否已在运行
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = sock.connect_ex(('127.0.0.1', 18765))
+            result = sock.connect_ex(('127.0.0.1', _pet_port))
             sock.close()
             if result == 0:
-                logger.info("[Pet] 桌面宠物已在运行 (端口18765)")
-                return {"success": True, "message": "桌面宠物已在运行", "port": 18765}
+                logger.info(f"[Pet] 桌面宠物已在运行 (端口{_pet_port})")
+                return {"success": True, "message": "桌面宠物已在运行", "port": _pet_port}
         except Exception:
             pass
         
@@ -3091,11 +2818,14 @@ def build_router():
                 logger.error(f"[Pet] 宠物脚本不存在: {pet_path}")
                 return {"success": False, "error": f"宠物脚本不存在: {pet_path}"}
             
-            # 启动宠物进程
+            # 启动宠物进程（传递端口环境变量）
             nonlocal _pet_process
+            env = os.environ.copy()
+            env["TEAMCHAT_PET_PORT"] = str(_pet_port)
             _pet_process = subprocess.Popen(
                 [str(python_path), str(pet_path)],
                 cwd=str(plugin_dir),
+                env=env,
                 creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
             )
             
@@ -3107,11 +2837,11 @@ def build_router():
             
             # 验证是否成功启动
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = sock.connect_ex(('127.0.0.1', 18765))
+            result = sock.connect_ex(('127.0.0.1', _pet_port))
             sock.close()
             
             if result == 0:
-                return {"success": True, "message": "桌面宠物启动成功", "port": 18765, "pid": _pet_process.pid}
+                return {"success": True, "message": "桌面宠物启动成功", "port": _pet_port, "pid": _pet_process.pid}
             else:
                 return {"success": False, "error": "宠物进程已启动但服务未响应，请检查依赖(PySide6, FastAPI, uvicorn)"}
                 
@@ -3169,6 +2899,63 @@ def build_router():
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    # ============================================================
+    # 蜂巢留言 API — 硬编码 QQ 邮箱直接发送
+    # ============================================================
+    @router.post("/hive-message")
+    async def hive_send_message(request: dict):
+        """蜂巢留言：使用 115886@qq.com 发送咨询消息到 c115886@agent.qq.com"""
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        name = (request.get("name") or "").strip()
+        phone = (request.get("phone") or "").strip()
+        user_email = (request.get("user_email") or "").strip()
+        content = (request.get("content") or "").strip()
+
+        if not name or not content:
+            return {"status": "error", "message": "姓名和咨询事项不能为空"}
+
+        subject = request.get("subject") or "咨询"
+        sender = "115886@qq.com"
+        recipient = "c115886@agent.qq.com"
+        # 授权码使用 Base64 编码存储，运行时解码
+        import base64
+        auth_code_encoded = "Z3d4cWJvcXVmemd6Y2JjYg=="
+        auth_code = base64.b64decode(auth_code_encoded).decode('utf-8')
+
+        # 构建邮件正文
+        body = f"【新留言】\n\n姓名：{name}\n手机号：{phone or '未填写'}\n用户邮箱：{user_email or '未填写'}\n\n咨询事项：\n{content}"
+
+        try:
+            logger.info(f"[蜂巢留言] 开始发送: {name} → {recipient}")
+            
+            msg = MIMEMultipart()
+            msg["From"] = sender
+            msg["To"] = recipient
+            msg["Subject"] = f"【AI CC留言】{subject} - {name}"
+            msg.attach(MIMEText(body, "plain", "utf-8"))
+
+            logger.info("[蜂巢留言] 连接 SMTP...")
+            server = smtplib.SMTP_SSL("smtp.qq.com", 465, timeout=15)
+            
+            logger.info("[蜂巢留言] 登录...")
+            server.login(sender, auth_code)
+            
+            logger.info("[蜂巢留言] 发送邮件...")
+            server.sendmail(sender, recipient, msg.as_string())
+            server.quit()
+
+            logger.info(f"[蜂巢留言] 发送成功: {name} → {recipient}")
+            return {"status": "ok", "message": "留言已发送"}
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"[蜂巢留言] 认证失败: {e}")
+            return {"status": "error", "message": "邮箱认证失败，请检查授权码"}
+        except Exception as e:
+            logger.error(f"[蜂巢留言] 发送失败: {e}")
+            return {"status": "error", "message": f"发送失败: {str(e)}"}
+
     return router
 
 
@@ -3184,6 +2971,7 @@ class TeamChatPlugin:
 
     def register(self, api):
         logger.info(f"TeamChat v{CURRENT_VERSION} 注册中...")
+        _load_email_backend()  # 延迟加载，用完即还原 sys.path
         api.register_http_router(build_router(), prefix="/plugins/team_chat", tags=["team-chat"])
         if EMAIL_BACKEND_AVAILABLE and email_router:
             api.register_http_router(email_router, prefix="/plugins/team_chat/email", tags=["email"])
@@ -3302,6 +3090,11 @@ class TeamChatPlugin:
             logger.warning(f"[Cron] 设置定时任务时出错: {e}")
     
     def _shutdown(self):
+        try:
+            _EXECUTOR.shutdown(wait=True, cancel_futures=True)
+            logger.info("[TeamChat] ThreadPoolExecutor 已关闭")
+        except Exception as e:
+            logger.warning(f"[TeamChat] ThreadPoolExecutor 关闭失败: {e}")
         logger.info(f"TeamChat v{CURRENT_VERSION} 已关闭")
 
 

@@ -6,7 +6,7 @@ import pytest
 import sys
 import os
 import tempfile
-sys.path.insert(0, r'C:\Users\lenovo\.copaw\plugins\TeamChat')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from email_backend.database import EmailDB
 

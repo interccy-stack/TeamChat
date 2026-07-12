@@ -22,7 +22,10 @@ import re
 import os
 import uuid
 
-from .database import EmailDB
+try:
+    from .database import EmailDB, _decrypt, _ATTACHMENT_DIR
+except ImportError:
+    from database import EmailDB, _decrypt, _ATTACHMENT_DIR
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["email"])
@@ -158,6 +161,7 @@ class EmailClient:
     
     def fetch_emails(self, folder: str = "INBOX", limit: int = 50) -> List[dict]:
         """获取邮件列表"""
+        mail = None
         try:
             # 连接IMAP服务器
             if self.imap_ssl:
@@ -175,25 +179,36 @@ class EmailClient:
             # 获取最新的N封邮件
             emails = []
             for email_id in reversed(email_ids[-limit:]):
-                _, msg_data = mail.fetch(email_id, "(RFC822)")
-                raw_email = msg_data[0][1]
-                msg = email.message_from_bytes(raw_email)
-                
-                # 解析邮件
-                email_data = self._parse_email(msg, email_id.decode())
-                emails.append(email_data)
-            
-            mail.close()
-            mail.logout()
+                try:
+                    _, msg_data = mail.fetch(email_id, "(RFC822)")
+                    raw_email = msg_data[0][1]
+                    msg = email.message_from_bytes(raw_email)
+                    
+                    # 解析邮件
+                    email_data = self._parse_email(msg, email_id.decode())
+                    emails.append(email_data)
+                except Exception as e:
+                    logger.warning(f"解析邮件 {email_id} 失败: {e}")
             
             return emails
             
         except Exception as e:
             logger.error(f"获取邮件失败: {str(e)}")
             return []
+        finally:
+            if mail:
+                try:
+                    mail.close()
+                except Exception:
+                    pass
+                try:
+                    mail.logout()
+                except Exception:
+                    pass
     
     def fetch_emails_incremental(self, folder: str = "INBOX", last_uid: str = None, limit: int = 100) -> List[dict]:
         """增量获取邮件（只获取新邮件）"""
+        mail = None
         try:
             # 连接IMAP服务器
             if self.imap_ssl:
@@ -244,15 +259,22 @@ class EmailClient:
                     logger.warning(f"获取邮件 {email_id} 失败: {e}")
                     continue
             
-            mail.close()
-            mail.logout()
-            
             logger.info(f"增量同步: 获取 {len(emails)} 封新邮件")
             return emails
             
         except Exception as e:
             logger.error(f"增量获取邮件失败: {str(e)}")
             return []
+        finally:
+            if mail:
+                try:
+                    mail.close()
+                except Exception:
+                    pass
+                try:
+                    mail.logout()
+                except Exception:
+                    pass
     
     def _parse_email(self, msg, email_id: str) -> dict:
         """解析邮件内容"""
@@ -260,12 +282,16 @@ class EmailClient:
         subject = ""
         subject_header = msg.get("Subject", "")
         if subject_header:
-            decoded = decode_header(subject_header)
-            for part, charset in decoded:
-                if isinstance(part, bytes):
-                    subject += part.decode(charset or "utf-8", errors="ignore")
-                else:
-                    subject += part
+            try:
+                decoded = decode_header(subject_header)
+                for part, charset in decoded:
+                    if isinstance(part, bytes):
+                        subject += part.decode(charset or "utf-8", errors="ignore")
+                    elif isinstance(part, str):
+                        subject += part
+            except Exception:
+                # 某些邮件编码（如 unknown-8bit）会触发 LookupError
+                subject = str(subject_header)[:200]
         
         # 解析发件人
         from_addr = msg.get("From", "")
@@ -279,21 +305,29 @@ class EmailClient:
         # 解析日期
         date_str = msg.get("Date", "")
         
-        # 解析正文
+        # 解析正文 & 附件
         body = ""
         html_body = ""
+        attachments = []
         
         if msg.is_multipart():
             for part in msg.walk():
                 content_type = part.get_content_type()
                 content_disposition = str(part.get("Content-Disposition", ""))
                 
-                if content_type == "text/plain" and "attachment" not in content_disposition:
+                # 附件
+                if "attachment" in content_disposition:
+                    attach = self._extract_attachment(part)
+                    if attach:
+                        attachments.append(attach)
+                    continue
+                
+                if content_type == "text/plain":
                     try:
                         body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
                     except:
                         pass
-                elif content_type == "text/html" and "attachment" not in content_disposition:
+                elif content_type == "text/html":
                     try:
                         html_body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
                     except:
@@ -319,7 +353,41 @@ class EmailClient:
             "account_email": self.email,
             "folder": "INBOX",
             "size": 0,
-            "attachments": []
+            "attachments": attachments
+        }
+    
+    def _extract_attachment(self, part) -> dict:
+        """从MIME part提取附件信息"""
+        filename = part.get_filename()
+        if not filename:
+            return None
+        # 解码文件名
+        try:
+            decoded = decode_header(filename)
+            filename = ""
+            for fragment, charset in decoded:
+                if isinstance(fragment, bytes):
+                    filename += fragment.decode(charset or "utf-8", errors="ignore")
+                else:
+                    filename += fragment
+        except:
+            filename = str(filename)
+        
+        content_type = part.get_content_type()
+        content = part.get_payload(decode=True)
+        if content is None:
+            return None
+        
+        size = len(content)
+        # 存成 base64 方便传输
+        import base64
+        content_b64 = base64.b64encode(content).decode("ascii")
+        
+        return {
+            "filename": filename,
+            "content_type": content_type,
+            "size": size,
+            "content_base64": content_b64
         }
     
     def test_connection(self) -> dict:
@@ -391,6 +459,8 @@ class DraftRequest(BaseModel):
     subject: Optional[str] = Field(None, description="主题")
     body: Optional[str] = Field(None, description="正文")
     html_body: Optional[str] = Field(None, description="HTML正文")
+    cc: Optional[str] = Field(None, description="抄送")
+    bcc: Optional[str] = Field(None, description="密送")
 
 
 class EmailRequest(BaseModel):
@@ -472,8 +542,8 @@ async def get_inbox(
     account: str = Query('')
 ):
     """获取收件箱邮件"""
-    emails = EmailDB.get_inbox(limit=limit, offset=offset, folder=folder, account_email=account)
-    return {"success": True, "emails": emails}
+    result = EmailDB.get_inbox_with_count(limit=limit, offset=offset, folder=folder, account_email=account)
+    return {"success": True, "emails": result["emails"], "total": result["total"]}
 
 
 @router.get("/inbox/{id}")
@@ -496,15 +566,29 @@ async def delete_inbox_email(id: int):
 @router.post("/inbox/{id}/read")
 async def mark_inbox_email_read(id: int):
     """标记收件箱邮件为已读"""
-    # TODO: 实现标记已读逻辑
-    return {"success": True}
+    result = EmailDB.mark_as_read(id)
+    return {"success": result}
 
 
 @router.post("/inbox/{id}/unread")
 async def mark_inbox_email_unread(id: int):
     """标记收件箱邮件为未读"""
-    # TODO: 实现标记未读逻辑
-    return {"success": True}
+    result = EmailDB.mark_as_unread(id)
+    return {"success": result}
+
+
+@router.post("/inbox/batch-read")
+async def batch_mark_read(ids: List[int]):
+    """批量标记邮件为已读"""
+    count = EmailDB.batch_mark_as_read(ids)
+    return {"success": True, "count": count}
+
+
+@router.post("/inbox/batch-delete")
+async def batch_delete_inbox(ids: List[int]):
+    """批量删除收件箱邮件（移到回收站）"""
+    result = EmailDB.batch_delete_inbox(ids)
+    return result
 
 
 # ── Sent API ────────────────────────────────────────────────────────────────
@@ -563,6 +647,8 @@ async def get_draft(id: int):
 async def create_draft(data: DraftRequest):
     """创建草稿"""
     id = EmailDB.add_draft(data.dict())
+    if not id:
+        return {"success": False, "message": "草稿保存失败"}
     return {"success": True, "id": id}
 
 
@@ -657,8 +743,8 @@ async def get_trash(
     account: str = Query('')
 ):
     """获取回收站邮件"""
-    emails = EmailDB.get_trash(limit=limit, offset=offset, account_email=account)
-    return {"success": True, "emails": emails}
+    emails, total = EmailDB.get_trash_with_count(limit=limit, offset=offset, account_email=account)
+    return {"success": True, "emails": emails, "total": total}
 
 
 @router.get("/trash/{id}")
@@ -673,11 +759,52 @@ async def get_trash_email(id: int):
 @router.post("/trash/{id}/restore")
 async def restore_trash_email(id: int):
     """恢复回收站邮件"""
-    # TODO: 实现恢复逻辑
-    return {"success": True}
+    try:
+        # 获取回收站邮件
+        trash_email = EmailDB.get_trash_by_id(id)
+        if not trash_email:
+            return {"success": False, "message": "邮件不存在"}
+
+        folder_type = trash_email.get("folder_type", "inbox")
+
+        if folder_type == "inbox":
+            # 恢复到收件箱
+            EmailDB.add_inbox_email({
+                "uid": f"restored_{id}_{int(datetime.now().timestamp())}",
+                "from_addr": trash_email.get("from_addr", ""),
+                "from_name": "",
+                "subject": trash_email.get("subject", ""),
+                "body": trash_email.get("body", ""),
+                "html_body": "",
+                "sent_date": trash_email.get("sent_date"),
+                "received_date": datetime.now(),
+                "attachments": [],
+                "folder": "INBOX",
+                "size": 0,
+                "flags": [],
+                "account_email": ""
+            })
+        elif folder_type == "sent":
+            # 恢复到发件箱
+            EmailDB.add_sent_email({
+                "to_addr": trash_email.get("to_addr", ""),
+                "to_name": "",
+                "subject": trash_email.get("subject", ""),
+                "body": trash_email.get("body", ""),
+                "html_body": "",
+                "sent_date": trash_email.get("sent_date") or datetime.now(),
+                "attachments": [],
+                "size": 0
+            })
+
+        # 从回收站删除
+        EmailDB.delete_trash_email_permanent(id)
+        return {"success": True, "message": "已恢复"}
+    except Exception as e:
+        logger.error(f"恢复邮件失败: {e}")
+        return {"success": False, "message": str(e)}
 
 
-@router.delete("/trash/{id}")
 @router.delete("/trash/{id}")
 async def delete_trash_email_permanent(id: int):
     """永久删除回收站邮件"""
@@ -754,10 +881,7 @@ async def send_email(
 
 # ── Sync API ────────────────────────────────────────────────────────────────
 
-# 注意：/sync 路由已移至 main.py 中统一处理
-# 此处仅保留内部调用函数
-
-# 内部调用用的同步函数（不依赖Query参数）
+@router.post("/sync")
 async def do_sync_emails(config_id: Optional[int] = None):
     """同步邮件（内部调用版本）"""
     try:
@@ -781,9 +905,9 @@ async def do_sync_emails(config_id: Optional[int] = None):
             try:
                 # 解密密码
                 if config.get('smtp_password'):
-                    config['smtp_password'] = config.get('smtp_password', '')
+                    config['smtp_password'] = _decrypt(config['smtp_password'])
                 if config.get('imap_password'):
-                    config['imap_password'] = config.get('imap_password', '')
+                    config['imap_password'] = _decrypt(config['imap_password'])
 
                 client = EmailClient(config)
                 account_email = config.get('email')
@@ -798,12 +922,18 @@ async def do_sync_emails(config_id: Optional[int] = None):
                 sync_limit = 100 if initial_sync else 50
                 inbox_emails = client.fetch_emails_incremental(folder="INBOX", last_uid=last_uid, limit=sync_limit)
 
-                # 保存到数据库
+                # 保存到数据库 & 附件落地
                 synced_count = 0
                 for email_data in inbox_emails:
                     try:
                         result = EmailDB.add_inbox_email(email_data)
                         if result:
+                            # 保存附件到文件系统
+                            for attach in email_data.get('attachments', []):
+                                try:
+                                    _save_attachment_file(attach, email_data, account_email)
+                                except Exception as ex:
+                                    logger.warning(f"保存附件失败: {ex}")
                             synced_count += 1
                     except Exception as e:
                         logger.warning(f"保存邮件失败: {e}")
@@ -845,8 +975,10 @@ async def test_email_connection(config: dict):
 
         if result.get("smtp") and result.get("imap"):
             return {"success": True, "results": result, "message": "连接测试成功"}
-        else:
+        elif result.get("smtp") or result.get("imap"):
             return {"success": True, "results": result, "message": "连接测试部分成功"}
+        else:
+            return {"success": False, "results": result, "message": result.get("message", "连接测试失败")}
 
     except Exception as e:
         logger.error(f"测试邮箱连接失败: {e}")
@@ -857,18 +989,20 @@ async def test_email_connection(config: dict):
 
 @router.get("/email-accounts")
 async def get_accounts():
-    """获取所有邮箱账户列表"""
+    """获取所有邮箱账户列表（含未读数）"""
     try:
         configs = EmailDB.get_all_configs()
         accounts = []
         for config in configs:
+            email = config.get("email", "")
             accounts.append({
                 "id": config.get("id"),
-                "email": config.get("email"),
-                "name": config.get("display_name", config.get("email", "")),
+                "email": email,
+                "name": config.get("display_name", email),
                 "display_name": config.get("display_name", ""),
                 "provider": config.get("provider", "custom"),
                 "is_default": config.get("is_default", False),
+                "unread_count": EmailDB.get_unread_count(email) if email else 0,
             })
         return {"success": True, "accounts": accounts}
     except Exception as e:
@@ -879,20 +1013,10 @@ async def get_accounts():
 # ── Stats API ───────────────────────────────────────────────────────────────
 
 @router.get("/stats")
-async def get_email_stats():
+async def get_email_stats(account: str = Query('')):
     """获取邮箱统计信息"""
-    # TODO: 实现统计逻辑
-    return {
-        "success": True,
-        "stats": {
-            "inbox_total": 0,
-            "inbox_unread": 0,
-            "sent_total": 0,
-            "drafts_total": 0,
-            "trash_total": 0,
-            "contacts_total": 0
-        }
-    }
+    stats = EmailDB.get_stats(account_email=account)
+    return {"success": True, "stats": stats}
 
 
 # ── AI Knowledge Base API ───────────────────────────────────────────────────────────────
@@ -906,6 +1030,17 @@ async def search_emails(q: str = Query(..., description="搜索关键词")):
         return {"success": True, "emails": emails}
     except Exception as e:
         logger.error(f"搜索邮件失败: {e}")
+        return {"success": False, "message": str(e), "emails": []}
+
+
+@router.get("/email/by-sender")
+async def emails_by_sender(email: str = Query(..., description="发件人邮箱地址")):
+    """按发件人查询收件箱关联邮件"""
+    try:
+        emails = EmailDB.get_emails_by_sender(email)
+        return {"success": True, "emails": emails}
+    except Exception as e:
+        logger.error(f"按发件人查询失败: {e}")
         return {"success": False, "message": str(e), "emails": []}
 
 
@@ -974,3 +1109,131 @@ async def download_attachment(attachment_id: str):
     except Exception as e:
         logger.error(f"下载附件失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── AI Notepad API ──────────────────────────────────────────────────────────
+
+class NotepadRequest(BaseModel):
+    title: str = Field(..., description="笔记标题")
+    content: Optional[str] = Field("", description="笔记内容")
+    tags: Optional[str] = Field("[]", description="标签（JSON数组字符串）")
+    color: Optional[str] = Field("#ffd700", description="卡片颜色")
+
+class NotepadUpdateRequest(BaseModel):
+    title: Optional[str] = Field(None)
+    content: Optional[str] = Field(None)
+    tags: Optional[str] = Field(None)
+    color: Optional[str] = Field(None)
+
+
+@router.get("/notepads")
+async def get_notepads(limit: int = Query(50, ge=1, le=200)):
+    """获取所有笔记"""
+    notepads = EmailDB.get_notepads(limit=limit)
+    return {"success": True, "notepads": notepads}
+
+
+@router.get("/notepads/{note_id}")
+async def get_notepad(note_id: int):
+    """获取单个笔记"""
+    notepad = EmailDB.get_notepad(note_id)
+    if notepad:
+        return {"success": True, "notepad": notepad}
+    return {"success": False, "error": "Notepad not found"}
+
+
+@router.post("/notepads")
+async def create_notepad(data: NotepadRequest):
+    """创建笔记"""
+    note_id = EmailDB.create_notepad(
+        title=data.title,
+        content=data.content or "",
+        tags=data.tags or "[]",
+        color=data.color or "#ffd700"
+    )
+    if note_id:
+        return {"success": True, "id": note_id}
+    return {"success": False, "message": "创建失败"}
+
+
+@router.put("/notepads/{note_id}")
+async def update_notepad(note_id: int, data: NotepadUpdateRequest):
+    """更新笔记"""
+    update_data = {}
+    if data.title is not None:
+        update_data["title"] = data.title
+    if data.content is not None:
+        update_data["content"] = data.content
+    if data.tags is not None:
+        update_data["tags"] = data.tags
+    if data.color is not None:
+        update_data["color"] = data.color
+    result = EmailDB.update_notepad(note_id, update_data)
+    return {"success": result}
+
+
+@router.delete("/notepads/{note_id}")
+async def delete_notepad(note_id: int):
+    """删除笔记"""
+    result = EmailDB.delete_notepad(note_id)
+    return {"success": result}
+
+
+@router.post("/notepads/{note_id}/pin")
+async def toggle_notepad_pin(note_id: int, pinned: int = Form(...)):
+    """切换笔记置顶状态"""
+    result = EmailDB.toggle_pin(note_id, pinned)
+    return {"success": result, "pinned": pinned}
+
+
+@router.get("/notepads/search")
+async def search_notepads(q: str = Query(..., description="搜索关键词")):
+    """搜索笔记"""
+    notepads = EmailDB.search_notepads(q)
+    return {"success": True, "notepads": notepads}
+
+
+# =================== 附件落地工具 ===================
+
+def _save_attachment_file(attach: dict, email_data: dict, account_email: str) -> str:
+    """将附件保存到本地文件系统 & 写入attachments表"""
+    import base64
+    import hashlib
+    
+    content_b64 = attach.get("content_base64", "")
+    if not content_b64:
+        return ""
+    
+    filename = attach.get("filename", "unnamed")
+    content_type = attach.get("content_type", "application/octet-stream")
+    size = attach.get("size", 0)
+    
+    # 解码 base64
+    file_content = base64.b64decode(content_b64)
+    
+    # 文件名做哈希避免冲突
+    name_hash = hashlib.md5(account_email.encode() + filename.encode()).hexdigest()[:12]
+    safe_name = f"{name_hash}_{filename}"
+    file_path = _ATTACHMENT_DIR / safe_name
+    
+    # 写盘
+    with open(file_path, "wb") as f:
+        f.write(file_content)
+    
+    # 入库
+    email_id_val = email_data.get("id") or email_data.get("uid", "0")
+    try:
+        email_id_int = int(email_id_val)
+    except (ValueError, TypeError):
+        email_id_int = 0
+    
+    EmailDB.save_attachment(
+        email_id=email_id_int,
+        email_subject=email_data.get("subject", ""),
+        filename=filename,
+        content_type=content_type,
+        size=size,
+        file_path=str(file_path)
+    )
+    logger.info(f"[附件] 已保存: {filename} ({size} bytes) -> {file_path}")
+    return str(file_path)

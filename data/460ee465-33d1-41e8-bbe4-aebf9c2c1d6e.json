@@ -1,0 +1,257 @@
+{
+  "session_id": "460ee465-33d1-41e8-bbe4-aebf9c2c1d6e",
+  "host_id": "cloud-orchestrator",
+  "host_name": "CloudPaw-Master",
+  "agent_ids": [
+    "QwenPaw_QA_Agent_0.2",
+    "default",
+    "news-pol-analyst"
+  ],
+  "history": [
+    {
+      "role": "human",
+      "sender": "human",
+      "sender_name": "人类用户",
+      "content": "今天星期几？",
+      "timestamp": 1783869062.2650187
+    },
+    {
+      "role": "agent",
+      "sender": "default",
+      "sender_name": "Default",
+      "content": "[错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869062.3065116
+    },
+    {
+      "role": "host",
+      "sender": "cloud-orchestrator",
+      "sender_name": "CloudPaw-Master",
+      "content": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869062.3316855
+    },
+    {
+      "role": "human",
+      "sender": "human",
+      "sender_name": "人类用户",
+      "content": "今天星期几",
+      "timestamp": 1783869075.6900034
+    },
+    {
+      "role": "agent",
+      "sender": "default",
+      "sender_name": "Default",
+      "content": "[错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869075.7480543
+    },
+    {
+      "role": "agent",
+      "sender": "news-pol-analyst",
+      "sender_name": "news woman",
+      "content": "[错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869075.773789
+    },
+    {
+      "role": "host",
+      "sender": "cloud-orchestrator",
+      "sender_name": "CloudPaw-Master",
+      "content": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869075.7977357
+    },
+    {
+      "role": "human",
+      "sender": "human",
+      "sender_name": "人类用户",
+      "content": "今天星期几？",
+      "timestamp": 1783869654.7153976
+    },
+    {
+      "role": "agent",
+      "sender": "QwenPaw_QA_Agent_0.2",
+      "sender_name": "QA Agent",
+      "content": "[错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869654.7385314
+    },
+    {
+      "role": "agent",
+      "sender": "default",
+      "sender_name": "Default",
+      "content": "[错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869654.7627797
+    },
+    {
+      "role": "agent",
+      "sender": "news-pol-analyst",
+      "sender_name": "news woman",
+      "content": "[错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869654.7867079
+    },
+    {
+      "role": "host",
+      "sender": "cloud-orchestrator",
+      "sender_name": "CloudPaw-Master",
+      "content": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869654.8346515
+    },
+    {
+      "role": "human",
+      "sender": "human",
+      "sender_name": "人类用户",
+      "content": "？？",
+      "timestamp": 1783869888.0182185
+    },
+    {
+      "role": "agent",
+      "sender": "QwenPaw_QA_Agent_0.2",
+      "sender_name": "QA Agent",
+      "content": "[错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869888.0431285
+    },
+    {
+      "role": "agent",
+      "sender": "default",
+      "sender_name": "Default",
+      "content": "[错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869888.0676284
+    },
+    {
+      "role": "agent",
+      "sender": "news-pol-analyst",
+      "sender_name": "news woman",
+      "content": "[错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869888.092123
+    },
+    {
+      "role": "host",
+      "sender": "cloud-orchestrator",
+      "sender_name": "CloudPaw-Master",
+      "content": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783869888.1175463
+    },
+    {
+      "role": "human",
+      "sender": "human",
+      "sender_name": "人类用户",
+      "content": "你好",
+      "timestamp": 1783870739.3549237
+    },
+    {
+      "role": "agent",
+      "sender": "QwenPaw_QA_Agent_0.2",
+      "sender_name": "QA Agent",
+      "content": "[错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783870739.381846
+    },
+    {
+      "role": "agent",
+      "sender": "default",
+      "sender_name": "Default",
+      "content": "[错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783870739.4063158
+    },
+    {
+      "role": "agent",
+      "sender": "news-pol-analyst",
+      "sender_name": "news woman",
+      "content": "[错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783870739.435037
+    },
+    {
+      "role": "host",
+      "sender": "cloud-orchestrator",
+      "sender_name": "CloudPaw-Master",
+      "content": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783870739.477831
+    },
+    {
+      "role": "human",
+      "sender": "human",
+      "sender_name": "人类用户",
+      "content": "你好",
+      "timestamp": 1783870760.5893078
+    },
+    {
+      "role": "agent",
+      "sender": "QwenPaw_QA_Agent_0.2",
+      "sender_name": "QA Agent",
+      "content": "[错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783870760.6485248
+    },
+    {
+      "role": "agent",
+      "sender": "default",
+      "sender_name": "Default",
+      "content": "[错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783870760.693471
+    },
+    {
+      "role": "agent",
+      "sender": "news-pol-analyst",
+      "sender_name": "news woman",
+      "content": "[错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783870760.7175882
+    },
+    {
+      "role": "host",
+      "sender": "cloud-orchestrator",
+      "sender_name": "CloudPaw-Master",
+      "content": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "timestamp": 1783870760.9753017
+    }
+  ],
+  "host_steps": [
+    {
+      "id": "cloud-orchestrator",
+      "content": "你是团队主持人。以下是多智能体讨论的内容：\n\n[用户] 今天星期几？\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n\n请做一个简洁的总结（200字以内），指出各智能体的观点异同，并给出你的建议。",
+      "response": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "time": 1783869062.3316815,
+      "action": "主持人 CloudPaw-Master 汇总回复",
+      "detail": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor mor"
+    },
+    {
+      "id": "cloud-orchestrator",
+      "content": "你是团队主持人。以下是多智能体讨论的内容：\n\n[用户] 今天星期几？\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 今天星期几\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n\n请做一个简洁的总结（200字以内），指出各智能体的观点异同，并给出你的建议。",
+      "response": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "time": 1783869075.7977324,
+      "action": "主持人 CloudPaw-Master 汇总回复",
+      "detail": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor mor"
+    },
+    {
+      "id": "cloud-orchestrator",
+      "content": "你是团队主持人。以下是多智能体讨论的内容：\n\n[用户] 今天星期几？\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 今天星期几\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 今天星期几？\n[QA Agent] [错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n\n请做一个简洁的总结（200字以内），指出各智能体的观点异同，并给出你的建议。",
+      "response": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "time": 1783869654.8346472,
+      "action": "主持人 CloudPaw-Master 汇总回复",
+      "detail": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor mor"
+    },
+    {
+      "id": "cloud-orchestrator",
+      "content": "你是团队主持人。以下是多智能体讨论的内容：\n\n[用户] 今天星期几？\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 今天星期几\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 今天星期几？\n[QA Agent] [错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] ？？\n[QA Agent] [错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n\n请做一个简洁的总结（200字以内），指出各智能体的观点异同，并给出你的建议。",
+      "response": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "time": 1783869888.1175425,
+      "action": "主持人 CloudPaw-Master 汇总回复",
+      "detail": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor mor"
+    },
+    {
+      "id": "cloud-orchestrator",
+      "content": "你是团队主持人。以下是多智能体讨论的内容：\n\n[用户] 今天星期几？\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 今天星期几\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 今天星期几？\n[QA Agent] [错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] ？？\n[QA Agent] [错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 你好\n[QA Agent] [错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n\n请做一个简洁的总结（200字以内），指出各智能体的观点异同，并给出你的建议。",
+      "response": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "time": 1783870739.4778275,
+      "action": "主持人 CloudPaw-Master 汇总回复",
+      "detail": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor mor"
+    },
+    {
+      "id": "cloud-orchestrator",
+      "content": "你是团队主持人。以下是多智能体讨论的内容：\n\n[用户] 今天星期几？\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 今天星期几\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 今天星期几？\n[QA Agent] [错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] ？？\n[QA Agent] [错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 你好\n[QA Agent] [错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[用户] 你好\n[QA Agent] [错误] QwenPaw_QA_Agent_0.2: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[Default] [错误] default: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n[news woman] [错误] news-pol-analyst: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf\n\n请做一个简洁的总结（200字以内），指出各智能体的观点异同，并给出你的建议。",
+      "response": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor more inf",
+      "time": 1783870760.9752972,
+      "action": "主持人 CloudPaw-Master 汇总回复",
+      "detail": "[错误] cloud-orchestrator: Client error '405 Method Not Allowed' for url 'http://127.0.0.1:8088/api/agent/process'\nFor mor"
+    }
+  ],
+  "brainstorm": false,
+  "discussion_done": false,
+  "created_at": 1783869062.2650187,
+  "updated_at": 1783870760.5893078,
+  "tag": "",
+  "pinned": false
+}

@@ -37,8 +37,8 @@ app = FastAPI(
 # 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许所有来源
-    allow_credentials=True,
+    allow_origins=["*"],  # 允许所有来源（本地服务）
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -74,9 +74,10 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
+    port = int(os.environ.get("TEAMCHAT_EMAIL_PORT", "18888"))
     uvicorn.run(
         app,
         host="127.0.0.1",
-        port=18888,
+        port=port,
         log_level="info"
     )

@@ -9,7 +9,302 @@
  *  【AI防卫】轻量安全提示（移除ClamAV）
  *  【Chrome扩展】AI分身Pro + 智能感知
  * ===================================================================
+ *  CACHE_BUST: 20250711_2250
  */
+// 全局兜底：确保 getApiUrl 在任何时候都可用
+if(typeof window.getApiUrl==='undefined'&&window.QwenPaw&&window.QwenPaw.host&&window.QwenPaw.host.getApiUrl){window.getApiUrl=window.QwenPaw.host.getApiUrl;}
+// ========== 原生联系人添加弹窗（绕过React渲染管道） ==========
+window.showAddContactModal = function(newContact, setNewContact, addContact) {
+  if (document.getElementById('cc-add-contact-modal')) return;
+  var overlay = document.createElement('div');
+  overlay.id = 'cc-add-contact-modal';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:99999;';
+  overlay.onclick = function(e) { if (e.target === overlay) { overlay.remove(); } };
+  var box = document.createElement('div');
+  box.style.cssText = 'background:white;border-radius:12px;padding:24px;width:420px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+  box.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 style="margin:0">👤 添加联系人</h2><button id="cc-modal-close" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999">✕</button></div><div style="display:flex;flex-direction:column;gap:10px"><input id="cc-modal-name" type="text" placeholder="姓名 *" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box"><input id="cc-modal-email" type="email" placeholder="邮箱 *" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box"><input id="cc-modal-phone" type="text" placeholder="电话" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box"><input id="cc-modal-company" type="text" placeholder="公司" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box"></div><div style="display:flex;gap:10px;margin-top:16px"><button id="cc-modal-cancel" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:6px;cursor:pointer;font-size:14px;background:white">取消</button><button id="cc-modal-save" style="flex:1;padding:10px;border:none;border-radius:6px;cursor:pointer;font-size:14px;background:#667eea;color:white;font-weight:bold">保存</button></div>';
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  document.getElementById('cc-modal-close').onclick = function() { overlay.remove(); };
+  document.getElementById('cc-modal-cancel').onclick = function() { overlay.remove(); };
+  document.getElementById('cc-modal-save').onclick = function() {
+    var name = document.getElementById('cc-modal-name').value.trim();
+    var email = document.getElementById('cc-modal-email').value.trim();
+    var phone = document.getElementById('cc-modal-phone').value.trim();
+    var company = document.getElementById('cc-modal-company').value.trim();
+    if (!name || !email) { alert('姓名和邮箱不能为空！'); return; }
+    setNewContact({name:name, email:email, phone:phone, company:company});
+    overlay.remove();
+    addContact(name, email, phone, company);
+  };
+};
+// ========== 蜂巢邮箱动画 - 端到端蜜蜂飞行 ==========
+window.showHiveAnimation = function() {
+  // 确保 getApiUrl 可用
+  var getApiUrl = (typeof window.getApiUrl!=='undefined' && window.getApiUrl) || 
+                  (window.QwenPaw && window.QwenPaw.host && window.QwenPaw.host.getApiUrl) ||
+                  function(p){return '/api'+p;};
+  var TARGET_EMAIL = 'c115886@agent.qq.com';
+  var overlay = document.createElement('div');
+  overlay.id = 'hive-animation-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;font-family:system-ui,sans-serif;overflow:hidden;';
+
+  // 背景：暖蜂蜜色渐变 + 花园光斑
+  var bg = document.createElement('div');
+  bg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at 30% 60%, #f9d423 0%, #fda403 15%, #e67e22 35%, transparent 70%), radial-gradient(ellipse at 70% 40%, #f9d423 0%, #fda403 15%, #e67e22 30%, transparent 65%), radial-gradient(ellipse at 50% 50%, #fff8e1 0%, #ffe082 20%, transparent 55%), linear-gradient(180deg, #1a0a00 0%, #3e2008 30%, #5a3a1a 60%, #2d1500 100%);';
+  overlay.appendChild(bg);
+
+  // 随机光斑粒子
+  for(var i=0;i<25;i++){
+    var spot = document.createElement('div');
+    spot.style.cssText = 'position:absolute;width:'+(3+Math.random()*6)+'px;height:'+(3+Math.random()*6)+'px;border-radius:50%;background:rgba(255,255,200,'+(0.15+Math.random()*0.3)+');left:'+Math.random()*100+'%;top:'+Math.random()*100+'%;animation:hiveSparkle '+(3+Math.random()*4)+'s ease-in-out infinite;animation-delay:'+Math.random()*3+'s;';
+    overlay.appendChild(spot);
+  }
+
+  var style = document.createElement('style');
+  style.innerHTML =
+    '@keyframes hiveSparkle{0%,100%{opacity:0;transform:scale(0)}50%{opacity:1;transform:scale(1.5)}}'+
+    '@keyframes beeWing{0%,100%{transform:rotate(-5deg) scaleY(0.85)}50%{transform:rotate(5deg) scaleY(1.1)}}'+
+    '@keyframes beeFlyPath{0%{left:8%;top:70%}15%{left:20%;top:40%}35%{left:42%;top:22%}55%{left:60%;top:35%}75%{left:78%;top:55%}90%{left:86%;top:63%}100%{left:88%;top:65%}}'+
+    '@keyframes beeBounce{0%,100%{margin-top:0}30%{margin-top:-18px}60%{margin-top:-8px}}'+
+    '@keyframes youPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 8px #ffd700)}50%{transform:scale(1.08);filter:drop-shadow(0 0 20px #ffd700)}}'+
+    '@keyframes hiveGlow{0%,100%{filter:drop-shadow(0 0 5px #ffd700)}50%{filter:drop-shadow(0 0 20px #ffd700) drop-shadow(0 0 40px #ff8c00)}}'+
+    '@keyframes hiveArrive{0%{filter:drop-shadow(0 0 5px #ffd700)}30%{transform:scale(1.3);filter:drop-shadow(0 0 30px #ffd700) drop-shadow(0 0 60px #ff8c00)}100%{transform:scale(1);filter:drop-shadow(0 0 12px #ffd700)}}'+
+    '@keyframes trailFade{0%{opacity:0.6;transform:scale(0.6)}100%{opacity:0;transform:scale(0.2)}}'+
+    '@keyframes pollenFloat{0%{transform:translate(0,0) scale(0);opacity:0}30%{opacity:0.8;transform:translate(20px,-30px) scale(1)}70%{opacity:0.4;transform:translate(-15px,-50px) scale(0.7)}100%{opacity:0;transform:translate(10px,-70px) scale(0)}}'+
+    '@keyframes titleIn{0%{opacity:0;transform:translateY(30px)}100%{opacity:1;transform:translateY(0)}}'+
+    '@keyframes letterDrop{0%{opacity:0;transform:translateY(-40px) rotate(-10deg)}60%{opacity:1;transform:translateY(5px) rotate(3deg)}100%{opacity:1;transform:translateY(0) rotate(0)}}'+
+    '@keyframes ccSlideUp{0%{opacity:0;transform:translateY(40px)}100%{opacity:1;transform:translateY(0)}}';
+  document.head.appendChild(style);
+
+  // ===== 场景容器 =====
+  var scene = document.createElement('div');
+  scene.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:640px;height:400px;max-width:90vw;max-height:50vh;';
+  overlay.appendChild(scene);
+
+  // ===== 左边：用户的蜜蜂 =====
+  var youLabel = document.createElement('div');
+  youLabel.innerHTML = '🐝';
+  youLabel.style.cssText = 'position:absolute;left:4%;top:62%;font-size:52px;animation:youPulse 2s ease-in-out infinite;z-index:10;';
+  scene.appendChild(youLabel);
+  var youName = document.createElement('div');
+  youName.innerHTML = '<div style="font-size:13px;font-weight:bold;color:#ffd700;text-align:center;margin-top:4px;">你</div>';
+  youName.style.cssText = 'position:absolute;left:3%;top:78%;z-index:10;';
+  scene.appendChild(youName);
+
+  // ===== 右边：AI CC咨询 蜂巢 =====
+  var hive = document.createElement('div');
+  hive.innerHTML = '🏠';
+  hive.id = 'hive-target';
+  hive.style.cssText = 'position:absolute;right:3%;top:58%;font-size:56px;animation:hiveGlow 2.5s ease-in-out infinite;z-index:10;';
+  scene.appendChild(hive);
+  var hiveLabel = document.createElement('div');
+  hiveLabel.innerHTML = '<div style="font-size:12px;font-weight:bold;color:#ffd700;text-align:center;margin-top:2px;">AI CC咨询</div>';
+  hiveLabel.style.cssText = 'position:absolute;right:1%;top:78%;z-index:10;';
+  scene.appendChild(hiveLabel);
+
+  // ===== 飞行路径虚线（蜜蜂飞行路线） =====
+  var pathDots = '';
+  var pathPoints = [[10,68],[22,42],[38,24],[52,32],[68,48],[80,58],[86,62]];
+  for(var p=0;p<pathPoints.length;p++){
+    var dot = document.createElement('div');
+    dot.style.cssText = 'position:absolute;left:'+pathPoints[p][0]+'%;top:'+pathPoints[p][1]+'%;width:4px;height:4px;border-radius:50%;background:rgba(255,215,0,0.2);z-index:1;';
+    if(p<pathPoints.length-1) scene.appendChild(dot);
+  }
+
+  // ===== 飞行的蜜蜂 =====
+  var flyingBee = document.createElement('div');
+  flyingBee.innerHTML = '🐝';
+  flyingBee.id = 'flying-bee';
+  flyingBee.style.cssText = 'position:absolute;font-size:30px;animation:beeFlyPath 4.5s cubic-bezier(0.4,0,0.2,1) forwards,beeBounce 0.25s ease-in-out infinite,beeWing 0.08s ease-in-out infinite;left:8%;top:70%;z-index:20;';
+  scene.appendChild(flyingBee);
+
+  // ===== 蜜蜂飞行尾迹（3个小蜜蜂影子） =====
+  for(var t=0;t<3;t++){
+    var trail = document.createElement('div');
+    trail.innerHTML = '🐝';
+    trail.style.cssText = 'position:absolute;font-size:'+(16-t*4)+'px;opacity:0;z-index:15;left:8%;top:70%;';
+    trail.className = 'bee-trail trail-'+t;
+    scene.appendChild(trail);
+  }
+
+  // 尾迹跟随（用JS定时更新位置）
+  var trailPositions = [];
+  var trailInterval = setInterval(function(){
+    var fb = document.getElementById('flying-bee');
+    if(!fb){clearInterval(trailInterval);return;}
+    var rect = fb.getBoundingClientRect();
+    var sceneRect = scene.getBoundingClientRect();
+    trailPositions.push({x:rect.left-sceneRect.left+rect.width/2, y:rect.top-sceneRect.top+rect.height/2, t:Date.now()});
+    if(trailPositions.length>8) trailPositions.shift();
+    var trails = scene.querySelectorAll('.bee-trail');
+    trails.forEach(function(tr,idx){
+      var posIdx = trailPositions.length-1-idx*2;
+      if(posIdx>=0 && Date.now()-trailPositions[posIdx].t<800){
+        tr.style.left = trailPositions[posIdx].x+'px';
+        tr.style.top = trailPositions[posIdx].y+'px';
+        tr.style.opacity = 0.5-idx*0.15;
+      } else { tr.style.opacity = 0; }
+    });
+  }, 80);
+
+  // ===== 花粉粒子容器 =====
+  var pollenContainer = document.createElement('div');
+  pollenContainer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;';
+  scene.appendChild(pollenContainer);
+  // 定时撒花粉
+  var pollenInterval = setInterval(function(){
+    var fb = document.getElementById('flying-bee');
+    if(!fb){clearInterval(pollenInterval);return;}
+    var fr = fb.getBoundingClientRect(), sr = scene.getBoundingClientRect();
+    var pn = document.createElement('div');
+    pn.innerHTML = '✨';
+    pn.style.cssText = 'position:absolute;font-size:'+(6+Math.random()*8)+'px;left:'+(fr.left-sr.left+fr.width/2-10+Math.random()*20)+'px;top:'+(fr.top-sr.top+fr.height/2-10+Math.random()*20)+'px;animation:pollenFloat '+(1.2+Math.random()*1.5)+'s ease-out forwards;';
+    pollenContainer.appendChild(pn);
+    setTimeout(function(){pn.remove();},2000);
+  }, 200);
+
+  // ===== 顶部标题 =====
+  var titleBar = document.createElement('div');
+  titleBar.style.cssText = 'position:absolute;top:5%;left:50%;transform:translateX(-50%);text-align:center;z-index:30;';
+  var title = document.createElement('div');
+  title.innerHTML = '🐝 蜂巢投递中...';
+  title.style.cssText = 'font-size:26px;font-weight:bold;color:#ffd700;text-shadow:0 2px 12px rgba(0,0,0,0.5);animation:titleIn 0.6s ease-out;';
+  titleBar.appendChild(title);
+  var subtitle = document.createElement('div');
+  subtitle.innerHTML = '写给 AI CC咨询 · ' + '<span style="color:#ffab40">12小时内回复</span>';
+  subtitle.style.cssText = 'font-size:14px;color:#fff;opacity:0.85;margin-top:6px;animation:titleIn 0.6s ease-out 0.1s both;';
+  titleBar.appendChild(subtitle);
+  overlay.appendChild(titleBar);
+
+  // ===== 步骤文字 =====
+  var stepText = document.createElement('div');
+  stepText.style.cssText = 'position:absolute;bottom:12%;left:50%;transform:translateX(-50%);font-size:14px;color:#ffd700;z-index:30;text-align:center;animation:titleIn 0.5s ease-out 0.2s both;';
+  stepText.innerHTML = '🐝 蜜蜂起飞...';
+  overlay.appendChild(stepText);
+  var steps = [
+    {t:0, s:'🐝 蜜蜂起飞...'},
+    {t:600, s:'🌼 穿越花丛...'},
+    {t:1400, s:'💨 顺风加速...'},
+    {t:2200, s:'🏠 接近蜂巢...'},
+    {t:3000, s:'📨 投递信件...'},
+    {t:3800, s:'✅ 投递成功！AI CC咨询 已收到'}
+  ];
+  steps.forEach(function(st){setTimeout(function(){stepText.innerHTML=st.s;},st.t);});
+
+  // ===== 进度条（底部） =====
+  var progBar = document.createElement('div');
+  progBar.style.cssText = 'position:absolute;bottom:6%;left:50%;transform:translateX(-50%);width:280px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;z-index:30;';
+  var progFill = document.createElement('div');
+  progFill.style.cssText = 'height:100%;width:0%;background:linear-gradient(90deg,#ffd700,#ff8c00,#ffd700);border-radius:3px;transition:width 0.4s ease;';
+  progBar.appendChild(progFill);
+  overlay.appendChild(progBar);
+  // 进度条动画
+  var progSteps = [
+    {t:0, w:5},{t:600,w:18},{t:1400,w:38},{t:2200,w:62},{t:3000,w:82},{t:3800,w:100}
+  ];
+  progSteps.forEach(function(ps){setTimeout(function(){progFill.style.width=ps.w+'%';},ps.t);});
+
+  // 全部附加
+  document.body.appendChild(overlay);
+
+  // ===== 到达阶段：蜂巢放大 + 信件飘落 =====
+  setTimeout(function(){
+    var ht = document.getElementById('hive-target');
+    if(ht){ht.style.animation = 'hiveArrive 0.8s ease-out forwards';}
+    // 信件emoji从上方飘落
+    var letter = document.createElement('div');
+    letter.innerHTML = '💌';
+    letter.style.cssText = 'position:absolute;right:6%;top:70%;font-size:28px;z-index:25;animation:letterDrop 0.7s ease-out 0.6s both;';
+    scene.appendChild(letter);
+    // 撒花
+    for(var c=0;c<12;c++){
+      setTimeout(function(){
+        var conf = document.createElement('div');
+        conf.innerHTML = ['🌸','🌼','✨','💛','🍯'][Math.floor(Math.random()*5)];
+        conf.style.cssText = 'position:absolute;right:'+(2+Math.random()*12)+'%;top:'+(55+Math.random()*20)+'%;font-size:'+(14+Math.random()*16)+'px;z-index:25;animation:pollenFloat '+(1.5+Math.random()*2)+'s ease-out forwards;';
+        scene.appendChild(conf);
+        setTimeout(function(){conf.remove();},3000);
+      }, c*150);
+    }
+  }, 3950);
+
+  // ===== 结束：淡出 + 弹出留言栏 =====
+  setTimeout(function(){
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.6s';
+    clearInterval(trailInterval);
+    clearInterval(pollenInterval);
+    setTimeout(function(){
+      overlay.remove();style.remove();
+      // 弹出留言栏
+      var w=document.createElement('div');w.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:99998;display:flex;align-items:center;justify-content:center;';
+      var d=document.createElement('div');d.style.cssText='background:#fff;border-radius:16px;padding:28px;width:400px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:ccSlideUp 0.4s ease-out;';
+      d.innerHTML='<h2 style="margin:0 0 4px;color:#333;font-size:20px;">📮 给 AI CC咨询 留言</h2><p style="margin:0 0 20px;color:#999;font-size:13px;">收到后我会尽快回复到您的邮箱</p><input id="cc-msg-name" placeholder="姓名 *" style="display:block;width:100%;padding:12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;margin-bottom:10px;box-sizing:border-box;outline:none;"><input id="cc-msg-phone" placeholder="手机号" style="display:block;width:100%;padding:12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;margin-bottom:10px;box-sizing:border-box;outline:none;"><input id="cc-msg-email" placeholder="您的邮箱 *（用于接收回复）" style="display:block;width:100%;padding:12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;margin-bottom:10px;box-sizing:border-box;outline:none;"><textarea id="cc-msg-content" placeholder="咨询事项 *" rows="3" style="display:block;width:100%;padding:12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;margin-bottom:16px;box-sizing:border-box;resize:vertical;outline:none;font-family:inherit;"></textarea><button id="cc-msg-send" style="width:100%;padding:14px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:15px;font-weight:bold;box-shadow:0 4px 16px rgba(102,126,234,0.3);">📤 发送留言</button>';
+      w.appendChild(d);document.body.appendChild(w);
+      w.onclick=function(e){if(e.target===w)w.remove();};
+      document.getElementById('cc-msg-send').onclick=function(){
+        var n=document.getElementById('cc-msg-name').value.trim();
+        var c=document.getElementById('cc-msg-content').value.trim();
+        if(!n||!c){alert('请填写姓名和咨询事项');return;}
+        var btn=document.getElementById('cc-msg-send');
+        btn.disabled=true;btn.textContent='✈️ 蜜蜂出发...';
+        // ---- 送信动画：半透明遮罩 + 一只蜜蜂飞出 ----
+        var bo=document.createElement('div');bo.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,248,220,0.55);z-index:99999;display:flex;align-items:center;justify-content:center;pointer-events:none;';
+        var bee=document.createElement('div');bee.innerHTML='🐝';bee.style.cssText='position:absolute;left:5%;top:45%;font-size:52px;animation:ccSendFly 2s ease-in-out forwards;';
+        bo.appendChild(bee);
+        // 飞过的尾迹
+        var trail=document.createElement('div');trail.style.cssText='position:absolute;left:50%;top:50%;font-size:28px;transform:translate(-50%,-50%);animation:ccSendPulse 2s ease-in-out forwards;';
+        trail.innerHTML='💌';
+        bo.appendChild(trail);
+        // 注入关键帧
+        var ks=document.createElement('style');ks.textContent='@keyframes ccSendFly{0%{left:5%;top:45%;opacity:1;transform:scale(1)}60%{left:75%;top:20%;opacity:0.9;transform:scale(0.7)}100%{left:95%;top:5%;opacity:0;transform:scale(0.3)}}@keyframes ccSendPulse{0%{opacity:0;transform:translate(-50%,-50%) scale(0.5)}40%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}}';
+        document.head.appendChild(ks);
+        document.body.appendChild(bo);
+        // 动画2秒后发请求
+        setTimeout(function(){
+          bo.remove();ks.remove();
+          btn.textContent='⏳ 发送中...';
+          var url=(typeof getApiUrl!=='undefined'?getApiUrl:'/api')('/plugins/team_chat/hive-message');
+          fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,phone:document.getElementById('cc-msg-phone').value.trim(),user_email:document.getElementById('cc-msg-email').value.trim(),content:c,subject:'咨询',recipient:TARGET_EMAIL})}).then(function(r){return r.json();}).then(function(dd){
+            if(dd.status==='ok'){alert('✅ 留言已发送！');w.remove();}
+            else{alert('❌ '+(dd.message||'未知错误'));btn.disabled=false;btn.textContent='📤 发送留言';}
+          }).catch(function(e){alert('❌ 发送失败: '+(e.message||'网络错误'));btn.disabled=false;btn.textContent='📤 发送留言';});
+        },2000);
+      };
+    },600);
+  },4700);
+};
+function _hiveOpenCompose(addr){
+  // 优先用标准桥接函数切换到传统邮箱 → 写信模式
+  if(window.__openTraditionalEmail){
+    window.__openTraditionalEmail('compose');
+    // 等传统邮箱 mount 后自动填入收件人
+    _hiveFill(addr);
+    return;
+  }
+  // fallback：DOM 点击传统邮箱卡片
+  var cards=document.querySelectorAll('div'),tc=null;
+  for(var j=0;j<cards.length;j++){if(cards[j].textContent.indexOf('传统邮箱')>=0&&cards[j].style.cursor==='pointer'){tc=cards[j];break;}}
+  if(tc){tc.click();setTimeout(function(){var b=document.querySelectorAll('button');for(var k=0;k<b.length;k++){if(b[k].textContent.indexOf('写邮件')>=0){b[k].click();_hiveFill(addr);return;}}_hiveFallback(addr);},600);}
+  else _hiveFallback(addr);
+}
+function _hiveFill(addr){
+  setTimeout(function(){
+    var ins=document.querySelectorAll('input[type="text"]');
+    for(var i=0;i<ins.length;i++){var ph=ins[i].getAttribute('placeholder')||'';if(ph.indexOf('收件人')>=0||ph.indexOf('逗号')>=0){var ns=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;ns.call(ins[i],addr);ins[i].dispatchEvent(new Event('input',{bubbles:true}));return;}}
+    setTimeout(function(){var ins2=document.querySelectorAll('input[type="text"]');for(var j=0;j<ins2.length;j++){var ph2=ins2[j].getAttribute('placeholder')||'';if(ph2.indexOf('收件人')>=0||ph2.indexOf('逗号')>=0){var ns2=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;ns2.call(ins2[j],addr);ins2[j].dispatchEvent(new Event('input',{bubbles:true}));break;}}},800);
+  },500);
+}
+function _hiveFallback(addr){
+  var w=document.createElement('div');w.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:99998;display:flex;align-items:center;justify-content:center;';
+  var d=document.createElement('div');d.style.cssText='background:#fff;border-radius:16px;padding:32px;max-width:420px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.3);';
+  d.innerHTML='<div style="font-size:48px;margin-bottom:16px;">📨</div><div style="font-size:20px;font-weight:bold;color:#333;margin-bottom:8px;">AI CC咨询 的邮箱地址</div><div style="font-size:14px;color:#666;margin-bottom:20px;">点击下方按钮复制，然后到传统邮箱中粘贴发送</div><div style="background:#f5f5f5;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#333;font-family:monospace;">'+addr+'</div><button id="hive-fb" style="padding:12px 32px;background:#667eea;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:bold;">📋 复制邮箱地址</button>';
+  w.appendChild(d);document.body.appendChild(w);
+  document.getElementById('hive-fb').onclick=function(){navigator.clipboard.writeText(addr).then(function(){d.querySelector('div:nth-child(4)').style.background='#e8f5e9';d.querySelector('div:nth-child(4)').innerHTML='✅ 已复制！<br>'+addr;});};
+  w.onclick=function(e){if(e.target===w)w.remove();};
+}
+
 (function () {
   // TeamChat v5.0.15 - 安全提示优化版
   console.log('[TeamChat] v5.0.15 安全提示版 加载时间:', new Date().toLocaleString());
@@ -1387,11 +1682,10 @@ function ChuanChuanPage(_p) {
             e("div",null,"⌨️ 快捷键 — 按 ? 弹出快捷键速查面板")
           )
         ),
-        e(Card,{title:"🔌 Chrome扩展 · AI分身Pro",style:{marginBottom:14,borderRadius:16,background:"linear-gradient(135deg,#E8F5E9,#C8E6C9)",border:"1px solid #4CAF50"}},
+        e(Card,{title:"🤖 AI分身",style:{marginBottom:14,borderRadius:16,background:"linear-gradient(135deg,#E8F5E9,#C8E6C9)",border:"1px solid #4CAF50"}},
           e("div",{style:{fontSize:13,color:"#2E7D32",lineHeight:2}},
             e("div",null,e("strong",null,"🎯 智能感知")," — 自动识别代码/文章/邮件/视频/购物页面"),
             e("div",null,e("strong",null,"⚡ 快捷指令")," — /总结 /翻译 /代码 /提问 /邮件 等10个指令"),
-            e("div",null,e("strong",null,"🎤 语音输入")," — 点击麦克风图标语音转文字"),
             e("div",null,e("strong",null,"🧠 记忆增强")," — 记住用户偏好、历史话题、跨会话记忆"),
             e("div",null,e("strong",null,"💡 使用方式")," — 点击浮动🤖按钮，输入/查看快捷指令")
           )
@@ -2155,16 +2449,23 @@ function ChuanChuanPage(_p) {
 function TeamChatPage() {
     // [v4.2.0] 串串频道内嵌视图: true → ChuanChuanPage, false → TeamChatPage
     var _cv = useState(false), chuanView = _cv[0], setChuanView = _cv[1]
-    var _av = useState(false), aimailView = _av[0], setAimailView = _av[1];var _am = useState("main"), aimailMode = _am[0], setAimailMode = _am[1];var _et = useState("inbox"), emailTab = _et[0], setEmailTab = _et[1];
+    var _av = useState(false), aimailView = _av[0], setAimailView = _av[1];var _am = useState("main"), aimailMode = _am[0], setAimailMode = _am[1];var _et = useState("inbox"), emailTab = _et[0], setEmailTab = _et[1];var _ecs = useState([]), emailConfigs = _ecs[0], setEmailConfigs = _ecs[1];var _ca = useState("__all__"), currentAccount = _ca[0], setCurrentAccount = _ca[1];
   var _data = useState([]), emails = _data[0], setEmails = _data[1];
-  var _loading = useState(false), loading = _loading[0], setLoading = _loading[1];
+  var _page = useState(1), curPage = _page[0], setCurPage = _page[1];
+  var _psize = useState(20), pageSize = _psize[0], setPageSize = _psize[1];
+  var _total = useState(0), totalEmails = _total[0], setTotalEmails = _total[1];
+  var _filter = useState("all"), emailFilter = _filter[0], setEmailFilter = _filter[1];
+  var _loading = useState(true), loading = _loading[0], setLoading = _loading[1];
   var _error = useState(null), error = _error[0], setError = _error[1];
   var _configVisible = useState(false), configVisible = _configVisible[0], setConfigVisible = _configVisible[1];
+  var _hx = useState(-100), hoverX = _hx[0], setHoverX = _hx[1];var _hy = useState(-100), hoverY = _hy[0], setHoverY = _hy[1];var _hs = useState(false), hoverShow = _hs[0], setHoverShow = _hs[1];
   var _emailConfig = useState({provider:"custom",email:"",display_name:"",username:"",password:"",smtp_host:"",smtp_port:587,smtp_ssl:true,smtp_username:"",smtp_password:"",imap_host:"",imap_port:993,imap_ssl:true,imap_username:"",imap_password:""}), emailConfig = _emailConfig[0], setEmailConfig = _emailConfig[1];
 var _showCompose = useState(false), showCompose = _showCompose[0], setShowCompose = _showCompose[1];
 var _composeData = useState({to:"",cc:"",bcc:"",subject:"",body:"",replyTo:"",priority:"normal",attachments:[]}), composeData = _composeData[0], setComposeData = _composeData[1];
 var _composeAttachments = useState([]), composeAttachments = _composeAttachments[0], setComposeAttachments = _composeAttachments[1];
 var _selectedEmail = useState(null), selectedEmail = _selectedEmail[0], setSelectedEmail = _selectedEmail[1];
+var _selectedIds = useState([]), selectedIds = _selectedIds[0], setSelectedIds = _selectedIds[1];
+var _lastSync = useState(null), lastSync = _lastSync[0], setLastSync = _lastSync[1];
 var _composeTitle = useState("写邮件"), composeTitle = _composeTitle[0], setComposeTitle = _composeTitle[1];
 var _sendingEmail = useState(false), sendingEmail = _sendingEmail[0], setSendingEmail = _sendingEmail[1];
 // ---- 🐝 蜂巢邮箱状态 ----
@@ -2350,60 +2651,143 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
     return mockData[tab] || [];
   }
 
-  function fetchEmails(tab) {
+  function fetchEmails(tab, account, page) {
     setLoading(true);
     setError(null);
     
-    // 调用后端API获取真实邮件数据
+    if (page === undefined) page = curPage;
+    if (account === undefined) account = currentAccount;
+    if (account === '__all__') account = '';
+    
+    var offset = (page - 1) * pageSize;
     var apiBase = '/api/plugins/team_chat/email';
     var endpoint = {inbox:'/inbox', sent:'/sent', drafts:'/drafts', trash:'/trash'}[tab] || '/inbox';
+    var params = '?limit=' + pageSize + '&offset=' + offset;
+    if (account) params += '&account=' + encodeURIComponent(account);
+    var url = apiBase + endpoint + params;
     
-    fetch(apiBase + endpoint)
+    fetch(url)
         .then(function(r) { return r.json(); })
         .then(function(data) {
             setLoading(false);
-            if (data.success && data.emails) {
-                // 转换后端数据格式为前端格式
-                var emails = data.emails.map(function(e) {
+            var emailList = data.emails || data.drafts; if (data.success && emailList) {
+                var emails = emailList.map(function(e) {
                     return {
                         id: e.id,
-                        from: e.from_addr || e.from,
-                        to: e.to_addr || e.to,
+                        uid: e.uid,
+                        from_addr: e.from_addr || e.from,
+                        from_name: e.from_name || '',
+                        to_addr: e.to_addr || e.to || '',
+                        cc: e.cc_addr || e.cc || '',
                         subject: e.subject,
                         date: e.received_date || e.sent_date || e.date,
+                        sent_date: e.sent_date || e.date,
+                        received_date: e.received_date,
+                        created_at: e.created_at,
                         read: e.read_status === 1 || e.read === true,
+                        read_status: e.read_status,
                         body: e.body || '',
-                        preview: e.body ? e.body.substring(0, 100) : ''
+                        html_body: e.html_body || '',
+                        preview: e.body ? e.body.substring(0, 100) : '',
+                        account_email: e.account_email || e.account || '',
+                        starred: e.starred || false,
+                        attachments: e.attachments || [],
+                        folder: e.folder || 'INBOX'
                     };
                 });
-                setEmails(emails);
-            } else {
+                setEmails(classifyEmails(emails));
+                if (data.total !== undefined) setTotalEmails(data.total);
+              } else {
                 setEmails([]);
-            }
+                setTotalEmails(0);
+              }
+
+  // ---- 🤖 AI 邮件自动分类 ----
+  function classifyEmails(emails) {
+    return emails.map(function(email) {
+      var subject = (email.subject || "").toLowerCase();
+      var body = (email.body || "").toLowerCase();
+      var fromAddr = (email.from_addr || "").toLowerCase();
+      var category = "general";
+      // 广告关键词
+      var adWords = ["广告", "promo", "discount", "offer", "sale", "subscribe", "unsubscribe", "newsletter", "推广", "优惠", "限时", "促销", "免费领取", "点击领取"];
+      var isAd = adWords.some(function(w) { return subject.indexOf(w) >= 0 || body.indexOf(w) >= 0; });
+      if (isAd) category = "ad";
+      // 企业/商业
+      var bizWords = ["invoice", "contract", "project", "meeting", "report", "order", "payment", "proposal", "合作", "合同", "会议", "发票", "付款", "报价", "项目", "报告", "审批", "申请"];
+      var isBiz = bizWords.some(function(w) { return subject.indexOf(w) >= 0 || body.indexOf(w) >= 0; });
+      if (isBiz) category = "enterprise";
+      // 通知类（系统/平台）
+      var notiWords = ["notification", "alert", "verify", "reset", "password", "confirm", "welcome", "验证", "重置", "密码", "确认", "注册", "激活", "通知"];
+      var isNoti = notiWords.some(function(w) { return subject.indexOf(w) >= 0; });
+      if (isNoti) category = "notification";
+      return Object.assign({}, email, {category: category});
+    });
+  }
         })
         .catch(function(e) {
             setLoading(false);
-            console.error('加载邮件失败:', e);
             setError('加载邮件失败: ' + e.message);
             setEmails([]);
+            setTotalEmails(0);
         });
 }
   
+  // ---- 📧 多邮箱配置加载 ----
+  function loadEmailConfigs() {
+    fetch('/api/plugins/team_chat/email/mail-configs')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success && data.configs) {
+          setEmailConfigs(data.configs);
+          if (data.configs.length === 0 && emailConfig && emailConfig.email) {
+            // 兼容老逻辑：把当前 config 当作唯一邮箱
+            setEmailConfigs([Object.assign({}, emailConfig, {id: emailConfig.id || 0})]);
+            setCurrentAccount(emailConfig.email);
+          } else if (data.configs.length > 0 && (!currentAccount || currentAccount === '__all__')) {
+            setCurrentAccount(data.configs[0].email);
+          }
+        }
+      })
+      .catch(function(e) {
+        console.error('加载邮箱配置失败:', e);
+        // fallback 到 localStorage
+        if (emailConfig && emailConfig.email) {
+          setEmailConfigs([Object.assign({}, emailConfig, {id: 0})]);
+          setCurrentAccount(emailConfig.email);
+        }
+      });
+  }
+  
+  // 页面加载 & 切换邮箱时自动刷新
+  React.useEffect(function() {
+    loadEmailConfigs();
+  }, []);
+  
+  React.useEffect(function() {
+    if (emailTab && emailTab !== 'settings' && emailTab !== 'contacts' && emailTab !== 'security') {
+      var acc = (currentAccount && currentAccount !== '__all__') ? currentAccount : '';
+      setCurPage(1);
+      fetchEmails(emailTab, acc, 1);
+    }
+  }, [currentAccount, emailTab]);
+  
   // 从 Agent Mail CLI 加载邮件数据
   window.loadAgentMailData = function() {
-    // 从后端API加载真实邮件数据
+    // 从后端API加载真实邮件数据（带分页参数避免HTTP/2截断）
     window.agentMailData = {inbox: [], sent: [], drafts: [], trash: []};
     
     var apiBase = '/api/plugins/team_chat/email';
     var folders = ['inbox', 'sent', 'drafts', 'trash'];
+    var pageLimit = 20; // 每页限制避免响应体过大
     
     folders.forEach(function(folder) {
         var endpoint = {inbox:'/inbox', sent:'/sent', drafts:'/drafts', trash:'/trash'}[folder];
-        fetch(apiBase + endpoint)
+        fetch(apiBase + endpoint + '?limit=' + pageLimit + '&offset=0')
             .then(function(r) { return r.json(); })
             .then(function(data) {
-                if (data.success && data.emails) {
-                    window.agentMailData[folder] = data.emails.map(function(e) {
+                var emailList = data.emails || data.drafts; if (data.success && emailList) {
+                    window.agentMailData[folder] = emailList.map(function(e) {
                         return {
                             id: e.id,
                             from: e.from_addr || e.from,
@@ -2428,6 +2812,23 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
   }
   
   // 测试邮件连接
+  // 用指定配置测试连接（不从 emailConfig state 读取）
+  function testEmailConnectionWithCfg(cfg) {
+    if (!cfg || !cfg.email) { alert("请先保存配置再测试"); return; }
+    var testCfg = Object.assign({}, cfg);
+    if (!testCfg.smtp_username) testCfg.smtp_username = testCfg.username || testCfg.email;
+    if (!testCfg.smtp_password || testCfg.smtp_password === "") { testCfg.smtp_password = testCfg.password || ""; }
+    if (!testCfg.imap_username) testCfg.imap_username = testCfg.username || testCfg.email;
+    if (!testCfg.imap_password) testCfg.imap_password = testCfg.password || "";
+    fetch("/api/plugins/team_chat/email/test-connection", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(testCfg)
+    }).then(function(res) { return res.json(); })
+    .then(function(data) { alert(data.success ? "✅ 连接成功！" : "❌ 连接失败：" + (data.message || data.error || "未知错误")); })
+    .catch(function(e) { alert("❌ 测试失败：" + e.message); });
+  }
+  
   function testEmailConnection() {
   if (!emailConfig || !emailConfig.email) {
     alert("请先配置邮箱");
@@ -2437,7 +2838,7 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
   // 填充IMAP字段（默认与SMTP相同）
   var cfg = Object.assign({}, emailConfig);
   if (!cfg.smtp_username) cfg.smtp_username = cfg.username || cfg.email;
-  if (!cfg.smtp_password) cfg.smtp_password = cfg.password || "";
+  if (!cfg.smtp_password || cfg.smtp_password === "") { cfg.smtp_password = cfg.password || ""; }
   if (!cfg.imap_username) cfg.imap_username = cfg.username || cfg.email;
   if (!cfg.imap_password) cfg.imap_password = cfg.password || "";
   if (!cfg.imap_host) cfg.imap_host = cfg.imap_host || "";
@@ -2458,24 +2859,24 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
   .then(function(data) {
     if (loadingElement) loadingElement.style.display = 'none';
 
-    if (data.success) {
-      // 正确处理响应格式
-      var results = data.results || data;
-      var smtpStatus = results.smtp ? "✓" : "✗";
-      var imapStatus = results.imap ? "✓" : "✗";
+    // 双重检查：既要 success=true，也要 SMTP/IMAP 实际结果
+    var results = data.results || data;
+    var smtpOk = results.smtp === true;
+    var imapOk = results.imap === true;
 
-      if (results.smtp && results.imap) {
-        alert("✓ 连接测试成功！\nSMTP: " + smtpStatus + "\nIMAP: " + imapStatus);
-        // 保存配置到localStorage
-        localStorage.setItem("teamchat_email_config", JSON.stringify(cfg));
-      } else {
-        var errorMsg = [];
-        if (!results.smtp) errorMsg.push("SMTP连接失败");
-        if (!results.imap) errorMsg.push("IMAP连接失败");
-        alert("✗ 连接测试失败\n" + errorMsg.join("\n"));
-      }
+    if (smtpOk && imapOk) {
+      alert("✓ 连接测试成功！\nSMTP: ✓\nIMAP: ✓");
+      // 保存配置到localStorage（用补全后的配置）
+      localStorage.setItem("teamchat_email_config", JSON.stringify(cfg));
+    } else if (smtpOk || imapOk) {
+      var partialMsg = [];
+      if (smtpOk) partialMsg.push("SMTP ✓");
+      else partialMsg.push("SMTP ✗");
+      if (imapOk) partialMsg.push("IMAP ✓");
+      else partialMsg.push("IMAP ✗");
+      alert("⚠️ 连接测试部分成功\n" + partialMsg.join("\n") + "\n\n" + (results.message || ""));
     } else {
-      alert("✗ 连接测试失败\n" + (data.message || "请检查配置"));
+      alert("✗ 连接测试失败\n" + (results.message || data.message || "请检查配置"));
     }
   })
   .catch(function(err) {
@@ -2485,40 +2886,290 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
   });
 }
 
-  function deleteEmail(tab, id) {
-    if (!confirm("确定要删除吗？")) return;
+  
+  window.searchContactsMail = function(senderEmail, senderName) {
+    // 切到收件箱，然后加载该发件人的邮件
+    setEmailTab("inbox");
+    setEmails([]);
+    setLoading(true);
+    setError("");
+    // 修改筛选为显示全部
+    if (typeof setInboxFilter !== 'undefined') { setInboxFilter("all"); }
 
-    // 模拟删除操作
-    var updatedEmails = emails.filter(function(email){return email.id !== id;});
-    setEmails(updatedEmails);
-    console.log("删除成功: id=" + id);
+    function handleResponse(data) {
+      setLoading(false);
+      var emailList = data.emails || data.drafts; if (data.success && emailList) {
+        setEmails(data.emails);
+        if (data.emails.length === 0) {
+          setError("未找到 " + (senderName || senderEmail) + " 的关联邮件（可能该邮件不在已同步的收件箱中）");
+        }
+      } else {
+        setError("查询失败: " + (data.message || "未知错误"));
+      }
+    }
+
+    function handleError(err) {
+      setLoading(false);
+      setError("查询失败: " + (err.message || "网络错误"));
+    }
+
+    // 优先使用 by-sender 端点，404 时 fallback 到 search
+    fetch("/api/plugins/team_chat/email/email/by-sender?email=" + encodeURIComponent(senderEmail))
+      .then(function(r) {
+        if (!r.ok) {
+          // Fallback: use search endpoint
+          return fetch("/api/plugins/team_chat/email/email/search?q=" + encodeURIComponent(senderEmail))
+            .then(function(r2) { return r2.json(); })
+            .then(function(data2) {
+              // Filter by from_addr
+              if (data2.success && data2.emails) {
+                data2.emails = data2.emails.filter(function(e) {
+                  return e.from_addr && e.from_addr.toLowerCase().indexOf(senderEmail.toLowerCase()) >= 0;
+                });
+              }
+              handleResponse(data2);
+              return null; // prevent next .then
+            });
+        }
+        return r.json();
+      })
+      .then(function(data) {
+        if (data !== null) handleResponse(data);
+      })
+      .catch(handleError);
+
+    // 关闭联系人弹窗（如果在弹窗中）
+    var overlay = document.getElementById('compose-modal-overlay');
+    if (overlay) overlay.remove();
+  };
+
+
+  function markRead(email) {
+    if (email.read_status === 1) return;
+    fetch("/api/plugins/team_chat/email/inbox/" + email.id + "/read", {
+      method: "PUT",
+      headers: {"Content-Type": "application/json"}
+    }).then(function() {
+      setEmails(emails.map(function(e) {
+        if (e.id === email.id) { e.read_status = 1; return Object.assign({}, e); }
+        return e;
+      }));
+    }).catch(function() {});
+  }
+
+  function deleteEmail(tab, id) {
+    var url, method;
+    if (tab === "trash") {
+      url = "/api/plugins/team_chat/email/trash/" + id;
+      method = "DELETE";
+    } else {
+      url = "/api/plugins/team_chat/email/" + tab + "/" + id;
+      method = "DELETE";
+    }
+    fetch(url, {
+      method: method,
+      headers: {"Content-Type": "application/json"}
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (d.success) {
+        var updatedEmails = emails.filter(function(email){return email.id !== id;});
+        setEmails(updatedEmails);
+        setTotalEmails(Math.max(0, totalEmails - 1));
+        if (tab === "trash") {
+          setTimeout(function(){ fetchEmails("trash"); }, 500);
+        }
+      } else {
+        alert("删除失败: " + (d.message || "请重试"));
+      }
+    }).catch(function(err) {
+      console.error("删除邮件失败:", err);
+      alert("删除失败: " + err.message);
+    });
+  }
+
+  // ---- ⭐ 星标邮件 ----
+  function toggleStarEmail(email) {
+    var newStarred = !email.starred;
+    // Update local state
+    var updated = emails.map(function(e) {
+      if (e.id === email.id) return Object.assign({}, e, {starred: newStarred});
+      return e;
+    });
+    setEmails(updated);
+    // Persist to backend
+    var formData = new FormData();
+    formData.append("starred", newStarred ? "1" : "0");
+    fetch("/api/plugins/team_chat/email/inbox/" + email.id + "/star", {
+      method: "POST",
+      body: formData
+    }).catch(function(err) { /* silent */ });
+  }
+
+  // ---- ↩ 恢复回收站邮件 ----
+  function restoreEmail(item) {
+    fetch("/api/plugins/team_chat/email/trash/" + item.id + "/restore", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"}
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (d.success) {
+        setEmails(emails.filter(function(e) { return e.id !== item.id; }));
+        setTotalEmails(Math.max(0, totalEmails - 1));
+        alert("✅ 邮件已恢复");
+      } else {
+        alert("❌ 恢复失败: " + (d.message || "未知错误"));
+      }
+    }).catch(function(err) {
+      alert("❌ 恢复失败: " + err.message);
+    });
+  }
+
+  // ---- 🗑️ 清空回收站 ----  // ---- 📧 邮件详情预览弹窗 ----
+  window.showMailDetail = function(email) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(3px)';
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+    var box = document.createElement('div');
+    box.style.cssText = 'background:white;border-radius:12px;padding:24px;width:640px;min-width:360px;min-height:280px;max-height:95vh;overflow:auto;resize:both;box-shadow:0 12px 40px rgba(0,0,0,0.3);border:1px solid #ddd';
+    var fromAddr = email.from_addr || email.from || '';
+    var toAddr = email.to_addr || email.to || '';
+    var subject = email.subject || '(无主题)';
+    var htmlBody = email.html_body || '';
+    var plainBody = email.body || '';
+    var body = htmlBody || plainBody || '(无内容)';
+    var hasHtml = !!htmlBody;
+    var date = email.sent_date || email.received_date || email.date || '';
+    box.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+      '<h2 style="margin:0;font-size:16px;word-break:break-all">' + subject.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</h2>' +
+      '<button onclick="this.closest(\'div\').parentElement.remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999">✕</button></div>' +
+      '<div style="display:flex;gap:12px;margin-bottom:12px;font-size:13px;color:#666">' +
+      '<div><b>发件人：</b>' + fromAddr.replace(/</g,'&lt;') + '</div>' +
+      '<div><b>收件人：</b>' + toAddr.replace(/</g,'&lt;') + '</div>' +
+      '<div><b>时间：</b>' + (date ? new Date(date).toLocaleString() : '未知') + '</div></div>' +
+      '<div id="mail-detail-body" style="border-top:1px solid #eee;padding-top:12px;font-size:14px;line-height:1.6;word-break:break-word;max-height:50vh;overflow-y:auto"></div>';
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    var bodyDiv = document.getElementById('mail-detail-body');
+    if (bodyDiv && hasHtml) {
+      var iframe = document.createElement('iframe');
+      iframe.style.cssText = 'width:100%;min-height:300px;border:none;background:white;';
+      iframe.srcdoc = htmlBody;
+      iframe.sandbox = 'allow-same-origin';
+      iframe.onload = function() {
+        try {
+          var h = iframe.contentDocument.body.scrollHeight || 300;
+          iframe.style.height = Math.min(h, window.innerHeight * 0.45) + 'px';
+        } catch(e) {}
+      };
+      bodyDiv.appendChild(iframe);
+    } else if (bodyDiv) {
+      bodyDiv.innerHTML = plainBody.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    }
+  };
+
+  function clearTrash() {
+    if (!confirm("确定要清空回收站吗？此操作不可恢复！")) return;
+    var trashEmails = emails.filter(function(e) { return true; });
+    trashEmails.forEach(function(email) {
+      fetch("/api/plugins/team_chat/email/trash/" + email.id, {
+        method: "DELETE",
+        headers: {"Content-Type": "application/json"}
+      }).then(function(r) { return r.json(); }).then(function(d) {
+        if (d.success) { /* ok */ }
+      }).catch(function(err) {
+        console.error("删除回收站邮件失败:", err);
+      });
+    });
+    setEmails([]);
+    setTotalEmails(0);
+    setCurPage(1);
+    alert("✅ 回收站已清空");
   }
 
   // ---- 👤 联系人操作函数 ----
-  function addContact() {
-    if (!newContact.name || !newContact.email) {
+  function addContact(nm, em, ph, cp) {
+    var name = nm || newContact.name;
+    var email = em || newContact.email;
+    var phone = ph || newContact.phone || "";
+    var company = cp || newContact.company || "";
+    console.log("[addContact] 被调用, name=", name, "email=", email);
+    if (!name || !email) {
       alert("请填写姓名和邮箱");
       return;
     }
     var contact = {
-      id: Date.now(),
-      name: newContact.name,
-      email: newContact.email,
-      phone: newContact.phone || "",
-      company: newContact.company || "",
-      created_at: new Date().toISOString().split('T')[0]
+      name: name,
+      email: email,
+      phone: phone,
+      company: company
     };
-    setEmails([...emails, contact]);
-    setNewContact({name:"",email:"",phone:"",company:""});
-    setShowAddContact(false);
-    console.log("添加联系人:", contact);
+    fetch(getApiUrl("/plugins/team_chat/email/contacts"), {
+      method: 'POST',
+      headers: apiHeaders(),
+      body: JSON.stringify(contact)
+    }).then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          setNewContact({name:"",email:"",phone:"",company:""});
+          setShowAddContact(false);
+          fetchContacts();
+        } else {
+          alert("添加失败: " + (data.message || "未知错误"));
+        }
+      }).catch(function(e) {
+        alert("添加失败: " + e.message);
+      });
+  }
+  
+  function fetchContacts() {
+    setLoading(true);
+    console.log("[fetchContacts] 开始请求...");
+    fetch(getApiUrl("/plugins/team_chat/email/contacts"), {headers: apiHeaders()})
+      .then(function(r) { console.log("[fetchContacts] 响应状态:",r.status); return r.json(); })
+      .then(function(data) {
+        console.log("[fetchContacts] 数据:", data);
+        setLoading(false);
+        if (data.success && data.contacts) {
+          setEmails(data.contacts);
+        } else {
+          console.log("[fetchContacts] 数据格式异常");
+          setEmails([]);
+        }
+      }).catch(function(e) {
+        console.log("[fetchContacts] 请求失败:", e.message);
+        setLoading(false);
+        setEmails([]);
+      });
   }
 
   function deleteContact(id) {
     if (!confirm("确定要删除此联系人吗？")) return;
-    var updatedContacts = emails.filter(function(c){return c.id !== id;});
-    setEmails(updatedContacts);
-    console.log("删除联系人: id=" + id);
+    fetch(getApiUrl("/plugins/team_chat/email/contacts/" + id), {
+      method: 'DELETE',
+      headers: apiHeaders()
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          fetchContacts();
+        } else {
+          alert("删除失败: " + (data.message || "未知错误"));
+        }
+      }).catch(function(e) {
+        alert("删除失败: " + e.message);
+      });
+  }
+
+  // ---- 📄 翻页功能 ----
+  function goPage(tab, page) {
+    if (page < 1) page = 1;
+    var totalPages = Math.max(1, Math.ceil(totalEmails / pageSize));
+    if (page > totalPages) page = totalPages;
+    setCurPage(page);
+    fetchEmails(tab, undefined, page);
+  }
+  function onPageSizeChange(tab, newSize) {
+    setPageSize(newSize);
+    setCurPage(1);
+    fetchEmails(tab, undefined, 1);
   }
 
   // ---- 📤 邮件发送功能 ----
@@ -2546,10 +3197,8 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
   
   // 发送邮件（支持附件）
   function openComposeModal() {
-    setComposeTitle("写邮件");
     setShowCompose(true);
-    setComposeData({to:"",cc:"",bcc:"",subject:"",body:"",replyTo:"",priority:"normal",attachments:[]});
-    setComposeAttachments([]);
+    openComposeDOM("写邮件", "", "", "", "");
   }
 
   function closeComposeModal() {
@@ -2615,36 +3264,200 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
     });
   }
 
+  function getEmailText(email) {
+    if (email.body && email.body.trim()) return email.body;
+    if (email.html_body) {
+      var t = email.html_body;
+      t = t.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+      t = t.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+      t = t.replace(/<br\s*\/?>/gi, '\n');
+      t = t.replace(/<\/p>/gi, '\n');
+      t = t.replace(/<\/div>/gi, '\n');
+      t = t.replace(/<[^>]+>/g, '');
+      t = t.replace(/&nbsp;/g, ' ');
+      t = t.replace(/&lt;/g, '<');
+      t = t.replace(/&gt;/g, '>');
+      t = t.replace(/&amp;/g, '&');
+      t = t.replace(/&quot;/g, '"');
+      t = t.replace(/&#39;/g, "'");
+      t = t.replace(/\n{3,}/g, '\n\n');
+      return t.trim();
+    }
+    return "(无内容)";
+  }
+
   function replyEmail(email, replyAll) {
-    setComposeTitle(replyAll ? "回复全部" : "回复");
-    setComposeData({
-      to: replyAll ? (email.from_addr + "," + (email.cc || "")) : email.from_addr,
-      cc: "",
-      bcc: "",
-      subject: "Re: " + email.subject,
-      body: "\n\n--- 原始邮件 ---\n发件人: " + email.from_addr + "\n主题: " + email.subject + "\n\n" + email.body,
-      replyTo: email.id,
-      priority: "normal",
-      attachments: []
-    });
-    setComposeAttachments([]);
     setShowCompose(true);
+    var dateStr = email.received_date || email.sent_date || email.created_at || "";
+    var quoteHeader = "\n\n--- 原始邮件 ---\n发件人: " + (email.from_name || email.from_addr || "未知")
+      + "\n发送时间: " + dateStr
+      + "\n收件人: " + (email.to_addr || "")
+      + "\n主题: " + (email.subject || "(无主题)") + "\n\n";
+    var quoteBody = getEmailText(email).split('\n').map(function(l){return '> '+l;}).join('\n');
+    openComposeDOM(replyAll ? "回复全部" : "回复",
+      replyAll ? (email.from_addr + "," + (email.cc || "")) : email.from_addr,
+      "",
+      "Re: " + email.subject,
+      quoteHeader + quoteBody
+    );
   }
 
   function forwardEmail(email) {
-    setComposeTitle("转发");
-    setComposeData({
-      to: "",
-      cc: "",
-      bcc: "",
-      subject: "Fwd: " + email.subject,
-      body: "\n\n--- 转发邮件 ---\n发件人: " + email.from_addr + "\n主题: " + email.subject + "\n\n" + email.body,
-      replyTo: "",
-      priority: "normal",
-      attachments: []
-    });
-    setComposeAttachments([]);
     setShowCompose(true);
+    var dateStr = email.received_date || email.sent_date || email.created_at || "";
+    var quoteHeader = "\n\n--- 转发邮件 ---\n发件人: " + (email.from_name || email.from_addr || "未知")
+      + "\n发送时间: " + dateStr
+      + "\n收件人: " + (email.to_addr || "")
+      + "\n主题: " + (email.subject || "(无主题)") + "\n\n";
+    var quoteBody = getEmailText(email);
+    openComposeDOM("转发", "", "", "Fwd: " + email.subject,
+      quoteHeader + quoteBody
+    );
+  }
+
+  function openComposeDOM(title, to, cc, subject, body) {
+    var old = document.getElementById('compose-modal-overlay');
+    if (old) old.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'compose-modal-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(3px)';
+    overlay.innerHTML = '<div style="background:linear-gradient(180deg,#fafafa,#f0f0f0);border-radius:12px;padding:24px;width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,0.3);border:1px solid #ddd">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">'+
+      '<h2 style="margin:0">✉️ '+title+'</h2>'+
+      '<button onclick="document.getElementById(&apos;compose-modal-overlay&apos;).remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999">✕</button></div>'+
+      '<div style="display:flex;flex-direction:column;gap:12px">'+
+      '<div><label style="font-size:14px;margin-bottom:4px;display:block">收件人 *</label><input id="cm-to" type="text" value="'+to.replace(/"/g,'&quot;')+'" placeholder="多个收件人用逗号分隔" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;background:#fff;box-sizing:border-box"></div>'+
+      '<div><label style="font-size:14px;margin-bottom:4px;display:block">抄送 (CC)</label><input id="cm-cc" type="text" value="'+(cc||'').replace(/"/g,'&quot;')+'" placeholder="抄送给其他人" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;background:#fff;box-sizing:border-box"></div>'+
+      '<div><label style="font-size:14px;margin-bottom:4px;display:block">密送 (BCC)</label><input id="cm-bcc" type="text" placeholder="密送给其他人" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;background:#fff;box-sizing:border-box"></div>'+
+      '<div><label style="font-size:14px;margin-bottom:4px;display:block">主题 *</label><input id="cm-subject" type="text" value="'+subject.replace(/"/g,'&quot;')+'" placeholder="邮件主题" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;background:#fff;box-sizing:border-box"></div>'+
+      '<div><label style="font-size:14px;margin-bottom:4px;display:block">正文</label><textarea id="cm-body" placeholder="在此输入邮件内容..." style="width:100%;min-height:150px;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;resize:vertical;box-sizing:border-box">'+body.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea></div>'+
+      '<div style="display:flex;gap:10px;margin-top:16px">'+
+      '<button onclick="document.getElementById(&apos;compose-modal-overlay&apos;).remove()" style="flex:1;padding:12px;border:1px solid #ccc;border-radius:6px;cursor:pointer;font-size:14px;background:linear-gradient(180deg,#f5f5f5,#e8e8e8);color:#555;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.1)">取消</button>'+
+      '<button id="cm-draft-btn" style="flex:1;padding:12px;border:none;border-radius:6px;cursor:pointer;font-size:14px;background:linear-gradient(135deg,#11998e,#38ef7d);color:white;box-shadow:0 4px 15px rgba(17,153,142,0.4);font-weight:bold;letter-spacing:1px">📥 暂存</button>'+
+      '<button id="cm-send-btn" style="flex:1;padding:12px;border:none;border-radius:6px;cursor:pointer;font-size:14px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;box-shadow:0 4px 15px rgba(102,126,234,0.4);font-weight:bold;letter-spacing:1px">📤 发送</button>'+
+      '</div></div></div>';
+    document.body.appendChild(overlay);
+    document.getElementById('cm-draft-btn').onclick = function(){
+      var toVal = document.getElementById('cm-to').value.trim();
+      var subjectVal = document.getElementById('cm-subject').value.trim();
+      var bodyVal = document.getElementById('cm-body').value;
+      var ccVal = document.getElementById('cm-cc').value.trim();
+      var bccVal = document.getElementById('cm-bcc').value.trim();
+      var btn = document.getElementById('cm-draft-btn');
+      btn.textContent = '⏳ 保存中...'; btn.disabled = true;
+      var payload = {to_addr: toVal, subject: subjectVal || '(无主题)', body: bodyVal};
+      if (ccVal) payload.cc = ccVal;
+      if (bccVal) payload.bcc = bccVal;
+      fetch('/api/plugins/team_chat/email/drafts', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) })
+      .then(function(r){
+        if (!r.ok) {
+          return r.json().then(function(detail){
+            throw new Error(detail.detail ? JSON.stringify(detail.detail) : ('HTTP '+r.status));
+          });
+        }
+        return r.json();
+      })
+      .then(function(d){
+        if (d.success) {
+          document.getElementById('compose-modal-overlay').remove();
+          alert('✅ 已保存到草稿箱');
+          if (emailTab === 'drafts') fetchEmails('drafts');
+        } else {
+          btn.textContent = '📥 暂存'; btn.disabled = false;
+          alert('❌ 保存失败: ' + (d.message || ''));
+        }
+      })
+      .catch(function(err){
+        btn.textContent = '📥 暂存'; btn.disabled = false;
+        alert('❌ 保存失败: ' + (err.message || err));
+      });
+    };
+        document.getElementById('cm-send-btn').onclick = function(){
+      var toVal = document.getElementById('cm-to').value.trim();
+      var subjectVal = document.getElementById('cm-subject').value.trim();
+      var bodyVal = document.getElementById('cm-body').value;
+      var ccVal = document.getElementById('cm-cc').value.trim();
+      var bccVal = document.getElementById('cm-bcc').value.trim();
+      if (!toVal || !subjectVal) { alert('请填写收件人和主题'); return; }
+      if (!emailConfig || !emailConfig.email) { alert('请先配置邮箱'); return; }
+      var btn = document.getElementById('cm-send-btn');
+      btn.textContent = '⏳ 发送中...'; btn.disabled = true;
+      var fd = new FormData();
+      fd.append('to_addr', toVal); fd.append('to_name', toVal.split('@')[0]);
+      fd.append('subject', subjectVal); fd.append('body', bodyVal);
+      if (ccVal) fd.append('cc', ccVal);
+      if (bccVal) fd.append('bcc', bccVal);
+      fetch('/api/plugins/team_chat/email/send', { method: 'POST', body: fd })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.success) {
+          document.getElementById('compose-modal-overlay').remove();
+          alert('✅ ' + d.message);
+          if (emailTab === 'sent') fetchEmails('sent');
+        } else {
+          btn.textContent = '📤 发送'; btn.disabled = false;
+          alert('❌ 发送失败: ' + (d.message || '请检查配置'));
+        }
+      })
+      .catch(function(err){
+        btn.textContent = '📤 发送'; btn.disabled = false;
+        alert('❌ 发送失败: ' + err.message);
+      });
+
+    // 加载联系人列表用于自动补全
+    window.loadContactListForCompose = function() {
+      fetch('/api/plugins/team_chat/email/contacts?limit=200&offset=0')
+        .then(function(r){return r.json();})
+        .then(function(d){
+          if(d.success && d.emails){
+            var listId = 'cm-contact-list';
+            var existing = document.getElementById(listId);
+            if(existing) existing.remove();
+            var dl = document.createElement('datalist');
+            dl.id = listId;
+            d.emails.forEach(function(c){
+              var name = c.name || '';
+              var email = c.email || '';
+              if (email) {
+                var opt1 = document.createElement('option');
+                if (name && name !== email) {
+                  opt1.value = name + ' <' + email + '>';
+                } else {
+                  opt1.value = email;
+                }
+                dl.appendChild(opt1);
+                if (name && name !== email) {
+                  var opt2 = document.createElement('option');
+                  opt2.value = email;
+                  dl.appendChild(opt2);
+                }
+              }
+            });
+            document.body.appendChild(dl);
+            ['cm-to', 'cm-cc'].forEach(function(fid){
+              var inp = document.getElementById(fid);
+              if(inp) inp.setAttribute('list', listId);
+            });
+            var onRecipientInput = function(e) {
+              var val = e.target.value;
+              var m = val.match(/^(.+?)\\s*<([^>]+@[^>]+)>\s*$/);
+              if (m) {
+                e.target.value = m[2];
+              }
+            };
+            ['cm-to', 'cm-cc'].forEach(function(fid){
+              var inp = document.getElementById(fid);
+              if(inp) {
+                inp.removeEventListener('input', onRecipientInput);
+                inp.addEventListener('input', onRecipientInput);
+              }
+            });
+          }
+        }).catch(function(){});
+    };
+    window.loadContactListForCompose();
+
+    };
   }
 
   // ---- 🐝 蜂巢邮箱操作函数 ----
@@ -2657,62 +3470,11 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
       body: email.body || ""
     });
     setComposeOpen(true);
+    openComposeDOM("编辑草稿", email.to_addr || "", "", email.subject || "", email.body || "");
   }
 
 
-  function restoreEmail(email) {
-  if (!confirm("确定要恢复这封邮件吗？")) return;
-
-  var restoreData = {
-    id: email.id,
-    original_folder: email.original_folder,
-    original_id: email.original_id
-  };
-
-  fetch("/api/plugins/team_chat/email/trash/" + email.id + "/restore", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(restoreData)
-  })
-  .then(function(res) { return res.json(); })
-  .then(function(data) {
-    if (data.success) {
-      message.success("邮件恢复成功");
-      // 从回收站列表中移除
-      var trashEmails = getStorage("trash") || [];
-      trashEmails = trashEmails.filter(function(e) { return e.id !== email.id; });
-      setStorage("trash", trashEmails);
-
-      // 添加到原文件夹
-      var folder = email.original_folder || "inbox";
-      var folderEmails = getStorage(folder) || [];
-      folderEmails.push({
-        id: email.original_id || email.id,
-        subject: email.subject,
-        from_addr: email.from_addr,
-        to_addr: email.to_addr,
-        date: email.date,
-        body_text: email.body_text,
-        body_html: email.body_html,
-        read: false
-      });
-      setStorage(folder, folderEmails);
-
-      // 刷新UI
-      if (typeof refreshEmails === 'function') {
-        refreshEmails();
-      } else {
-        location.reload();
-      }
-    } else {
-      message.error(data.message || "恢复失败");
-    }
-  })
-  .catch(function(err) {
-    message.error("恢复失败: " + err.message);
-    console.error("恢复错误:", err);
-  });
-}
+  /* restoreEmail duplicate removed - using new version above */
 
 
 
@@ -2907,12 +3669,8 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
     alert("成功添加朋友: " + code);
   }
 
-  // 监听emailTab变化，自动获取数据
-  React.useEffect(function() {
-    if (aimailView && aimailMode === "traditional") {
-      fetchEmails(emailTab);
-    }
-  }, [emailTab, aimailView, aimailMode]);
+  // 不再自动同步：用户需手动点击刷新按钮 fetchEmails
+  // React.useEffect(function() { ... }, [emailTab]);  // 已禁用
 
   // AI分身开关同步：监听外部事件更新React状态
   React.useEffect(function() {
@@ -2941,16 +3699,55 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
 
   // 监听外部入口（AI分身快捷按钮等）打开传统邮箱
   React.useEffect(function() {
-    function handler() {
+    function handler(ev) {
+      var tab = (ev && ev.detail && ev.detail.tab) || "inbox";
       setAimailView(true);
       setAimailMode("traditional");
+      setEmailTab(tab);
+      // 延迟一帧确保 state 已更新再 fetch（否则 fetchEmails 读到旧的 emailTab）
+      setTimeout(function() { fetchEmails(tab); }, 50);
     }
     window.addEventListener("openTraditionalEmail", handler);
     return function() { window.removeEventListener("openTraditionalEmail", handler); };
   }, []);
 
+  // 暴露 React state 到 window，供 AI分身原生 DOM 按钮直接调用
+  React.useEffect(function() {
+    window.__setAimailView = setAimailView;
+    window.__setAimailMode = setAimailMode;
+    window.__setEmailTab = setEmailTab;
+    window.__fetchEmails = fetchEmails;
+    window.__setCurrentAccount = setCurrentAccount;
+    window.__setAiFenshenEnabled = setAiFenshenEnabled;
+    window.__aiFenshenEnabled = aiFenshenEnabled;
+    // 检查是否有 pending 的邮箱 tab（来自 AI分身按钮在组件未挂载时的调用）
+    try {
+      var pendingTab = localStorage.getItem("__pending_email_tab");
+      if (pendingTab) {
+        localStorage.removeItem("__pending_email_tab");
+        setAimailView(true);
+        setAimailMode("traditional");
+        setEmailTab(pendingTab);
+        setTimeout(function() { fetchEmails(pendingTab); }, 100);
+      }
+    } catch(e) {}
+    return function() {
+      delete window.__setAimailView;
+      delete window.__setAimailMode;
+      delete window.__setEmailTab;
+      delete window.__fetchEmails;
+      delete window.__setCurrentAccount;
+      delete window.__setAiFenshenEnabled;
+      delete window.__aiFenshenEnabled;
+    };
+  }, []);
+
   // ---- ⚙️ 配置操作函数 ----
-  function openConfig() {
+  function openConfig(isNew) {
+    if (isNew) {
+      // 新建配置：清空表单
+      setEmailConfig({provider:"custom",email:"",display_name:"",smtp_host:"",smtp_port:"",smtp_ssl:true,smtp_username:"",smtp_password:"",imap_host:"",imap_port:"",imap_ssl:true,imap_username:"",imap_password:"",username:"",password:""});
+    }
     setConfigVisible(true);
   }
   
@@ -3527,13 +4324,13 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
     // 同步到后端数据库（供发送邮件使用）
     var cfg = Object.assign({}, emailConfig);
     if (!cfg.smtp_username) cfg.smtp_username = cfg.username || cfg.email;
-    if (!cfg.smtp_password) cfg.smtp_password = cfg.password || "";
+    if (!cfg.smtp_password || cfg.smtp_password === "") { cfg.smtp_password = cfg.password || ""; }
     if (!cfg.imap_username) cfg.imap_username = cfg.username || cfg.email;
-    if (!cfg.imap_password) cfg.imap_password = cfg.password || "";
+    if (!cfg.imap_password || cfg.imap_password === "") { cfg.imap_password = cfg.password || ""; }
     if (!cfg.display_name) cfg.display_name = cfg.email ? cfg.email.split("@")[0] : "";
     
-    // 先保存本地，再异步同步后端
-    localStorage.setItem("teamchat_email_config", JSON.stringify(emailConfig));
+    // 先保存本地（用补全后的cfg，确保下次加载密码字段完整），再异步同步后端
+    localStorage.setItem("teamchat_email_config", JSON.stringify(cfg));
     
     fetch("/api/plugins/team_chat/email/config", {
       method: "POST",
@@ -3541,16 +4338,16 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
       body: JSON.stringify(cfg)
     }).then(function(r) { return r.json(); }).then(function(d) {
       console.log("后端保存结果:", d);
+      // 保存成功后刷新邮箱列表
+      loadEmailConfigs();
     }).catch(function(err) {
       console.error("后端保存失败:", err);
     });
     
-    // 立即关闭弹窗（不等待后端）
-    setTimeout(function() {
-      setSavingConfig(false);
-      closeConfig();
-      alert("配置已保存！");
-    }, 300);
+    // 关闭弹窗（不等待后端完全返回）
+    setSavingConfig(false);
+    closeConfig();
+    fetchEmails("inbox");
   }
 
   // 初始化时从localStorage加载配置（useEffect中执行，避免无限循环）
@@ -4617,6 +5414,8 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
 
 
     // =================== Layout / Main Render ===================
+  var paginationBar = function(tab) { return e("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",padding:"12px 0",gap:"10px",borderTop:"1px solid #e0e0e0",marginTop:"12px"}}, e("span",{style:{fontSize:"12px",color:"#333"}},"共 " + totalEmails + " 封 · 每页 " + pageSize), e("button",{onClick:function(){goPage(tab,1);},disabled:curPage<=1,style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage<=1?"default":"pointer",opacity:curPage<=1?0.4:1,fontSize:"12px"}},"首页"), e("button",{onClick:function(){goPage(tab,curPage-1);},disabled:curPage<=1,style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage<=1?"default":"pointer",opacity:curPage<=1?0.4:1,fontSize:"12px"}},"上一页"), e("span",{style:{fontSize:"13px",color:"#333"}},curPage + " / " + Math.max(1,Math.ceil(totalEmails/pageSize))), e("button",{onClick:function(){goPage(tab,curPage+1);},disabled:curPage>=Math.ceil(totalEmails/pageSize),style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage>=Math.ceil(totalEmails/pageSize)?"default":"pointer",opacity:curPage>=Math.ceil(totalEmails/pageSize)?0.4:1,fontSize:"12px"}},"下一页"), e("button",{onClick:function(){goPage(tab,Math.ceil(totalEmails/pageSize));},disabled:curPage>=Math.ceil(totalEmails/pageSize),style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage>=Math.ceil(totalEmails/pageSize)?"default":"pointer",opacity:curPage>=Math.ceil(totalEmails/pageSize)?0.4:1,fontSize:"12px"}},"末页"), e("select",{value:pageSize,onChange:function(ev){onPageSizeChange(tab,parseInt(ev.target.value));},style:{padding:"4px 8px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",fontSize:"12px",cursor:"pointer"}}, e("option",{value:10},"10"), e("option",{value:20},"20"), e("option",{value:50},"50"), e("option",{value:100},"100"))); };
+
     if(chuanView) return e(ChuanChuanPage,{onBack:function(){setChuanView(false);}});
   // AI邮箱主视图
     if(aimailView && aimailMode === "main") return e("div",{style:{padding:"20px",textAlign:"center",background:"linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%)",color:"#333",minHeight:"100vh"}},
@@ -4645,101 +5444,153 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
         e("div",{style:{fontSize:"18px",fontWeight:"bold"}},"传统邮箱"),
         e("div",{style:{fontSize:"12px",opacity:0.7,marginTop:"4px"}},"收件、发件、管理")
       ),
-      e("div",{onClick:function(){
-        // 显示蜂巢动画
-        window.showHiveAnimation();
-      },style:{background:"#ffffff",border:"1px solid #e0e0e0",borderRadius:"16px",padding:"24px 48px",cursor:"pointer",width:"360px",textAlign:"center",transition:"transform 0.2s",boxShadow:"0 2px 8px rgba(0,0,0,0.1)"}},
+      e("div",{onClick:function(){window.showHiveAnimation();},style:{background:"#ffffff",border:"1px solid #e0e0e0",borderRadius:"16px",padding:"24px 48px",cursor:"pointer",width:"360px",textAlign:"center",transition:"transform 0.2s",boxShadow:"0 2px 8px rgba(0,0,0,0.1)"}},
         e("div",{style:{fontSize:"24px",marginBottom:"8px"}},"🏠 🐝🐝"),
         e("div",{style:{fontSize:"18px",fontWeight:"bold"}},"蜂巢邮箱"),
-        e("div",{style:{fontSize:"12px",opacity:0.7,marginTop:"4px"}},"写信给AGENT: interccy@agent.qq.com")
+        e("div",{style:{fontSize:"12px",opacity:0.7,marginTop:"4px"}},"写信给AI CC咨询: c115886@agent.qq.com")
       )
     ),
     e("button",{onClick:function(){setAimailView(false);},style:{background:"white",color:"#667eea",border:"none",padding:"10px 20px",borderRadius:"8px",cursor:"pointer",marginTop:"30px"}},"返回主界面")
   );
 
-    // 传统邮箱视图
-    if(aimailView && aimailMode === "traditional") return e("div",{style:{padding:"20px",background:"linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%)",color:"#333",minHeight:"100vh"}},
+    var filteredEmails = emails.filter(function(email) {
+      if (emailFilter === "all") return true;
+      if (emailFilter === "unread") return email.read_status === 0;
+      if (emailFilter === "starred") return email.starred;
+      if (emailFilter === "ad" || emailFilter === "enterprise" || emailFilter === "notification" || emailFilter === "general") return email.category === emailFilter;
+      return true;
+    });
+        if(aimailView && aimailMode === "traditional") return e("div",{style:{padding:"20px",background:"linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%)",color:"#333",minHeight:"100vh"}},
     e("div",{style:{display:"flex",alignItems:"center",marginBottom:"20px"}},
       e("button",{onClick:function(){setAimailMode("main");},style:{background:"#667eea",border:"none",color:"white",padding:"8px 16px",borderRadius:"8px",cursor:"pointer",marginRight:"12px"}},"← 返回"),
       e("h2",{style:{margin:0,color:"#333"}},"传统邮箱"),
         e("button",{onClick:openComposeModal,style:{background:"#667eea",color:"white",border:"none",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"14px"}},"✉️ 写邮件")
       ),
-    e("div",{style:{display:"flex",gap:"8px",flexWrap:"wrap",justifyContent:"center",marginBottom:"20px"}},
-      e("span",{onClick:function(){setEmailTab("inbox");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"收件箱"),
-      e("span",{onClick:function(){setEmailTab("sent");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"发件箱"),
-      e("span",{onClick:function(){setEmailTab("drafts");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"草稿箱"),
-      e("span",{onClick:function(){setEmailTab("contacts");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"联系人"),
-      e("span",{onClick:function(){setEmailTab("trash");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"回收站"),
-      e("span",{onClick:function(){setEmailTab("settings");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"设置"),
-      e("span",{onClick:function(){setEmailTab("security");},style:{background:"linear-gradient(180deg,#1890ff,#096dd9)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #0050b3",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.3),0 2px 4px rgba(24,144,255,0.3)",fontWeight:"bold",color:"#fff",textShadow:"0 1px 0 rgba(0,0,0,0.3)"}},"🛡️ 安全提示")
+    e("div",{style:{display:"flex",alignItems:"center",gap:"12px",flexWrap:"wrap",justifyContent:"center",marginBottom:"16px"}},
+      // ---- 📧 多邮箱选择器 ----
+      emailConfigs.length > 0 ? e("select",{
+        value: currentAccount,
+        onChange: function(ev){ setCurrentAccount(ev.target.value); },
+        style: {padding:"6px 12px",borderRadius:"8px",border:"1px solid #667eea",fontSize:"13px",fontWeight:"bold",color:"#667eea",background:"white",cursor:"pointer",minWidth:"180px",maxWidth:"260px"}
+      },
+        e("option",{value:"__all__",style:{fontWeight:"bold",background:"#f0f4ff"}},"📧 全部邮箱 (" + emailConfigs.length + ")"),
+        e("option",{disabled:true,style:{fontSize:"1px",padding:0,height:"4px",background:"#ddd"}},"──────────────"),
+        emailConfigs.map(function(cfg){ return e("option",{key:cfg.id||cfg.email,value:cfg.email}, "📨 " + cfg.email); })
+      ) : null,
+      e("div",{style:{display:"flex",gap:"8px",flexWrap:"wrap",justifyContent:"center",alignItems:"center"}},
+        emailConfigs.length > 0 ? e("span",{onClick:function(){setEmailTab("inbox");setCurPage(1);fetchEmails("inbox");},style:emailTab==="inbox"?{background:"linear-gradient(135deg,#667eea,#764ba2)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #5a6cdb",boxShadow:"0 2px 12px rgba(102,126,234,0.4)",fontWeight:"bold",color:"#fff",textShadow:"0 1px 0 rgba(0,0,0,0.2)"}:{background:"linear-gradient(180deg,#e8e8e8,#c0c0c0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #aaa",fontWeight:"bold",color:"#555"}},"📬 收件箱") : null,
+        emailConfigs.length > 0 ? e("span",{onClick:function(){setEmailTab("sent");setCurPage(1);fetchEmails("sent");},style:emailTab==="sent"?{background:"linear-gradient(135deg,#667eea,#764ba2)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #5a6cdb",boxShadow:"0 2px 12px rgba(102,126,234,0.4)",fontWeight:"bold",color:"#fff",textShadow:"0 1px 0 rgba(0,0,0,0.2)"}:{background:"linear-gradient(180deg,#e8e8e8,#c0c0c0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #aaa",fontWeight:"bold",color:"#555"}},"📤 发件箱") : null,
+        emailConfigs.length > 0 ? e("span",{onClick:function(){setEmailTab("drafts");setCurPage(1);fetchEmails("drafts");},style:emailTab==="drafts"?{background:"linear-gradient(135deg,#667eea,#764ba2)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #5a6cdb",boxShadow:"0 2px 12px rgba(102,126,234,0.4)",fontWeight:"bold",color:"#fff",textShadow:"0 1px 0 rgba(0,0,0,0.2)"}:{background:"linear-gradient(180deg,#e8e8e8,#c0c0c0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #aaa",fontWeight:"bold",color:"#555"}},"📝 草稿箱") : null,
+        emailConfigs.length > 0 ? e("span",{onClick:function(){setEmailTab("contacts");fetchContacts();},style:emailTab==="contacts"?{background:"linear-gradient(135deg,#667eea,#764ba2)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #5a6cdb",boxShadow:"0 2px 12px rgba(102,126,234,0.4)",fontWeight:"bold",color:"#fff",textShadow:"0 1px 0 rgba(0,0,0,0.2)"}:{background:"linear-gradient(180deg,#e8e8e8,#c0c0c0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #aaa",fontWeight:"bold",color:"#555"}},"👥 联系人") : null,
+        emailConfigs.length > 0 ? e("span",{onClick:function(){setEmailTab("trash");setCurPage(1);fetchEmails("trash");},style:emailTab==="trash"?{background:"linear-gradient(135deg,#667eea,#764ba2)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #5a6cdb",boxShadow:"0 2px 12px rgba(102,126,234,0.4)",fontWeight:"bold",color:"#fff",textShadow:"0 1px 0 rgba(0,0,0,0.2)"}:{background:"linear-gradient(180deg,#e8e8e8,#c0c0c0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #aaa",fontWeight:"bold",color:"#555"}},"🗑 回收站") : null,
+      e("span",{onClick:function(){setEmailTab("settings");},style:emailTab==="settings"?{background:"linear-gradient(135deg,#667eea,#764ba2)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #5a6cdb",boxShadow:"0 2px 12px rgba(102,126,234,0.4)",fontWeight:"bold",color:"#fff",textShadow:"0 1px 0 rgba(0,0,0,0.2)"}:{background:"linear-gradient(180deg,#e8e8e8,#c0c0c0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #aaa",fontWeight:"bold",color:"#555"}},"⚙ 设置"),
+      e("span",{onClick:function(){setEmailTab("security");},style:emailTab==="security"?{background:"linear-gradient(135deg,#ff6b6b,#c62828)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #b71c1c",boxShadow:"0 2px 12px rgba(255,107,107,0.4)",fontWeight:"bold",color:"#fff",textShadow:"0 1px 0 rgba(0,0,0,0.2)"}:{background:"linear-gradient(180deg,#e8e8e8,#c0c0c0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #aaa",fontWeight:"bold",color:"#555"}},"🛡️ 安全提示")
+      )
     ),
-    emailTab === "inbox" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
-      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
-        e("h3",{style:{margin:0}},"📬 收件箱 (" + (emails ? emails.length : 0) + ")"),
-        e("button",{onClick:function(){fetchEmails("inbox");},style:{background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 14px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}},"🔄 刷新")
+
+        emailTab === "inbox" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+      e("div",{style:{marginBottom:"16px"}},
+        e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}},
+          e("h3",{style:{margin:0,fontSize:"18px"}},"📬 收件箱 (" + (filteredEmails ? filteredEmails.length : 0) + ")"),
+          e("div",{style:{display:"flex",gap:"8px"}},
+      e("div",{style:{display:"flex",gap:"8px",alignItems:"center",marginTop:"8px",justifyContent:"center"}},
+        e("select",{value:emailFilter,onChange:function(e){setEmailFilter(e.target.value);setCurPage(1);},style:{padding:"6px 12px",borderRadius:"6px",border:"1px solid #ccc",background:"#fff",fontSize:"13px",cursor:"pointer",color:"#333"}},
+          e("option",{value:"all"},"📬 全部邮件"),
+          e("option",{value:"unread"},"🔵 未读"),
+          e("option",{value:"starred"},"⭐ 星标"),
+          e("option",{value:"ad"},"📢 广告"),
+          e("option",{value:"enterprise"},"🏢 企业"),
+          e("option",{value:"notification"},"🔔 通知"),
+          e("option",{value:"general"},"📋 普通")
+        )
+      ),
+            e("button",{onClick:function(){fetchEmails("inbox");setLastSync(new Date().toLocaleTimeString());},style:{background:"linear-gradient(135deg,#667eea,#764ba2)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:"bold",boxShadow:"0 2px 8px rgba(102,126,234,0.3)"}},"🔄 刷新收件箱"),
+            e("button",{onClick:function(ev){var btn=ev.currentTarget;var origText="📥 同步";setSelectedIds([]);setTimeout(function(){btn.textContent="⏳ 同步中...";btn.disabled=true;btn.style.opacity="0.7";},10);var hdrs=apiHeaders?apiHeaders():{};var ctrl=new AbortController();var timeout=setTimeout(function(){ctrl.abort();},30000);fetch("/api/plugins/team_chat/email/sync",{method:"POST",headers:hdrs,signal:ctrl.signal}).then(function(r){clearTimeout(timeout);return r.json();}).then(function(d){btn.textContent=origText;btn.disabled=false;btn.style.opacity="1";if(d.success){fetchEmails("inbox");setLastSync(new Date().toLocaleTimeString());}else{alert("同步失败: "+(d.message||"未知错误"));}}).catch(function(e){clearTimeout(timeout);btn.textContent=origText;btn.disabled=false;btn.style.opacity="1";if(e.name!=="AbortError"){console.error("同步出错:",e);alert("同步请求失败: "+(e.message||"网络错误"));}else{alert("同步超时(30秒)，请检查网络或邮箱配置");}});},style:{background:"linear-gradient(135deg,#11998e,#38ef7d)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:"bold",boxShadow:"0 2px 8px rgba(17,153,142,0.3)"}},"📥 同步")
+          )
+        ),
+        lastSync ? e("div",{style:{fontSize:"11px",color:"#999",textAlign:"right",marginBottom:"6px"}},"⏱ 上次: " + lastSync + " · 共 " + (emails ? emails.length : 0) + " 封") : null,
+        e("div",{style:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"6px"}},
+          selectedIds && selectedIds.length > 0
+            ? e("span",null,
+                e("span",{style:{fontSize:"13px",fontWeight:"bold",color:"#1565c0",marginRight:"10px"}},"已选 " + selectedIds.length + " 封"),
+                e("button",{onClick:function(){setSelectedIds(emails.map(function(e){return e.id;}));},style:{padding:"4px 10px",borderRadius:"5px",fontSize:"12px",border:"1px solid #90caf9",cursor:"pointer",background:"#fff",color:"#1565c0"}},"☑ 全选"),
+                e("button",{onClick:function(){setSelectedIds([]);},style:{padding:"4px 10px",borderRadius:"5px",fontSize:"12px",border:"1px solid #90caf9",cursor:"pointer",background:"#fff",color:"#1565c0",marginLeft:"4px"}},"✖ 取消"),
+                e("button",{onClick:function(){var ids=selectedIds.slice();fetch("/api/plugins/team_chat/email/inbox/batch-delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(ids)}).then(function(r){return r.json();}).then(function(d){if(d.success){setEmails(emails.filter(function(e){return ids.indexOf(e.id)===-1;}));setSelectedIds([]);}else{alert("❌ 删除失败: "+(d.message||"未知错误"));}}).catch(function(err){alert("❌ 删除失败: "+err.message);});},style:{padding:"4px 12px",borderRadius:"5px",fontSize:"12px",fontWeight:"bold",border:"none",cursor:"pointer",background:"#ef5350",color:"#fff",marginLeft:"8px"}},"🗑 批量删除 " + selectedIds.length)
+              )
+            : e("span",{style:{fontSize:"12px",color:"#999"}},"☑ 点击勾选框可批量操作")
+        )
       ),
       loading ? e("div",{style:{textAlign:"center",padding:"60px",opacity:0.6}},"⏳ 加载中...") :
       error ? e("div",{style:{textAlign:"center",padding:"60px",color:"#ff6b6b"}},"❌ " + error) :
-      emails && emails.length === 0 ? e("div",{style:{textAlign:"center",padding:"60px",opacity:0.6}},"📭 收件箱为空") :
-      e("div",null,emails.map(function(email){return e("div",{key:email.id,onClick:function(){setSelectedEmail(email);},style:{background:selectedEmail&&selectedEmail.id===email.id?"#e3f2fd":"white",padding:"14px 16px",marginBottom:"10px",borderRadius:"10px",cursor:"pointer",display:"flex",alignItems:"flex-start",gap:"12px",boxShadow:"0 1px 3px rgba(0,0,0,0.08)",border:"1px solid rgba(0,0,0,0.05)"}},
-        e("div",{style:{width:"40px",height:"40px",borderRadius:"50%",background:email.from_addr==="系统通知"?"#38ef7d":email.from_addr==="项目经理"?"#667eea":"#ff6b6b",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:"bold",fontSize:"14px",flexShrink:0}},email.from_addr ? email.from_addr.charAt(0) : "?"),
+      filteredEmails.length === 0 ? e("div",{style:{textAlign:"center",padding:"60px",opacity:0.6}},"📭 收件箱为空") :
+      e("div",null,filteredEmails.map(function(email){var isSel=selectedIds.indexOf(email.id)>=0;var isUnread=email.read_status===0;return e("div",{key:email.id,onClick:function(){window.showMailDetail(email);},style:{background:isSel?"#e3f2fd":selectedEmail&&selectedEmail.id===email.id?"#f5f5f5":"white",padding:"10px 12px",marginBottom:"6px",borderRadius:"8px",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",boxShadow:isUnread?"0 2px 8px rgba(102,126,234,0.12)":"0 1px 2px rgba(0,0,0,0.04)",border:isSel?"2px solid #1976d2":isUnread?"1px solid rgba(102,126,234,0.25)":"1px solid rgba(0,0,0,0.05)",borderLeft:isUnread?"4px solid #667eea":"1px solid rgba(0,0,0,0.05)"}},
+        e("input",{type:"checkbox",checked:isSel,readOnly:true,onClick:function(e){e.stopPropagation();if(!isSel){setSelectedIds(selectedIds.concat([email.id]));}else{setSelectedIds(selectedIds.filter(function(x){return x!==email.id;}));}},style:{width:"15px",height:"15px",cursor:"pointer",flexShrink:0,accentColor:"#1976d2"}}),
+        e("div",{style:{width:"32px",height:"32px",borderRadius:"50%",background:email.from_addr==="系统通知"?"#38ef7d":"#667eea",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:"bold",fontSize:"12px",flexShrink:0}},email.from_addr?email.from_addr.charAt(0):"?"),
         e("div",{style:{flex:1,minWidth:0}},
-          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}},
-            e("div",{style:{fontWeight:"bold",fontSize:"14px"}},email.subject || "(无主题)"),
-            e("div",{style:{fontSize:"11px",opacity:0.5,whiteSpace:"nowrap"}},new Date(email.created_at).toLocaleDateString())
+          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2px"}},
+            e("div",{style:{fontWeight:"bold",fontSize:"13px",color:email.read_status===0?"#1565c0":"#333"}},email.subject||"(无主题)"),
+            e("div",{style:{fontSize:"10px",color:"#999",whiteSpace:"nowrap"}},email.received_date?new Date(email.received_date).toLocaleDateString():email.created_at?new Date(email.created_at).toLocaleDateString():"")
           ),
-          e("div",{style:{fontSize:"12px",opacity:0.7,marginBottom:"4px"}},email.from_addr || "未知发件人"),
-          e("div",{style:{fontSize:"13px",opacity:0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},email.body || "(无内容)"),
-          e("div",{style:{display:"flex",gap:"8px",marginTop:"8px"}},
-            e("button",{onClick:function(e){e.stopPropagation();replyEmail(email,false);},style:{background:"#667eea",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"回复"),
-            e("button",{onClick:function(e){e.stopPropagation();replyEmail(email,true);},style:{background:"#764ba2",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"回复全部"),
-            e("button",{onClick:function(e){e.stopPropagation();forwardEmail(email);},style:{background:"#38ef7d",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"转发")
-          )
+          e("div",{style:{fontSize:"11px",color:"#666",marginBottom:"1px"}},email.from_addr||"未知发件人",
+            email.account_email && currentAccount === '__all__' ? e("span",{style:{fontSize:"9px",color:"#667eea",marginLeft:"6px",background:"#e3f2fd",padding:"1px 5px",borderRadius:"3px"}},email.account_email) : null
+          ),
+          e("div",{style:{fontSize:"11px",color:"#999",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"400px"}},getEmailText(email).replace(/\n/g," ").substring(0,100)||"(无内容)")
+        ),
+        e("div",{style:{display:"flex",gap:"3px",flexShrink:0,alignItems:"center"}},
+          e("button",{title:"标为已读",onClick:function(e){e.stopPropagation();markRead(email);},style:{background:"none",border:"none",cursor:"pointer",fontSize:"14px",padding:"1px 3px",opacity:email.read_status===0?1:0.25}},email.read_status===0?"🔵":"⚪"),
+          e("button",{title:email.starred?"取消星标":"星标",onClick:function(e){e.stopPropagation();toggleStarEmail(email);},style:{background:"none",border:"none",cursor:"pointer",fontSize:"14px",padding:"1px 3px"}},email.starred?"⭐":"☆"),
+          e("button",{title:"回复",onClick:function(e){e.stopPropagation();replyEmail(email,false);},style:{background:"#667eea",color:"white",border:"2px solid #5a6cdb",padding:"2px 6px",borderRadius:"3px",cursor:"pointer",fontSize:"11px",fontWeight:"bold"}},"↩"),
+          e("button",{title:"删除",onClick:function(e){e.stopPropagation();deleteEmail("inbox",email.id);},style:{background:"#ff0000",color:"white",border:"2px solid #cc0000",padding:"2px 6px",borderRadius:"3px",cursor:"pointer",fontSize:"11px",fontWeight:"bold"}},"🗑")
         )
       )}))
-    ) : emailTab === "sent" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+    ,paginationBar("inbox")) : emailTab === "sent" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
       e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
-        e("h3",{style:{margin:0}},"📤 发件箱 (" + (emails ? emails.length : 0) + ")"),
-        e("button",{onClick:function(){fetchEmails("sent");},style:{background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 14px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}},"🔄 刷新")
+        e("h3",{style:{margin:0,fontSize:"18px"}},"📤 发件箱 (" + (emails ? emails.length : 0) + ")"),
+        e("button",{onClick:function(){fetchEmails("sent");},style:{background:"linear-gradient(135deg,#667eea,#764ba2)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:"bold",boxShadow:"0 2px 8px rgba(102,126,234,0.3)"}},"🔄 刷新发件箱")
       ),
       loading ? e("div",{style:{textAlign:"center",padding:"60px",opacity:0.6}},"⏳ 加载中...") :
       error ? e("div",{style:{textAlign:"center",padding:"60px",color:"#ff6b6b"}},"❌ " + error) :
       emails && emails.length === 0 ? e("div",{style:{textAlign:"center",padding:"60px",opacity:0.6}},"📭 暂无已发送邮件") :
-      e("div",null,emails.map(function(email){return e("div",{key:email.id,style:{background:"white",padding:"14px 16px",marginBottom:"10px",borderRadius:"10px",display:"flex",alignItems:"flex-start",gap:"12px",boxShadow:"0 1px 3px rgba(0,0,0,0.08)",border:"1px solid rgba(0,0,0,0.05)"}},
-        e("div",{style:{width:"40px",height:"40px",borderRadius:"50%",background:"#38ef7d",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:"bold",fontSize:"14px",flexShrink:0}},"发"),
+      e("div",null,emails.map(function(email){var isSel=selectedIds.indexOf(email.id)>=0;var isUnread=email.read_status===0;return e("div",{key:email.id,onClick:function(){window.showMailDetail(email);},style:{background:isSel?"#e8f5e9":"white",padding:"10px 12px",marginBottom:"6px",borderRadius:"8px",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",boxShadow:isUnread?"0 2px 8px rgba(102,126,234,0.12)":"0 1px 2px rgba(0,0,0,0.04)",border:isSel?"2px solid #2e7d32":isUnread?"1px solid rgba(102,126,234,0.25)":"1px solid rgba(0,0,0,0.05)",borderLeft:isUnread?"4px solid #667eea":"1px solid rgba(0,0,0,0.05)"}},
+        e("input",{type:"checkbox",checked:isSel,readOnly:true,onClick:function(e){e.stopPropagation();if(!isSel){setSelectedIds(selectedIds.concat([email.id]));}else{setSelectedIds(selectedIds.filter(function(x){return x!==email.id;}));}},style:{width:"15px",height:"15px",cursor:"pointer",flexShrink:0,accentColor:"#2e7d32"}}),
+        e("div",{style:{width:"32px",height:"32px",borderRadius:"50%",background:"#66bb6a",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:"bold",fontSize:"12px",flexShrink:0}},"发"),
         e("div",{style:{flex:1,minWidth:0}},
-          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}},
-            e("div",{style:{fontWeight:"bold",fontSize:"14px"}},email.subject || "(无主题)"),
-            e("div",{style:{fontSize:"11px",opacity:0.5,whiteSpace:"nowrap"}},new Date(email.created_at).toLocaleDateString())
+          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2px"}},
+            e("div",{style:{fontWeight:"bold",fontSize:"13px"}},email.subject||"(无主题)"),
+            e("div",{style:{fontSize:"10px",color:"#999",whiteSpace:"nowrap"}},email.sent_date?new Date(email.sent_date).toLocaleDateString():email.created_at?new Date(email.created_at).toLocaleDateString():"")
           ),
-          e("div",{style:{fontSize:"12px",opacity:0.7,marginBottom:"4px"}},"收件人: " + (email.to_addr || "未知")),
-          e("div",{style:{fontSize:"13px",opacity:0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},email.body || "(无内容)"),
-          e("div",{style:{display:"flex",gap:"8px",marginTop:"8px"}},
-            e("button",{onClick:function(e){e.stopPropagation();replyEmail(email,false);},style:{background:"#667eea",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"回复"),
-            e("button",{onClick:function(e){e.stopPropagation();replyEmail(email,true);},style:{background:"#764ba2",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"回复全部"),
-            e("button",{onClick:function(e){e.stopPropagation();forwardEmail(email);},style:{background:"#38ef7d",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"转发")
-          )
+          e("div",{style:{fontSize:"11px",color:"#666",marginBottom:"1px"}},"→ "+(email.to_addr||"未知")),
+          e("div",{style:{fontSize:"11px",color:"#999",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"400px"}},getEmailText(email).replace(/\n/g," ").substring(0,100)||"(无内容)")
+        ),
+        e("div",{style:{display:"flex",gap:"3px",flexShrink:0,alignItems:"center"}},
+          e("button",{title:"回复",onClick:function(e){e.stopPropagation();replyEmail(email,false);},style:{background:"#667eea",color:"white",border:"2px solid #5a6cdb",padding:"2px 6px",borderRadius:"3px",cursor:"pointer",fontSize:"11px",fontWeight:"bold"}},"↩"),
+          e("button",{title:"星标",onClick:function(e){e.stopPropagation();toggleStarEmail(email);},style:{background:"none",border:"none",cursor:"pointer",fontSize:"14px",padding:"1px 3px"}},email.starred?"⭐":"☆"),
+          e("button",{title:"删除",onClick:function(e){e.stopPropagation();deleteEmail("sent",email.id);},style:{background:"#ff0000",color:"white",border:"2px solid #cc0000",padding:"2px 6px",borderRadius:"3px",cursor:"pointer",fontSize:"11px",fontWeight:"bold"}},"🗑")
         )
       )}))
-    ) : emailTab === "drafts" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+    ,paginationBar("sent")) : emailTab === "drafts" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
       e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
         e("h3",{style:{margin:0}},"📝 草稿箱 (" + (emails ? emails.length : 0) + ")"),
         e("button",{onClick:function(){openComposeModal();},style:{background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 14px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}},"✏️ 新建")
       ),
       loading ? e("div",{style:{textAlign:"center",padding:"40px"}},"加载中...") :
       emails && emails.length === 0 ? e("div",{style:{textAlign:"center",opacity:0.6}},"暂无草稿") :
-      e("div",null,emails.map(function(email){return e("div",{key:email.id,style:{background:"white",padding:"12px",marginBottom:"8px",borderRadius:"8px",cursor:"pointer",border:"1px solid rgba(255,255,255,0.2)"}},
-        e("div",{style:{fontWeight:"bold",marginBottom:"8px"}},email.subject || "(无主题)"),
-        e("div",{style:{opacity:0.6,fontSize:"14px"}},email.body || "(无内容)"),
-        e("div",{style:{display:"flex",gap:"8px",marginTop:"8px"}},
-          e("button",{onClick:function(){editDraft(email);},style:{background:"#667eea",color:"white",border:"none",padding:"6px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"编辑"),
-          e("button",{onClick:function(){deleteEmail("drafts", email.id);},style:{background:"red",color:"white",border:"none",padding:"6px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"删除")
+      e("div",null,emails.map(function(email){var isSel=selectedIds.indexOf(email.id)>=0;return e("div",{key:email.id,style:{background:isSel?"#fff3e0":"white",padding:"10px 12px",marginBottom:"6px",borderRadius:"8px",display:"flex",alignItems:"flex-start",gap:"8px",border:isSel?"2px solid #e65100":"1px solid rgba(0,0,0,0.05)",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",borderLeft:"4px solid #ff9800"}},
+        e("input",{type:"checkbox",checked:isSel,readOnly:true,onClick:function(e){e.stopPropagation();if(!isSel){setSelectedIds(selectedIds.concat([email.id]));}else{setSelectedIds(selectedIds.filter(function(x){return x!==email.id;}));}},style:{width:"15px",height:"15px",cursor:"pointer",flexShrink:0,accentColor:"#e65100"}}),
+        e("div",{style:{flex:1,minWidth:0}},
+          e("div",{style:{fontWeight:"bold",fontSize:"13px",marginBottom:"4px"}},email.subject||"(无主题)"),
+          e("div",{style:{color:"#666",fontSize:"12px",marginBottom:"2px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},email.body||"(无内容)"),
+          e("div",{style:{fontSize:"10px",color:"#999"}},email.created_at?new Date(email.created_at).toLocaleString():"")
+        ),
+        e("div",{style:{display:"flex",gap:"4px",flexShrink:0}},
+          e("button",{onClick:function(e){e.stopPropagation();editDraft(email);},style:{background:"#667eea",color:"white",border:"none",padding:"5px 10px",borderRadius:"4px",cursor:"pointer",fontSize:"11px",fontWeight:"bold"}},"✏️ 编辑"),
+          e("button",{onClick:function(e){e.stopPropagation();deleteEmail("drafts",email.id);},style:{background:"#ff0000",color:"white",border:"2px solid #cc0000",padding:"4px 8px",borderRadius:"4px",cursor:"pointer",fontSize:"11px",fontWeight:"bold"}},"🗑 删除")
         )
       )}))
-    ) : emailTab === "contacts" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+    ,paginationBar("drafts")) : emailTab === "contacts" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
       e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
         e("h3",null,"👥 联系人 (" + emails.length + ")"),
-        e("button",{onClick:function(){setShowAddContact(true);},style:{background:"#667eea",color:"white",border:"none",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"14px"}},"+ 添加")
+        e("button",{onClick:function(){console.log("[联系人] +添加按钮被点击, showAddContact前="+showAddContact);showAddContactModal(newContact,setNewContact,addContact);},style:{background:"#667eea",color:"white",border:"none",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"14px"}},"+ 添加")
       ),
       loading ? e("div",{style:{textAlign:"center",padding:"40px",opacity:0.6}},"⏳ 加载中...") :
       emails.length === 0 ? e("div",{style:{textAlign:"center",padding:"40px",opacity:0.6}},"暂无联系人") :
@@ -4752,43 +5603,30 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
             e("div",{style:{fontSize:"11px",opacity:0.4}},item.phone ? item.phone + (item.company?" · ":"") : "",item.company||"")
           )
         ),
-        e("button",{onClick:function(){deleteContact(item.id);},style:{background:"none",border:"1px solid rgba(255,0,0,0.3)",color:"red",padding:"4px 10px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"删除")
-      )}),
-      showAddContact ? e("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}},
-        e("div",{style:{background:"white",borderRadius:"12px",padding:"24px",width:"420px"}},
-          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
-            e("h2",{style:{margin:0}},"👤 添加联系人"),
-            e("button",{onClick:function(){setShowAddContact(false);},style:{background:"none",border:"none",fontSize:"24px",cursor:"pointer",color:"#999"}},"✕")
-          ),
-          e("div",{style:{display:"flex",flexDirection:"column",gap:"10px"}},
-            e("input",{type:"text",value:newContact.name,onChange:function(e){setNewContact({...newContact,name:e.target.value});},placeholder:"姓名 *",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}}),
-            e("input",{type:"email",value:newContact.email,onChange:function(e){setNewContact({...newContact,email:e.target.value});},placeholder:"邮箱 *",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}}),
-            e("input",{type:"text",value:newContact.phone,onChange:function(e){setNewContact({...newContact,phone:e.target.value});},placeholder:"电话",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}}),
-            e("input",{type:"text",value:newContact.company,onChange:function(e){setNewContact({...newContact,company:e.target.value});},placeholder:"公司",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}})
-          ),
-          e("div",{style:{display:"flex",gap:"10px",marginTop:"16px"}},
-            e("button",{onClick:function(){setShowAddContact(false);},style:{flex:1,padding:"10px",border:"1px solid #ddd",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"white"}},"取消"),
-            e("button",{onClick:addContact,style:{flex:1,padding:"10px",border:"none",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"#667eea",color:"white"}},"保存")
-          )
+        e("div",{style:{display:"flex",gap:"6px",flexShrink:0}},
+          e("button",{title:"给此联系人写信",onClick:function(e){e.stopPropagation();if(!item.email){alert("此联系人无邮箱地址");return;}openComposeDOM("新邮件",item.email,"","",item.name ? "Dear " + item.name + ",\n\n" : "");},style:{background:"#667eea",color:"white",border:"2px solid #5a6cdb",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}},"📧 写信"),
+          e("button",{title:"查看此联系人的关联收件箱邮件",onClick:function(e){e.stopPropagation();if(!item.email){alert("此联系人无邮箱地址");return;}window.searchContactsMail(item.email,item.name);},style:{background:"#f0f0f0",color:"#333",border:"1px solid #ccc",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}},"📬 查邮件"),
+          e("button",{onClick:function(e){e.stopPropagation();deleteContact(item.id);},style:{background:"none",border:"1px solid rgba(255,0,0,0.3)",color:"red",padding:"4px 10px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"删除")
         )
-      ) : null
+      )})
     )) : emailTab === "trash" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
       e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
-        e("h3",null,"🗑️ 回收站"),
-        e("button",{onClick:function(){clearTrash();},style:{background:"rgba(255,0,0,0.2)",border:"none",color:"#ff6b6b",padding:"6px 14px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}},"清空")
+        e("h3",null,"🗑️ 回收站 (" + (emails ? emails.length : 0) + ")"),
+        e("button",{onClick:function(){if(!confirm("确定清空回收站？此操作不可恢复！"))return;clearTrash();},style:{background:"#d32f2f",color:"white",border:"2px solid #b71c1c",padding:"8px 18px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:"bold",boxShadow:"0 2px 8px rgba(211,47,47,0.3)"}},"🗑 清空回收站")
       ),
       loading ? e("div",{style:{textAlign:"center",padding:"40px",opacity:0.6}},"⏳ 加载中...") :
       emails.length === 0 ? e("div",{style:{textAlign:"center",padding:"40px",opacity:0.6}},"回收站为空") :
-      e("div",null,emails.map(function(item,i){return e("div",{key:i,style:{background:"rgba(255,255,255,0.05)",padding:"10px 14px",marginBottom:"8px",borderRadius:"8px",display:"flex",alignItems:"center",justifyContent:"space-between",border:"1px solid rgba(255,0,0,0.1)"}},
-        e("div",{style:{display:"flex",alignItems:"center",gap:"10px"}},
-          e("span",null,"🗑"),
-          e("div",null,
-            e("div",{style:{fontWeight:"bold"}},item.subject||"(无主题)"),
-            e("div",{style:{fontSize:"12px",opacity:0.5}},item.body||"(无内容)")
-          )
+      e("div",null,emails.map(function(item,i){return e("div",{key:i,style:{background:"rgba(255,255,255,0.05)",padding:"8px 12px",marginBottom:"6px",borderRadius:"6px",display:"flex",alignItems:"center",border:"1px solid rgba(255,0,0,0.1)"}},
+        e("div",{style:{flex:1,display:"flex",alignItems:"center",gap:"8px",overflow:"hidden"}},
+          e("span",{style:{fontSize:"13px"}},"🗑"),
+          e("span",{style:{fontSize:"13px",fontWeight:"bold",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},item.subject||"(无主题)")
         ),
-        e("button",{onClick:function(){restoreEmail(email);},style:{background:"rgba(102,126,234,0.2)",border:"none",color:"#667eea",padding:"6px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"恢复")
-      )})
+        e("div",{style:{display:"flex",gap:"4px",flexShrink:0,marginLeft:"8px"}},
+          e("button",{onClick:function(){restoreEmail(item);},style:{background:"#667eea",color:"white",border:"none",padding:"5px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"11px",fontWeight:"bold",whiteSpace:"nowrap"}},"↩ 恢复"),
+          e("button",{onClick:function(){deleteEmail("trash",item.id);},style:{background:"#d32f2f",color:"white",border:"none",padding:"5px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"11px",fontWeight:"bold",whiteSpace:"nowrap"}},"永久删除")
+        )
+      )}),
+      paginationBar("trash")
     )) : emailTab === "security" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
       e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}},
         e("h3",null,"🛡️ 安全提示")
@@ -4833,27 +5671,33 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       )
     ) : e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
       e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}},
-        e("h3",null,"⚙️ 邮箱设置"),
-        e("button",{onClick:openConfig,style:{background:"#667eea",color:"white",border:"none",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"14px"}},"+ 配置邮箱")
+        e("h3",null,"⚙️ 邮箱设置 · " + emailConfigs.length + "个邮箱"),
+        e("button",{onClick:function(){openConfig(true);},style:{background:"#28a745",color:"white",border:"none",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"14px"}},"+ 配置邮箱")
       ),
       e("div",{style:{display:"flex",flexDirection:"column",gap:"12px"}},
-        e("div",{style:{background:"white",padding:"16px",borderRadius:"8px",border:"1px solid rgba(255,255,255,0.2)"}},
-          e("div",{style:{fontWeight:"bold",marginBottom:"8px",color:"#667eea"}},"当前配置"),
-          emailConfig && emailConfig.email ? e("div",null,
-            e("div",{style:{marginBottom:"4px"}},"邮箱: " + emailConfig.email),
-            e("div",{style:{marginBottom:"4px"}},"提供商: " + (EMAIL_PROVIDERS[emailConfig.provider] ? EMAIL_PROVIDERS[emailConfig.provider].name : "自定义")),
-            e("button",{onClick:testEmailConnection,style:{marginTop:"12px",padding:"8px 16px",background:"#4caf50",color:"white",border:"none",borderRadius:"6px",cursor:"pointer",fontSize:"13px"}},"🔌 测试连接"),
-            emailConfig.display_name ? e("div",{style:{marginBottom:"4px"}},"显示名称: " + emailConfig.display_name) : null,
-            emailConfig.smtp_host ? e("div",{style:{marginBottom:"4px",fontSize:"12px",opacity:0.6}},"SMTP: " + emailConfig.smtp_host + ":" + emailConfig.smtp_port) : null,
-            emailConfig.imap_host ? e("div",{style:{fontSize:"12px",opacity:0.6}},"IMAP: " + emailConfig.imap_host + ":" + emailConfig.imap_port) : null
-          ) : e("div",{style:{opacity:0.6}},"未配置邮箱")
-        ),
+        emailConfigs.length === 0 ? e("div",{style:{textAlign:"center",padding:"40px",opacity:0.6}},"尚未配置任何邮箱，点击上方按钮添加。") :
+        emailConfigs.map(function(cfg,i){ return e("div",{key:cfg.email,style:{background:"white",padding:"14px 16px",borderRadius:"8px",border:"1px solid rgba(0,0,0,0.08)",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}},
+          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"6px"}},
+            e("div",null,
+              e("div",{style:{fontWeight:"bold",color:"#333",fontSize:"15px"}},cfg.email),
+              e("div",{style:{fontSize:"12px",color:"#999",marginTop:"2px"}},cfg.display_name || "未设显示名称")
+            ),
+            e("button",{onClick:function(){if(!confirm("确定删除 " + cfg.email + " 的配置吗？")) return; fetch("/api/plugins/team_chat/email/config/" + (cfg.id || 0), {method:"DELETE",headers:{"Content-Type":"application/json"}}).then(function(r){return r.json();}).then(function(d){if(d.success){loadEmailConfigs();}}).catch(function(){}); },style:{background:"none",border:"1px solid rgba(255,0,0,0.2)",color:"#d32f2f",padding:"3px 10px",borderRadius:"4px",cursor:"pointer",fontSize:"11px"}},"删除")
+          ),
+          e("div",{style:{fontSize:"12px",opacity:0.6}},
+            (EMAIL_PROVIDERS[cfg.provider] ? EMAIL_PROVIDERS[cfg.provider].name : "自定义") + " · " + (cfg.smtp_host||"SMTP未设") + (cfg.smtp_port?":"+cfg.smtp_port:"") + " · " + (cfg.imap_host||"IMAP未设") + (cfg.imap_port?":"+cfg.imap_port:"")
+          ),
+          e("div",{style:{display:"flex",gap:"8px",marginTop:"8px"}},
+            e("button",{onClick:function(){setEmailConfig(Object.assign({},cfg));setConfigVisible(true);},style:{background:"#667eea",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"✏ 编辑"),
+            e("button",{onClick:function(){var ccfg=Object.assign({},cfg);testEmailConnectionWithCfg(ccfg);},style:{background:"#4caf50",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"🔌 测试")
+          )
+        ); }),
         e("div",{style:{background:"rgba(102,126,234,0.1)",padding:"16px",borderRadius:"8px",border:"1px solid rgba(102,126,234,0.3)"}},
           e("div",{style:{fontWeight:"bold",marginBottom:"8px",color:"#667eea"}},"💡 提示"),
           e("div",{style:{fontSize:"14px",opacity:0.8}},
-            "配置SMTP和IMAP参数后可以收发邮件。",
+            "每个邮箱独立配置SMTP和IMAP参数。选择提供商可自动填充服务器信息。",
             e("br",null),
-            "支持主流邮箱服务商：QQ邮箱、163邮箱、126邮箱、Gmail、Outlook。"
+            "支持：QQ邮箱、163/126邮箱、Gmail、Outlook等主流服务商。"
           )
         )
       ),
@@ -4961,7 +5805,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
           selectedEmail.to_addr ? e("div",null,"收件人: " + selectedEmail.to_addr) : null,
           selectedEmail.cc ? e("div",null,"抄送: " + selectedEmail.cc) : null
         ),
-        e("div",{style:{padding:"16px",background:"white",borderRadius:"8px",border:"1px solid #eee",minHeight:"200px",whiteSpace:"pre-wrap",fontSize:"14px",lineHeight:"1.6",color:"#333"}},selectedEmail.body||"(无内容)"),
+        selectedEmail.html_body ? e("div",{style:{padding:"16px",background:"white",borderRadius:"8px",border:"1px solid #eee",minHeight:"200px",fontSize:"14px",lineHeight:"1.6",color:"#333",overflow:"auto"},dangerouslySetInnerHTML:{__html:selectedEmail.html_body}}) : e("div",{style:{padding:"16px",background:"white",borderRadius:"8px",border:"1px solid #eee",minHeight:"200px",whiteSpace:"pre-wrap",fontSize:"14px",lineHeight:"1.6",color:"#333"}},selectedEmail.body||"(无内容)"),
         e("div",{style:{display:"flex",gap:"8px",justifyContent:"flex-end",marginTop:"16px",borderTop:"1px solid #eee",paddingTop:"16px"}},
           e("button",{onClick:function(){var e=selectedEmail;setSelectedEmail(null);replyEmail(e,false);},style:{background:"#667eea",color:"white",border:"none",padding:"8px 20px",borderRadius:"6px",cursor:"pointer",fontSize:"13px"}},"↩ 回复"),
           e("button",{onClick:function(){var e=selectedEmail;setSelectedEmail(null);replyEmail(e,true);},style:{background:"#764ba2",color:"white",border:"none",padding:"8px 20px",borderRadius:"6px",cursor:"pointer",fontSize:"13px"}},"↩ 回复全部"),
@@ -5025,7 +5869,28 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
           )
         )
       )
-    ) : null;
+    ) : null,
+    // ── 联系人添加弹窗（提升到传统邮箱最外层，避免position:fixed被父容器CSS破坏） ──
+    (window.__CC_MODAL_V2 = true),
+    console.log("[弹窗渲染检查] showAddContact="+showAddContact+" time="+Date.now()),
+    showAddContact ? e("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:99999}},
+      e("div",{style:{background:"white",borderRadius:"12px",padding:"24px",width:"420px",maxWidth:"90vw",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}},
+        e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
+          e("h2",{style:{margin:0}},"👤 添加联系人"),
+          e("button",{onClick:function(){setShowAddContact(false);},style:{background:"none",border:"none",fontSize:"24px",cursor:"pointer",color:"#999"}},"✕")
+        ),
+        e("div",{style:{display:"flex",flexDirection:"column",gap:"10px"}},
+          e("input",{type:"text",value:newContact.name,onChange:function(e){setNewContact({...newContact,name:e.target.value});},placeholder:"姓名 *",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px",boxSizing:"border-box"}}),
+          e("input",{type:"email",value:newContact.email,onChange:function(e){setNewContact({...newContact,email:e.target.value});},placeholder:"邮箱 *",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px",boxSizing:"border-box"}}),
+          e("input",{type:"text",value:newContact.phone,onChange:function(e){setNewContact({...newContact,phone:e.target.value});},placeholder:"电话",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px",boxSizing:"border-box"}}),
+          e("input",{type:"text",value:newContact.company,onChange:function(e){setNewContact({...newContact,company:e.target.value});},placeholder:"公司",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px",boxSizing:"border-box"}})
+        ),
+        e("div",{style:{display:"flex",gap:"10px",marginTop:"16px"}},
+          e("button",{onClick:function(){setShowAddContact(false);},style:{flex:1,padding:"10px",border:"1px solid #ddd",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"white"}},"取消"),
+          e("button",{onClick:addContact,style:{flex:1,padding:"10px",border:"none",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"#667eea",color:"white",fontWeight:"bold"}},"保存")
+        )
+      )
+    ) : null
 
     // 蜂巢邮箱视图
     if(aimailView && aimailMode === "hive") {
@@ -5177,7 +6042,45 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
               )
             )
           )
-        ) : null
+        ) : null,
+        // ── 咨询留言栏（蜂巢页面专用） ──
+        e("div",{style:{background:"white",borderRadius:"16px",padding:"24px",marginTop:"20px",boxShadow:"0 8px 32px rgba(102,126,234,0.15)",animation:"tcFadeInUp 0.5s ease-out"}},
+          e("h3",{style:{margin:"0 0 4px",color:"#333",fontSize:"18px"}},"📮 给 AI CC咨询 留言"),
+          e("p",{style:{margin:"0 0 16px",color:"#999",fontSize:"13px"}},"收到后我会尽快回复到您的邮箱"),
+          e("div",{style:{display:"flex",flexDirection:"column",gap:"12px"}},
+            e("input",{id:"hive-msg-name",type:"text",placeholder:"姓名 *",style:{width:"100%",padding:"12px",border:"1px solid #e0e0e0",borderRadius:"8px",fontSize:"14px",boxSizing:"border-box",outline:"none",transition:"border 0.2s"}}),
+            e("input",{id:"hive-msg-phone",type:"text",placeholder:"手机号",style:{width:"100%",padding:"12px",border:"1px solid #e0e0e0",borderRadius:"8px",fontSize:"14px",boxSizing:"border-box",outline:"none",transition:"border 0.2s"}}),
+            e("textarea",{id:"hive-msg-content",placeholder:"咨询事项 *",rows:"3",style:{width:"100%",padding:"12px",border:"1px solid #e0e0e0",borderRadius:"8px",fontSize:"14px",boxSizing:"border-box",resize:"vertical",outline:"none",fontFamily:"inherit",transition:"border 0.2s"}}),
+            e("button",{onClick:function(){
+              var n=document.getElementById("hive-msg-name").value.trim();
+              var c=document.getElementById("hive-msg-content").value.trim();
+              if(!n||!c){alert("请填写姓名和咨询事项");return;}
+              var btn=document.getElementById("hive-msg-btn");
+              btn.disabled=true;btn.textContent="✈️ 蜜蜂出发...";
+              // 送信动画
+              var bo=document.createElement("div");bo.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,248,220,0.55);z-index:99999;display:flex;align-items:center;justify-content:center;pointer-events:none;";
+              var bee=document.createElement("div");bee.innerHTML="🐝";bee.style.cssText="position:absolute;left:5%;top:45%;font-size:52px;animation:ccSendFly 2s ease-in-out forwards;";
+              bo.appendChild(bee);
+              var trail=document.createElement("div");trail.style.cssText="position:absolute;left:50%;top:50%;font-size:28px;transform:translate(-50%,-50%);animation:ccSendPulse 2s ease-in-out forwards;";
+              trail.innerHTML="💌";bo.appendChild(trail);
+              var ks=document.createElement("style");ks.textContent="@keyframes ccSendFly{0%{left:5%;top:45%;opacity:1;transform:scale(1)}60%{left:75%;top:20%;opacity:0.9;transform:scale(0.7)}100%{left:95%;top:5%;opacity:0;transform:scale(0.3)}}@keyframes ccSendPulse{0%{opacity:0;transform:translate(-50%,-50%) scale(0.5)}40%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}}";
+              document.head.appendChild(ks);document.body.appendChild(bo);
+              setTimeout(function(){
+                bo.remove();ks.remove();
+                btn.textContent="⏳ 发送中...";
+                var url=(typeof getApiUrl!=='undefined'?getApiUrl:'/api')('/plugins/team_chat/hive-message');
+                fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+                  name:n,phone:document.getElementById("hive-msg-phone").value.trim(),
+                  content:c,subject:"咨询",recipient:"c115886@agent.qq.com"
+                })}).then(function(r){return r.json();}).then(function(d){
+                  if(d.status==="ok"){alert("✅ 留言已发送！");document.getElementById("hive-msg-name").value="";document.getElementById("hive-msg-phone").value="";document.getElementById("hive-msg-content").value="";}
+                  else{alert("❌ "+(d.message||"未知错误"));}
+                  btn.disabled=false;btn.textContent="📤 发送留言";
+                }).catch(function(e){alert("❌ 发送失败: "+(e.message||"网络错误"));btn.disabled=false;btn.textContent="📤 发送留言";});
+              },2000);
+            },id:"hive-msg-btn",style:{padding:"14px",background:"linear-gradient(135deg,#667eea,#764ba2)",color:"white",border:"none",borderRadius:"10px",cursor:"pointer",fontSize:"15px",fontWeight:"bold",boxShadow:"0 4px 16px rgba(102,126,234,0.3)",transition:"transform 0.2s, box-shadow 0.2s"}},"📤 发送留言"),
+          )
+        )
       );
     }
 
@@ -5195,7 +6098,7 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
       ):null,
       e("div",{style:{padding:"10px 16px",background:uiTheme==="day"?"#FDF8F0":"#1a1a2e",borderBottom:uiTheme==="day"?"1px solid #D7CCC8":"1px solid #2a2a3e",flexShrink:0}},
         e("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:8}},
-          e(Text,{strong:true,style:{fontSize:13,background:"linear-gradient(180deg,#c8a878,#8a6848,#6a4828,#a07848)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",fontWeight:"bold"}},"选择主持人:"),
+          e(Text,{strong:true,style:{fontSize:13,background:"linear-gradient(180deg,#c8a878,#8a6848,#6a4828,#a07848)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",fontWeight:"bold"}},"host主持:"),
           e("div",{style:{flex:1,maxWidth:300}},
             agLd?e(Spin,{size:"small"}):e(Select,{value:hid,onChange:chHost,style:{width:"100%"},size:"small",
               options:ags.filter(function(a){return a&&a.agent_id;}).map(function (a) { return {value:a.agent_id,label:(a.is_host?"⭐ ":"")+(a.name||a.agent_id)}; })})
@@ -5205,44 +6108,11 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
           e(Popover,{content:e("div",{style:{padding:4}},e("div",null,e(Text,{style:{fontSize:11}},"🖥 IP: "),e(Text,{code:true,style:{fontSize:11}},sysIp||"---")),e("div",null,e(Text,{style:{fontSize:11}},"🕐 "+clock))),trigger:"hover"},
             e(Text,{style:{fontSize:16,cursor:"default"}},"🕐")
           ),
-          e("a",{href:"https://platform.agentscope.io/plugins/team_chat",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#1890ff",textDecoration:"none",cursor:"pointer"}},"TeamChat 版本更新"),
+          e("a",{href:"https://platform.agentscope.io/plugins/team_chat",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#1890ff",textDecoration:"none",cursor:"pointer"}},"TeamChat扩展"),
           // 主界面动画区域（右上角）
-          e("div",{style:{position:"relative",width:200,height:100,marginLeft:"auto",background:"linear-gradient(135deg,#E3F2FD,#BBDEFB)",borderRadius:8,border:"1px solid #90CAF9",overflow:"hidden"}},
-            // 无人机（上方）
-            e("div",{style:{position:"absolute",top:5,width:80,height:40,animation:"tcMainDrone 8s linear infinite",zIndex:2}},
-              e("div",{style:{position:"absolute",width:60,height:24,background:"linear-gradient(180deg,#424242,#212121)",borderRadius:3,left:10,top:8}}),
-              e("div",{style:{position:"absolute",width:16,height:16,background:"#757575",borderRadius:"50%",left:0,top:4}}),
-              e("div",{style:{position:"absolute",width:16,height:16,background:"#757575",borderRadius:"50%",right:0,top:4}}),
-              e("div",{style:{position:"absolute",width:40,height:16,background:"#FF5722",borderRadius:2,left:20,top:12,display:"flex",alignItems:"center",justifyContent:"center"}},
-                e("span",{style:{fontSize:12,fontWeight:"bold",color:"#FFF",whiteSpace:"nowrap"}},"摇摇舞 886")
-              )
-            ),
-            // 蔬菜货车（下方）
-            e("div",{style:{position:"absolute",bottom:5,width:90,height:40,animation:"tcMainTruck 10s linear infinite",zIndex:1}},
-              e("div",{style:{position:"absolute",bottom:0,left:0,width:60,height:30,background:"linear-gradient(180deg,#66BB6A,#43A047)",borderRadius:2,border:"1px solid #2E7D32"}}),
-              e("div",{style:{position:"absolute",bottom:0,right:0,width:24,height:24,background:"#37474F",borderRadius:"2px 4px 1px 1px"}}),
-              e("div",{style:{position:"absolute",bottom:-4,left:12,width:12,height:12,background:"#333",borderRadius:"50%",border:"1px solid #555"}}),
-              e("div",{style:{position:"absolute",bottom:-4,right:4,width:12,height:12,background:"#333",borderRadius:"50%",border:"1px solid #555"}}),
-              e("div",{style:{position:"absolute",bottom:8,left:4,fontSize:12,fontWeight:900,color:"#FFF",textShadow:"0 0 1px rgba(0,0,0,0.5)"}},"Cshu"),
-              e("div",{style:{position:"absolute",bottom:20,left:8,width:8,height:8,background:"#FFB74D",borderRadius:"50%"}}),
-              e("div",{style:{position:"absolute",bottom:20,left:20,width:6,height:6,background:"#A5D6A7",borderRadius:"50%"}}),
-              e("div",{style:{position:"absolute",bottom:20,left:30,width:8,height:6,background:"#FFCC80",borderRadius:"50%"}})
-            ),
-            // 高房子（左侧）
-            e("div",{style:{position:"absolute",bottom:5,left:5,zIndex:3}},
-              e("div",{style:{position:"absolute",bottom:0,left:0,width:20,height:45,background:"linear-gradient(180deg,#FFF9C4,#FFE082)",border:"1px solid #FFB300",borderRadius:"2px 2px 0 0"}}),
-              e("div",{style:{position:"absolute",bottom:43,left:-2,width:24,height:6,background:"#D84315",borderRadius:"2px",clipPath:"polygon(0 100%,50% 0,100% 100%)"}}),
-              e("div",{style:{position:"absolute",bottom:30,left:6,width:8,height:10,background:"#81D4FA",border:"1px solid #4FC3F7",borderRadius:1}}),
-              e("div",{style:{position:"absolute",bottom:15,left:6,width:8,height:10,background:"#81D4FA",border:"1px solid #4FC3F7",borderRadius:1}}),
-              e("div",{style:{position:"absolute",bottom:0,left:7,width:6,height:10,background:"#5D4037",borderRadius:"2px 2px 0 0"}})
-            ),
-            // 矮房子（右侧）
-            e("div",{style:{position:"absolute",bottom:5,left:30,zIndex:3}},
-              e("div",{style:{position:"absolute",bottom:0,left:0,width:18,height:25,background:"linear-gradient(180deg,#FFCCBC,#FF8A65)",border:"1px solid #E64A19",borderRadius:"2px 2px 0 0"}}),
-              e("div",{style:{position:"absolute",bottom:23,left:-1,width:20,height:5,background:"#5D4037",borderRadius:"2px",clipPath:"polygon(0 100%,50% 0,100% 100%)"}}),
-              e("div",{style:{position:"absolute",bottom:12,left:5,width:8,height:8,background:"#FFF9C4",border:"1px solid #FFB300",borderRadius:1}}),
-              e("div",{style:{position:"absolute",bottom:0,left:5,width:6,height:8,background:"#5D4037",borderRadius:"2px 2px 0 0"}})
-            )
+          e("div",{style:{position:"relative",width:320,height:120,marginLeft:"auto",borderRadius:8,overflow:"hidden"},onMouseMove:function(ev){var r=ev.currentTarget.getBoundingClientRect();setHoverX(ev.clientX-r.left);setHoverY(ev.clientY-r.top);setHoverShow(true)},onMouseLeave:function(){setHoverShow(false)}},
+            hoverShow&&e("div",{style:{position:"absolute",left:hoverX+8,top:hoverY-20,background:"rgba(0,0,0,0.75)",color:"#ffd700",padding:"2px 8px",borderRadius:"4px",fontSize:"12px",fontWeight:"bold",fontFamily:"monospace",pointerEvents:"none",whiteSpace:"nowrap",zIndex:999}},"115886"),
+            e("div",{style:{width:320,height:120},dangerouslySetInnerHTML:{__html:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" width="320" height="120"><defs><linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1a1a2e"/><stop offset="50%" stop-color="#16213e"/><stop offset="100%" stop-color="#0f3460"/></linearGradient><linearGradient id="env1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#e3f2fd"/></linearGradient><linearGradient id="env2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff8e1"/><stop offset="100%" stop-color="#ffecb3"/></linearGradient><linearGradient id="env3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e8f5e9"/><stop offset="100%" stop-color="#c8e6c9"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><!-- 背景 --><rect width="320" height="120" rx="8" fill="url(#bg2)"/><!-- 粒子背景点 --><circle cx="40" cy="30" r="1" fill="#667eea" opacity="0.4"><animate attributeName="opacity" values="0.2;0.6;0.2" dur="3s" repeatCount="indefinite"/></circle><circle cx="120" cy="80" r="1.5" fill="#764ba2" opacity="0.3"><animate attributeName="opacity" values="0.1;0.5;0.1" dur="4s" repeatCount="indefinite"/></circle><circle cx="200" cy="25" r="1" fill="#e040fb" opacity="0.3"><animate attributeName="opacity" values="0.3;0.7;0.3" dur="2.5s" repeatCount="indefinite"/></circle><circle cx="280" cy="70" r="1" fill="#667eea" opacity="0.35"><animate attributeName="opacity" values="0.2;0.5;0.2" dur="3.5s" repeatCount="indefinite"/></circle><circle cx="60" cy="100" r="1.2" fill="#7c4dff" opacity="0.3"><animate attributeName="opacity" values="0.1;0.4;0.1" dur="2.8s" repeatCount="indefinite"/></circle><circle cx="170" cy="55" r="0.8" fill="#448aff" opacity="0.25"><animate attributeName="opacity" values="0.2;0.5;0.2" dur="3.2s" repeatCount="indefinite"/></circle><!-- 信封1 大号 左→右 慢 --><g opacity="0.9"><animateTransform attributeName="transform" type="translate" values="-60,20; 380,20" dur="12s" repeatCount="indefinite"/><rect x="-25" y="-16" width="50" height="32" rx="3" fill="url(#env1)" stroke="#90caf9" stroke-width="1"/><polygon points="-25,-16 0,0 25,-16" fill="#bbdefb" stroke="#90caf9" stroke-width="0.8"/><circle cx="0" cy="4" r="2.5" fill="#1976d2"><animate attributeName="r" values="2.5;4;2.5" dur="2s" repeatCount="indefinite"/></circle></g><!-- 信封2 中号 右→左 中速 --><g opacity="0.8"><animateTransform attributeName="transform" type="translate" values="380,50; -60,50" dur="10s" repeatCount="indefinite"/><rect x="-20" y="-12" width="40" height="24" rx="3" fill="url(#env2)" stroke="#ffcc80" stroke-width="0.8"/><polygon points="-20,-12 0,0 20,-12" fill="#ffe0b2" stroke="#ffcc80" stroke-width="0.6"/><circle cx="0" cy="3" r="2" fill="#f57c00"><animate attributeName="r" values="2;3.5;2" dur="1.8s" repeatCount="indefinite"/></circle></g><!-- 信封3 小号 左→右 快 --><g opacity="0.7"><animateTransform attributeName="transform" type="translate" values="-40,75; 380,75" dur="8s" repeatCount="indefinite"/><rect x="-15" y="-10" width="30" height="20" rx="2" fill="url(#env3)" stroke="#a5d6a7" stroke-width="0.7"/><polygon points="-15,-10 0,0 15,-10" fill="#c8e6c9" stroke="#a5d6a7" stroke-width="0.5"/></g><!-- 信封4 中号 右→左 不同高度 --><g opacity="0.65"><animateTransform attributeName="transform" type="translate" values="380,95; -60,95" dur="11s" repeatCount="indefinite"/><rect x="-18" y="-11" width="36" height="22" rx="2.5" fill="url(#env2)" stroke="#ffcc80" stroke-width="0.7"/><polygon points="-18,-11 0,0 18,-11" fill="#ffe0b2" stroke="#ffcc80" stroke-width="0.5"/></g><!-- AI CC咨询 文字 --><text x="160" y="42" text-anchor="middle" fill="#fff" font-family="system-ui,-apple-system,sans-serif" font-size="22" font-weight="900" filter="url(#glow)" letter-spacing="4">AI CC咨询</text><!-- 底部 --><text x="160" y="112" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-family="system-ui,sans-serif" font-size="9">0+1+2≠3 Team</text><!-- 工业智能服务器机柜（含标牌） --><g transform="translate(16,12)"><rect x="0" y="0" width="32" height="50" rx="3" fill="#37474f" stroke="#546e7a" stroke-width="1"/><rect x="2" y="3" width="28" height="7" rx="1" fill="#263238"/><circle cx="7" cy="6.5" r="1.5" fill="#4caf50"><animate attributeName="opacity" values="1;0.2;1" dur="1.2s" repeatCount="indefinite"/></circle><rect x="13" y="4" width="14" height="3" rx="0.5" fill="#ffc107"/><rect x="2" y="13" width="28" height="7" rx="1" fill="#263238"/><circle cx="7" cy="16.5" r="1.5" fill="#2196f3"><animate attributeName="opacity" values="0.3;1;0.3" dur="1.8s" repeatCount="indefinite"/></circle><rect x="2" y="23" width="28" height="7" rx="1" fill="#263238"/><circle cx="7" cy="26.5" r="1.5" fill="#4caf50"><animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/></circle><rect x="2" y="33" width="28" height="7" rx="1" fill="#263238"/><circle cx="7" cy="36.5" r="1.5" fill="#ff5722"><animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite"/></circle><!-- 标牌 工业智能 --><rect x="2" y="43" width="28" height="5" rx="1" fill="#1a237e"/><text x="16" y="46.8" text-anchor="middle" fill="#ffc107" font-size="4" font-family="system-ui,sans-serif" font-weight="bold">工业智能</text></g><!-- 挖机（3x，底部） --><g transform="translate(50,105) scale(3)"><rect x="-8" y="0" width="16" height="6" rx="2" fill="#ffa000" stroke="#e65100" stroke-width="0.6"/><rect x="-5" y="-10" width="10" height="12" rx="1" fill="#ffb300" stroke="#e65100" stroke-width="0.4"/><circle cx="0" cy="0" r="3" fill="#37474f"/><circle cx="0" cy="0" r="2" fill="#455a64"/><rect x="-4" y="-15" width="8" height="5" rx="1" fill="#ffb300" stroke="#e65100" stroke-width="0.4"/><!-- 挖臂（带挖掘动画） --><g transform="translate(5,-8)"><animateTransform attributeName="transform" type="rotate" values="0 5 -8; 25 5 -8; -10 5 -8; 0 5 -8" dur="3s" repeatCount="indefinite"/><g transform="translate(-5,8)"><line x1="5" y1="-8" x2="14" y2="-17" stroke="#795548" stroke-width="1.5"/><line x1="14" y1="-17" x2="18" y2="-13" stroke="#795548" stroke-width="1"/><polygon points="18,-13 22,-11 20,-17" fill="#ffa000" stroke="#e65100" stroke-width="0.4"/></g></g><!-- 履带 --><rect x="-10" y="4" width="20" height="3" rx="1" fill="#333"/><circle cx="-7" cy="5.5" r="2" fill="#555"/><circle cx="0" cy="5.5" r="2" fill="#555"/><circle cx="7" cy="5.5" r="2" fill="#555"/></g><!-- 办公桌+椅（3x） --><g transform="translate(90,72) scale(3)"><!-- 桌子 --><rect x="-12" y="-7" width="24" height="2.5" rx="1" fill="#8d6e63" stroke="#5d4037" stroke-width="0.4"/><!-- 桌腿左 --><rect x="-10" y="-4.5" width="1.5" height="6" fill="#6d4c41"/><!-- 桌腿右 --><rect x="8.5" y="-4.5" width="1.5" height="6" fill="#6d4c41"/><!-- 椅子 --><g transform="translate(18,0)"><rect x="-6" y="-5" width="12" height="1.5" rx="0.8" fill="#795548" stroke="#5d4037" stroke-width="0.4"/><!-- 椅背 --><rect x="-4.5" y="-8" width="9" height="5" rx="0.8" fill="#795548" stroke="#5d4037" stroke-width="0.4"/><!-- 椅腿左 --><rect x="-4.5" y="-3.5" width="1.5" height="6" fill="#5d4037"/><!-- 椅腿右 --><rect x="3" y="-3.5" width="1.5" height="6" fill="#5d4037"/></g></g><!-- 冷风机 --><g transform="translate(266,6) scale(3)"><rect x="0" y="0" width="16" height="36" rx="2" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="0.8"/><rect x="2" y="2" width="12" height="12" rx="1" fill="#f5f5f5" stroke="#bdbdbd" stroke-width="0.5"/><!-- 风扇叶片 --><g transform="translate(8,8)"><animateTransform attributeName="transform" type="rotate" from="0 8 8" to="360 8 8" dur="0.6s" repeatCount="indefinite"/><line x1="4" y1="8" x2="12" y2="8" stroke="#90a4ae" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="4" x2="8" y2="12" stroke="#90a4ae" stroke-width="2" stroke-linecap="round"/><circle cx="8" cy="8" r="2" fill="#607d8b"/></g><!-- 出风口格栅 --><rect x="3" y="17" width="10" height="2" rx="0.5" fill="#bdbdbd"/><rect x="3" y="21" width="10" height="2" rx="0.5" fill="#bdbdbd"/><rect x="3" y="25" width="10" height="2" rx="0.5" fill="#bdbdbd"/><rect x="4" y="29" width="8" height="4" rx="1" fill="#263238"/><text x="8" y="31.5" text-anchor="middle" fill="#00e5ff" font-size="2.5" font-family="monospace">AI</text><!-- 底座 --><rect x="1" y="34" width="14" height="2" rx="1" fill="#9e9e9e"/><rect x="3" y="36" width="10" height="2" rx="1" fill="#757575"/></g></svg>'}})
           )
         ),
         e("div",{style:{marginBottom:4}},
@@ -5284,7 +6154,7 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
       ),
       e("div",{ref:histRf,style:{flex:1,overflow:"auto",padding:"16px 20px",background:"#FFFAF5",position:"relative"},onScroll:onMsgScroll},
         withEB("消息列表", e("div",null,
-          hist.length===0&&!ld?e(Empty,{description:"选择主持人和参与智能体，开始团队会谈",style:{marginTop:60}}):null,
+          hist.length===0&&!ld?e(Empty,{description:"host主持和参与智能体，开始团队会谈",style:{marginTop:60}}):null,
           hist.map(function (m, i) { return e(MessageBubble,{key:i,msg:m}); }),
           discSumV&&discDone?e("div",{style:{marginTop:14,padding:14,background:"linear-gradient(135deg,#FFF8E1,#FFF3E0)",borderRadius:16,border:"1px solid #FFD54F",display:"flex",alignItems:"center",justifyContent:"space-between"}},
             e("div",null,
@@ -5579,7 +6449,7 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
       ),
       sideOpen?e("div",{style:{width:280,minWidth:280,borderLeft:uiTheme==="day"?"1px solid #D7CCC8":"1px solid #3a3a4e",padding:"16px 16px 16px 8px",background:uiTheme==="day"?"#FDF8F0":"#1e1e32",flexShrink:0,display:"flex",flexDirection:"column",overflowY:"auto",minHeight:"100%"}},
         e(Button,{size:"small",type:"text",onClick:function(){setSideOpen(false);},style:{alignSelf:"flex-end",fontSize:12,fontWeight:"bold",background:"linear-gradient(180deg,#f0e8dc,#d8d0c4,#c0b8ac,#e0d8cc)",border:"1px solid #b8a898",color:"#5a4a3a",borderRadius:4,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 1px 3px rgba(0,0,0,.1)",textShadow:"0 1px 0 rgba(255,255,255,.3)",padding:"2px 10px",marginBottom:8}},"◀ 收起小桌板"),
-        e("div",{style:{marginBottom:12},onClick:function(){console.log("AI邮箱按钮被点击");setAimailView(true);}},e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setAimailView(true);},style:{display:"block",fontSize:13,fontWeight:"bold",color:"white",textDecoration:"none",cursor:"pointer",padding:"8px 12px",textAlign:"center",background:"linear-gradient(135deg,#667eea 0%,#764ba2 100%)",border:"1px solid #5a6cdb",borderRadius:16,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(102,126,234,.3)",textShadow:"0 1px 0 rgba(0,0,0,.1)"}},"📧 Ai邮箱 ",e("span",{style:{display:"inline-block",fontSize:"20px",verticalAlign:"middle",animation:"tcPigeonFly 1.5s ease-in-out infinite",marginLeft:"4px"}},"🕊"))),e("div",{style:{marginBottom:12}},
+        e("div",{style:{marginBottom:12},onClick:function(){console.log("AI邮箱按钮被点击");setAimailView(true);}},e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setAimailView(true);},style:{display:"block",fontSize:13,fontWeight:"bold",color:"white",textDecoration:"none",cursor:"pointer",padding:"8px 12px",textAlign:"center",background:"linear-gradient(135deg,#667eea 0%,#764ba2 100%)",border:"1px solid #5a6cdb",borderRadius:16,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(102,126,234,.3)",textShadow:"0 1px 0 rgba(0,0,0,.1)"}},"📧 AI邮箱 ",e("span",{style:{display:"inline-block",fontSize:"20px",verticalAlign:"middle",animation:"tcPigeonFly 1.5s ease-in-out infinite",marginLeft:"4px"}},"🕊"))),e("div",{style:{marginBottom:12}},
           e("div",{onClick:function(){setChuanView(true);},style:{cursor:"pointer"}},e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setChuanView(true);},style:{display:"block",fontSize:13,fontWeight:"bold",color:"#4E342E",textDecoration:"none",cursor:"pointer",padding:"8px 12px",textAlign:"center",background:"linear-gradient(180deg,#e8f5e9,#c8e6c9,#a5d6a7,#d0e8d0)",border:"1px solid #81c784",borderRadius:16,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(76,175,80,.15)",textShadow:"0 1px 0 rgba(255,255,255,.3)"}},"📡 串串频道"))
         ),
 
@@ -5893,7 +6763,7 @@ function isValidEmail(email) {
 // 注入隐藏样式（!important 覆盖 .ai-copilot-btn 的 display:flex!important）
 (function(){
     var hideStyle = document.createElement("style");
-    hideStyle.textContent = ".ai-copilot-btn-hidden { display: none !important; }";
+    hideStyle.textContent = ".ai-copilot-btn.ai-copilot-btn-hidden { display: none !important; }";
     document.head.appendChild(hideStyle);
 })();
 window.toggleAIFenshenGlobal = function(enabled) {
@@ -5925,9 +6795,106 @@ window.isAIFenshenEnabled = function() {
     try { return localStorage.getItem("aiFenshenGlobalEnabled") !== "false"; } catch(e) { return true; }
 };
 
-// 桥接函数：外部入口统一打开 React 传统邮箱视图
-window.__openTraditionalEmail = function() {
-    window.dispatchEvent(new CustomEvent("openTraditionalEmail"));
+// 桥接函数：切换 AI分身全局开关（从 AI分身面板按钮调用）
+window.__toggleAIFenshen = function() {
+    if (window.__aiFenshenEnabled !== undefined) {
+        var nv = !window.__aiFenshenEnabled;
+        window.__aiFenshenEnabled = nv;
+        if (window.__setAiFenshenEnabled) window.__setAiFenshenEnabled(nv);
+        window.toggleAIFenshenGlobal(nv);
+    } else {
+        // 兜底：直接读 localStorage
+        var cur = localStorage.getItem("aiFenshenGlobalEnabled") !== "false";
+        window.toggleAIFenshenGlobal(!cur);
+    }
+};
+
+// 桥接函数：外部入口统一打开 React 传统邮箱视图并跳转到指定标签页
+window.__openTraditionalEmail = function(tab) {
+    tab = tab || "inbox";
+    console.log("[__openTraditionalEmail] tab=" + tab);
+    if (window.__setAimailView && window.__setAimailMode && window.__fetchEmails && window.__setEmailTab) {
+        window.__setAimailView(true);
+        window.__setAimailMode("traditional");
+        if (tab === "compose") {
+            window.__setEmailTab("inbox");
+            // 打开写邮件弹窗——延迟等视图渲染完
+            setTimeout(function() {
+                var wb = document.querySelectorAll('button');
+                for (var i = 0; i < wb.length; i++) {
+                    if (wb[i].textContent.indexOf('写邮件') >= 0) { wb[i].click(); break; }
+                }
+            }, 300);
+        } else if (tab === "starred") {
+            window.__setEmailTab("inbox");
+            window.__fetchEmails("inbox");
+        } else {
+            window.__setEmailTab(tab);
+            window.__fetchEmails(tab);
+        }
+    } else {
+        // 组件未挂载时的 fallback：写 localStorage + poll 等待 React mount 后直接调 setter
+        console.log("[__openTraditionalEmail] 组件未挂载，poll 等待 mount...");
+        try { localStorage.setItem("__pending_email_tab", tab); } catch(e) {}
+        window.dispatchEvent(new CustomEvent("openTraditionalEmail", {detail:{tab:tab}}));
+
+        var pollCount = 0, maxPoll = 30; // 最多等 3 秒
+        var poll = setInterval(function() {
+            pollCount++;
+            if (window.__setAimailView && window.__setAimailMode && window.__setEmailTab && window.__fetchEmails) {
+                clearInterval(poll);
+                window.__setAimailView(true);
+                window.__setAimailMode("traditional");
+                if (tab === "compose") {
+                    window.__setEmailTab("inbox");
+                    setTimeout(function() {
+                        var btns = document.querySelectorAll('button');
+                        for (var i = 0; i < btns.length; i++) {
+                            if (btns[i].textContent.indexOf('写邮件') >= 0) { btns[i].click(); break; }
+                        }
+                    }, 400);
+                } else if (tab === "starred") {
+                    window.__setEmailTab("inbox");
+                    window.__fetchEmails("inbox");
+                } else {
+                    window.__setEmailTab(tab);
+                    window.__fetchEmails(tab);
+                }
+                return;
+            }
+            // 每 5 次尝试触发一次挂载（点击 📧 AI邮箱 / 传统邮箱入口）
+            if (pollCount % 5 === 0) {
+                // 策略1：找 sidebar 里的 📧 AI邮箱 <a>（href=javascript:void(0) 且含 AI邮箱）
+                var links = document.querySelectorAll('a[href="javascript:void(0)"]');
+                for (var j = 0; j < links.length; j++) {
+                    if (links[j].textContent.indexOf('AI邮箱') >= 0) {
+                        links[j].click(); break;
+                    }
+                }
+                // 策略2：找 "传统邮箱" 卡片（div，cursor=pointer，含"传统邮箱"文本）
+                var divs = document.querySelectorAll('div');
+                for (var k = 0; k < divs.length; k++) {
+                    if (divs[k].style.cursor === 'pointer' && divs[k].textContent.indexOf('传统邮箱') >= 0) {
+                        divs[k].click(); break;
+                    }
+                }
+                // 策略3：直接找 "📧 AI邮箱" 按钮的内部 a 标签的父 div
+                if (!window.__setAimailView) {
+                    var allDivs = document.querySelectorAll('div');
+                    for (var m = 0; m < allDivs.length; m++) {
+                        if (allDivs[m].textContent.indexOf('AI邮箱') >= 0 && allDivs[m].textContent.indexOf('🕊') >= 0) {
+                            allDivs[m].click(); break;
+                        }
+                    }
+                }
+            }
+            if (pollCount >= maxPoll) {
+                clearInterval(poll);
+                console.log("[__openTraditionalEmail] poll 超时，当前页面未加载TeamChat组件");
+                alert("📧 请先打开 TeamChat 插件页面，再点击收件箱按钮。\n\n提示：在 QwenPaw 菜单中找到「TeamChat」进入后即可使用邮箱功能。");
+            }
+        }, 100);
+    }
 };
 
 // ========== AI副驾全局浮动按钮 ==========
@@ -6166,7 +7133,7 @@ window.__openTraditionalEmail = function() {
                             </div>
                         </div>
                         <div style="display:flex;gap:4px;">
-                            <button onclick="window.generateExtensionToken()" style="background:rgba(255,255,255,0.2);border:none;color:white;font-size:12px;cursor:pointer;padding:6px 12px;border-radius:4px;white-space:nowrap;" title="生成Chrome扩展Token">🔑 生成Token</button>
+                            <button onclick="window.__toggleAIFenshen()" style="background:rgba(255,255,255,0.2);border:none;color:white;font-size:12px;cursor:pointer;padding:6px 12px;border-radius:4px;white-space:nowrap;" title="切换AI分身开关">📧 AI开关</button>
                             <button onclick="window.minimizeAIFenshen()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:4px;" title="最小化">_</button>
                             <button onclick="window.hideAIFenshenPanel()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:4px;" title="关闭">✕</button>
                         </div>
@@ -6206,12 +7173,10 @@ window.__openTraditionalEmail = function() {
                         
                         <!-- 快捷功能按钮 -->
                         <div style="padding:10px 16px;background:#fff;border-top:1px solid #eee;display:flex;gap:8px;flex-wrap:wrap;" id="quick-actions">
-                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#e3f2fd;border:none;border-radius:16px;color:#1976d2;font-size:12px;cursor:pointer;">📧 收件箱</button>
-                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#e0f2f1;border:none;border-radius:16px;color:#00897b;font-size:12px;cursor:pointer;">📚 知识库</button>
-                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#fff3e0;border:none;border-radius:16px;color:#f57c00;font-size:12px;cursor:pointer;">⭐ 星标</button>
-                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#fce4ec;border:none;border-radius:16px;color:#c2185b;font-size:12px;cursor:pointer;">🏢 企业</button>
-                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#f3e5f5;border:none;border-radius:16px;color:#7b1fa2;font-size:12px;cursor:pointer;">⏰ 定时</button>
-                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#e8f5e9;border:none;border-radius:16px;color:#388e3c;font-size:12px;cursor:pointer;">✉️ 写邮件</button>
+                            <button onclick="window.__openTraditionalEmail('inbox')" style="padding:6px 12px;background:#e3f2fd;border:none;border-radius:16px;color:#1976d2;font-size:12px;cursor:pointer;">📧 收件箱</button>
+                            <button onclick="window.__openTraditionalEmail('starred')" style="padding:6px 12px;background:#fff3e0;border:none;border-radius:16px;color:#f57c00;font-size:12px;cursor:pointer;">⭐ 星标</button>
+                            <button onclick="window.__openTraditionalEmail('scheduled')" style="padding:6px 12px;background:#f3e5f5;border:none;border-radius:16px;color:#7b1fa2;font-size:12px;cursor:pointer;">⏰ 定时</button>
+                            <button onclick="window.__openTraditionalEmail('compose')" style="padding:6px 12px;background:#e8f5e9;border:none;border-radius:16px;color:#388e3c;font-size:12px;cursor:pointer;">✉️ 写邮件</button>
                             <button onclick="window.sendAIFenshenQuick('生成会议纪要')" style="padding:6px 12px;background:#f3e5f5;border:none;border-radius:16px;color:#7b1fa2;font-size:12px;cursor:pointer;">📝 文档</button>
                             <button onclick="window.showReminderForm()" style="padding:6px 12px;background:#fff3e0;border:none;border-radius:16px;color:#f57c00;font-size:12px;cursor:pointer;">⏰ 提醒</button>
                             <button onclick="window.addAIFenshenMessage('assistant', '<div style=background:#f5f5f5;padding:12px;border-radius:8px;><div style=font-size:14px;color:#333;margin-bottom:8px;>💻 软件控制</div><div style=font-size:12px;color:#666;>请自然语言指挥打开软件。</div></div>')" style="padding:6px 12px;background:#e0f2f1;border:none;border-radius:16px;color:#00897b;font-size:12px;cursor:pointer;">💻 软件</button>
@@ -8003,7 +8968,7 @@ window.sendToAgentViaStorage = function(message, retryCount) {
     
     // 调用智能体 API
     var doFetch = function() {
-        return fetch('/api/agent/process', {
+        return fetch('/api/console/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -8011,6 +8976,7 @@ window.sendToAgentViaStorage = function(message, retryCount) {
             },
             body: JSON.stringify({
                 session_id: window.AIFenshenContext.sessionId,
+                user_id: 'default',
                 input: window.AIFenshenContext.getInput()
             })
         });
@@ -8368,6 +9334,7 @@ console.log('[AI分身] 会话持久化模块已加载');
 
 
 // ============ AI分身聊天功能 ============
+window.TeamChatEmail = window.TeamChatEmail || {};
 window.TeamChatEmail.cronChatHistory = [];
 
 // 发送聊天消息
@@ -8797,3 +9764,5 @@ window.TeamChatEmail.editAICronJob = function() {
     this.createCronJob();
 };
 
+  // 创建动画遮罩层
+  var overlay = document.createElement('div');

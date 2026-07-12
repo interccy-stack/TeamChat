@@ -11,9 +11,14 @@
     }
     
     // 配置
+    // 自动检测 QwenPaw 服务地址（优先用当前页面 origin，否则回退到 localStorage 或默认值）
+    var BASE_URL = (function() {
+        try { return localStorage.getItem('teamchat_server_url'); } catch(e) {}
+        return window.location.origin || 'http://127.0.0.1:56411';
+    })();
     var CONFIG = {
-        API_BASE: 'http://localhost:8088',
-        WS_URL: 'ws://localhost:8088/ws',
+        API_BASE: BASE_URL,
+        WS_URL: BASE_URL.replace('http', 'ws') + '/ws',
         TOKEN: null
     };
     
