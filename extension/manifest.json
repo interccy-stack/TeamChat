@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "AI PRO - 智能网页助手",
+  "short_name": "AI PRO",
+  "version": "1.0.0",
+  "description": "在任何网页召唤AI助手，支持多Agent切换、智能感知、数据抓取、自动填表等功能。TeamChat官方扩展。",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:8088/*",
+    "https://agent.bh-jk.com/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16_v2.png",
+      "48": "icon48_v2.png",
+      "128": "icon128_v2.png"
+    },
+    "default_title": "AI PRO - 双击打开"
+  },
+  "icons": {
+    "16": "icon16_v2.png",
+    "48": "icon48_v2.png",
+    "128": "icon128_v2.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icon16_v2.png", "icon48_v2.png", "icon128_v2.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

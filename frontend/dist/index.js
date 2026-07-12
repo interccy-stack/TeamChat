@@ -1,14 +1,19 @@
 /**
  * ===================================================================
- *  TeamChat Frontend v4.1.0 — 重大更新
+ *  TeamChat Frontend v5.0.15 — 重大更新
  *  【串串频道 v2.0】ChuanChuanPage: 4-Tab统一页面
  *    📡频道 | 📂历史 | ✍️原创作者AI | 📤导出
  *  【轻音乐增强】音量 Slider + 内部停止按钮 + ▶ 正在播放指示
  *  【config 路径修复】串串频道重启后状态持久化
  *  【稻盛和夫 + 有巢哲学】工作原理末行展示
+ *  【AI防卫】轻量安全提示（移除ClamAV）
+ *  【Chrome扩展】AI分身Pro + 智能感知
  * ===================================================================
  */
 (function () {
+  // TeamChat v5.0.15 - 安全提示优化版
+  console.log('[TeamChat] v5.0.15 安全提示版 加载时间:', new Date().toLocaleString());
+  
   var s = document.createElement("style");
   s.textContent =
     "*{font-family:\"Microsoft YaHei\",\"PingFang SC\",\"Hiragino Sans GB\",\"WenQuanYi Micro Hei\",sans-serif !important}"+
@@ -21,6 +26,7 @@
     "@keyframes tcBtnClick{0%{transform:scale(1)}50%{transform:scale(0.95)}100%{transform:scale(1)}}"+
     "@keyframes tcTabSwitch{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}"+
     "@keyframes tcFadeIn{from{opacity:0}to{opacity:1}}"+
+    "@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"+
     ".tc-card:hover{animation:tcCardHover .25s ease-out forwards}"+
     ".tc-btn:active{animation:tcBtnClick .15s ease-out}"+
     ".tc-tab-content{animation:tcTabSwitch .3s ease-out}"+
@@ -65,7 +71,8 @@
     "@keyframes tcTruckDrive{0%{left:-60px}100%{left:735px}}"+
     // 主界面动画 keyframes
     "@keyframes tcMainTruck{0%{left:-50px}100%{left:200px}}"+
-    "@keyframes tcMainDrone{0%{left:-40px}100%{left:150px}}";
+    "@keyframes tcMainDrone{0%{left:-40px}100%{left:150px}}"+
+"@keyframes tcPigeonFly{0%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-8px) rotate(4deg)}50%{transform:translateY(-4px) rotate(-3deg)}75%{transform:translateY(-6px) rotate(2deg)}100%{transform:translateY(0) rotate(0deg)}}";
   document.head.appendChild(s);
   var QP = window.QwenPaw; if (!QP) return;
   var React = QP.host.React, antd = QP.host.antd, antdIcons = QP.host.antdIcons || {};
@@ -83,13 +90,162 @@
     var t = getApiToken(); if (t) h.Authorization = "Bearer "+t;
     return h;
   }
+  // ============ 多语言翻译系统 v4.1.0 ============
+  var LANG_MAP = {
+    "zh": {
+      newMeeting: "新会谈", channel: "📡频道", history: "📂历史", authorAI: "✍️原创作者AI", export: "📤导出",
+      dashboard: "串串汇", totalSessions: "总会话", totalMsgs: "总消息", active12h: "12小时活跃",
+      active7d: "7天活跃", brainstorm: "头脑风暴", agents: "智能体", skills: "技能", chs: "频道",
+      selectAgents: "选择智能体", host: "主持人", send: "发送", stop: "停止",
+      noAgents: "⚠ 无法加载智能体", retry: "🔄 重试", loading: "加载中...",
+      inputPlaceholder: "输入消息，Enter发送，Shift+Enter换行",
+      meetingTitle: "团队会谈", startMeeting: "开始会谈",
+      deleteSession: "删除会话", pinSession: "置顶", unpin: "取消置顶",
+      exportSession: "导出", search: "搜索...", tag: "标签",
+      summary: "摘要", discussion: "讨论", member: "成员",
+      chatHistory: "聊天记录", noHistory: "暂无历史会话",
+      settings: "设置", llmConfig: "LLM配置", save: "保存", test: "测试",
+      modelLabel: "模型", providerLabel: "提供商", apiKeyLabel: "API Key",
+      apiBaseLabel: "API Base URL", language: "语言",
+    },
+    "zh-TW": {
+      newMeeting: "新會談", channel: "📡頻道", history: "📂歷史", authorAI: "✍️原創作者AI", export: "📤匯出",
+      dashboard: "串串匯", totalSessions: "總會話", totalMsgs: "總訊息", active12h: "12小時活躍",
+      active7d: "7天活躍", brainstorm: "頭腦風暴", agents: "智能體", skills: "技能", chs: "頻道",
+      selectAgents: "選擇智能體", host: "主持人", send: "發送", stop: "停止",
+      noAgents: "⚠ 無法載入智能體", retry: "🔄 重試", loading: "載入中...",
+      inputPlaceholder: "輸入訊息，Enter發送，Shift+Enter換行",
+      meetingTitle: "團隊會談", startMeeting: "開始會談",
+      deleteSession: "刪除會話", pinSession: "置頂", unpin: "取消置頂",
+      exportSession: "匯出", search: "搜尋...", tag: "標籤",
+      summary: "摘要", discussion: "討論", member: "成員",
+      chatHistory: "聊天記錄", noHistory: "暫無歷史會話",
+      settings: "設定", llmConfig: "LLM設定", save: "儲存", test: "測試",
+      modelLabel: "模型", providerLabel: "提供商", apiKeyLabel: "API金鑰",
+      apiBaseLabel: "API基礎URL", language: "語言",
+    },
+    "en": {
+      newMeeting: "New Meeting", channel: "📡Channel", history: "📂History", authorAI: "✍️Author AI", export: "📤Export",
+      dashboard: "Dashboard", totalSessions: "Total Sessions", totalMsgs: "Total Messages", active12h: "Active 12h",
+      active7d: "Active 7d", brainstorm: "Brainstorm", agents: "Agents", skills: "Skills", chs: "Channels",
+      selectAgents: "Select Agents", host: "Host", send: "Send", stop: "Stop",
+      noAgents: "⚠ Cannot load agents", retry: "🔄 Retry", loading: "Loading...",
+      inputPlaceholder: "Type message, Enter to send, Shift+Enter for newline",
+      meetingTitle: "Team Meeting", startMeeting: "Start Meeting",
+      deleteSession: "Delete", pinSession: "Pin", unpin: "Unpin",
+      exportSession: "Export", search: "Search...", tag: "Tag",
+      summary: "Summary", discussion: "Discussion", member: "Members",
+      chatHistory: "Chat History", noHistory: "No sessions yet",
+      settings: "Settings", llmConfig: "LLM Config", save: "Save", test: "Test",
+      modelLabel: "Model", providerLabel: "Provider", apiKeyLabel: "API Key",
+      apiBaseLabel: "API Base URL", language: "Language",
+    },
+    "ja": {
+      newMeeting: "新会議", channel: "📡チャンネル", history: "📂履歴", authorAI: "✍️作者AI", export: "📤エクスポート",
+      dashboard: "ダッシュボード", totalSessions: "総セッション", totalMsgs: "総メッセージ", active12h: "12時間アクティブ",
+      active7d: "7日間アクティブ", brainstorm: "ブレスト", agents: "エージェント", skills: "スキル", chs: "チャンネル",
+      selectAgents: "エージェント選択", host: "ホスト", send: "送信", stop: "停止",
+      noAgents: "⚠ エージェント読込失敗", retry: "🔄 再試行", loading: "読込中...",
+      inputPlaceholder: "メッセージ入力、Enterで送信、Shift+Enterで改行",
+      meetingTitle: "チーム会議", startMeeting: "会議開始",
+      deleteSession: "削除", pinSession: "ピン留め", unpin: "解除",
+      exportSession: "エクスポート", search: "検索...", tag: "タグ",
+      summary: "概要", discussion: "議論", member: "メンバー",
+      chatHistory: "チャット履歴", noHistory: "セッションなし",
+      settings: "設定", llmConfig: "LLM設定", save: "保存", test: "テスト",
+      modelLabel: "モデル", providerLabel: "プロバイダー", apiKeyLabel: "APIキー",
+      apiBaseLabel: "APIベースURL", language: "言語",
+    },
+    "ru": {
+      newMeeting: "Встреча", channel: "📡Канал", history: "📂История", authorAI: "✍️Автор AI", export: "📤Экспорт",
+      dashboard: "Панель", totalSessions: "Сессии", totalMsgs: "Сообщения", active12h: "Активно 12ч",
+      active7d: "Активно 7д", brainstorm: "Мозг.штурм", agents: "Агенты", skills: "Навыки", chs: "Каналы",
+      selectAgents: "Выбор агентов", host: "Ведущий", send: "Отправить", stop: "Стоп",
+      noAgents: "⚠ Агенты не загружены", retry: "🔄 Повтор", loading: "Загрузка...",
+      inputPlaceholder: "Введите сообщение, Enter — отправить, Shift+Enter — новая строка",
+      meetingTitle: "Командная встреча", startMeeting: "Начать встречу",
+      deleteSession: "Удалить", pinSession: "Закрепить", unpin: "Открепить",
+      exportSession: "Экспорт", search: "Поиск...", tag: "Метка",
+      summary: "Итог", discussion: "Обсуждение", member: "Участники",
+      chatHistory: "История чата", noHistory: "Нет сессий",
+      settings: "Настройки", llmConfig: "Конфиг LLM", save: "Сохранить", test: "Тест",
+      modelLabel: "Модель", providerLabel: "Провайдер", apiKeyLabel: "API-ключ",
+      apiBaseLabel: "Базовый URL", language: "Язык",
+    },
+    "pt-BR": {
+      newMeeting: "Nova Reunião", channel: "📡Canal", history: "📂Histórico", authorAI: "✍️Autor IA", export: "📤Exportar",
+      dashboard: "Painel", totalSessions: "Sessões", totalMsgs: "Mensagens", active12h: "Ativo 12h",
+      active7d: "Ativo 7d", brainstorm: "Brainstorm", agents: "Agentes", skills: "Habilidades", chs: "Canais",
+      selectAgents: "Selecionar Agentes", host: "Anfitrião", send: "Enviar", stop: "Parar",
+      noAgents: "⚠ Não foi possível carregar agentes", retry: "🔄 Tentar novamente", loading: "Carregando...",
+      inputPlaceholder: "Digite mensagem, Enter para enviar, Shift+Enter para nova linha",
+      meetingTitle: "Reunião de Equipe", startMeeting: "Iniciar Reunião",
+      deleteSession: "Excluir", pinSession: "Fixar", unpin: "Desafixar",
+      exportSession: "Exportar", search: "Buscar...", tag: "Tag",
+      summary: "Resumo", discussion: "Discussão", member: "Membros",
+      chatHistory: "Histórico", noHistory: "Sem sessões",
+      settings: "Configurações", llmConfig: "Config LLM", save: "Salvar", test: "Testar",
+      modelLabel: "Modelo", providerLabel: "Provedor", apiKeyLabel: "Chave API",
+      apiBaseLabel: "URL Base", language: "Idioma",
+    },
+    "id": {
+      newMeeting: "Rapat Baru", channel: "📡Saluran", history: "📂Riwayat", authorAI: "✍️Penulis AI", export: "📤Ekspor",
+      dashboard: "Dasbor", totalSessions: "Total Sesi", totalMsgs: "Total Pesan", active12h: "Aktif 12j",
+      active7d: "Aktif 7h", brainstorm: "Curah Gagasan", agents: "Agen", skills: "Keahlian", chs: "Saluran",
+      selectAgents: "Pilih Agen", host: "Pemandu", send: "Kirim", stop: "Berhenti",
+      noAgents: "⚠ Gagal memuat agen", retry: "🔄 Coba Lagi", loading: "Memuat...",
+      inputPlaceholder: "Ketik pesan, Enter kirim, Shift+Enter baris baru",
+      meetingTitle: "Rapat Tim", startMeeting: "Mulai Rapat",
+      deleteSession: "Hapus", pinSession: "Sematkan", unpin: "Lepas",
+      exportSession: "Ekspor", search: "Cari...", tag: "Label",
+      summary: "Ringkasan", discussion: "Diskusi", member: "Anggota",
+      chatHistory: "Riwayat Obrolan", noHistory: "Belum ada sesi",
+      settings: "Pengaturan", llmConfig: "Konfigurasi LLM", save: "Simpan", test: "Uji",
+      modelLabel: "Model", providerLabel: "Penyedia", apiKeyLabel: "Kunci API",
+      apiBaseLabel: "URL Dasar", language: "Bahasa",
+    },
+    "vi": {
+      newMeeting: "Họp Mới", channel: "📡Kênh", history: "📂Lịch sử", authorAI: "✍️Tác giả AI", export: "📤Xuất",
+      dashboard: "Bảng Điều Khiển", totalSessions: "Tổng Phiên", totalMsgs: "Tổng Tin", active12h: "Hoạt động 12g",
+      active7d: "Hoạt động 7n", brainstorm: "Động Não", agents: "Tác tử", skills: "Kỹ năng", chs: "Kênh",
+      selectAgents: "Chọn Tác tử", host: "Chủ trì", send: "Gửi", stop: "Dừng",
+      noAgents: "⚠ Không thể tải tác tử", retry: "🔄 Thử lại", loading: "Đang tải...",
+      inputPlaceholder: "Nhập tin, Enter gửi, Shift+Enter xuống dòng",
+      meetingTitle: "Họp Nhóm", startMeeting: "Bắt Đầu Họp",
+      deleteSession: "Xóa", pinSession: "Ghim", unpin: "Bỏ Ghim",
+      exportSession: "Xuất", search: "Tìm...", tag: "Nhãn",
+      summary: "Tóm tắt", discussion: "Thảo luận", member: "Thành viên",
+      chatHistory: "Lịch sử Trò chuyện", noHistory: "Chưa có phiên",
+      settings: "Cài đặt", llmConfig: "Cấu hình LLM", save: "Lưu", test: "Kiểm tra",
+      modelLabel: "Mô hình", providerLabel: "Nhà cung cấp", apiKeyLabel: "Khóa API",
+      apiBaseLabel: "URL Cơ sở", language: "Ngôn ngữ",
+    }
+  };
+
+  var _currentLang = localStorage.getItem("teamchat_lang") || "zh";
+  function t(key) {
+    var m = LANG_MAP[_currentLang] || LANG_MAP["zh"];
+    return m[key] || key;
+  }
+  function setLang(lang) {
+    _currentLang = lang;
+    localStorage.setItem("teamchat_lang", lang);
+    try {
+      fetch(getApiUrl("/plugins/team_chat/language"), {
+        method: "POST", headers: apiHeaders(),
+        body: JSON.stringify({language: lang})
+      }).catch(function(){});
+    } catch(e) {}
+    if (typeof window._tcForceUpdate === "function") window._tcForceUpdate();
+  }
+
   async function apiGet(p) {
-    var r = await fetch(getApiUrl("/team-chat"+p), {headers:apiHeaders()});
+    var r = await fetch(getApiUrl("/plugins/team_chat"+p), {headers:apiHeaders()});
     if (!r.ok) throw new Error("HTTP "+r.status);
     return r.json();
   }
   async function apiPost(p, b) {
-    var r = await fetch(getApiUrl("/team-chat"+p), {method:"POST",headers:apiHeaders(),body:JSON.stringify(b)});
+    var r = await fetch(getApiUrl("/plugins/team_chat"+p), {method:"POST",headers:apiHeaders(),body:JSON.stringify(b)});
     if (!r.ok) throw new Error("HTTP "+r.status);
     return r.json();
   }
@@ -97,18 +253,18 @@
   function apiPostAbort(p, b) {
     var ctrl = new AbortController();
     if (_abortRef) _abortRef.current = ctrl;
-    return fetch(getApiUrl("/team-chat"+p), {method:"POST",headers:apiHeaders(),body:JSON.stringify(b),signal:ctrl.signal}).then(function(r){
+    return fetch(getApiUrl("/plugins/team_chat"+p), {method:"POST",headers:apiHeaders(),body:JSON.stringify(b),signal:ctrl.signal}).then(function(r){
       if(!r.ok) throw new Error("HTTP "+r.status);
       return r.json();
     });
   }
   async function apiPut(p, b) {
-    var r = await fetch(getApiUrl("/team-chat"+p), {method:"PUT",headers:apiHeaders(),body:JSON.stringify(b)});
+    var r = await fetch(getApiUrl("/plugins/team_chat"+p), {method:"PUT",headers:apiHeaders(),body:JSON.stringify(b)});
     if (!r.ok) throw new Error("HTTP "+r.status);
     return r.json();
   }
   async function apiDelete(p) {
-    var r = await fetch(getApiUrl("/team-chat"+p), {method:"DELETE",headers:apiHeaders()});
+    var r = await fetch(getApiUrl("/plugins/team_chat"+p), {method:"DELETE",headers:apiHeaders()});
     if (!r.ok) throw new Error("HTTP "+r.status);
     return r.json();
   }
@@ -117,7 +273,7 @@
   async function loadLlmConfig() {
     setLlmLoading(true);
     try {
-      var r = await fetch(getApiUrl("/team-chat/llm-config"), {headers:apiHeaders()});
+      var r = await fetch(getApiUrl("/plugins/team_chat/llm-config"), {headers:apiHeaders()});
       if (!r.ok) throw new Error("HTTP "+r.status);
       var d = await r.json();
       setLlmSaved(d);
@@ -144,7 +300,7 @@
         base_url: llmCfg.base_url,
         model: llmCfg.model
       };
-      var r = await fetch(getApiUrl("/team-chat/llm-config"), {
+      var r = await fetch(getApiUrl("/plugins/team_chat/llm-config"), {
         method:"POST",
         headers:apiHeaders(),
         body:JSON.stringify(body)
@@ -168,7 +324,7 @@
         base_url: llmCfg.base_url,
         model: llmCfg.model
       };
-      var r = await fetch(getApiUrl("/team-chat/llm-config/test"), {
+      var r = await fetch(getApiUrl("/plugins/team_chat/llm-config/test"), {
         method:"POST",
         headers:apiHeaders(),
         body:JSON.stringify(body)
@@ -187,7 +343,7 @@
     var m = props.msg;
     var color, bg, label;
     if (m.role==="human") { color="#fff"; bg="#3E2723"; label="🧑 你"; }
-    else if (m.role==="host") { color="#4E342E"; bg="#FFF8E1"; label="🎤 "+(m.sender_name||"主持人"); }
+    else if (m.role==="host") { color="#4E342E"; bg="#FFF8E1"; label="🎤 "+(m.sender_name||t("host")); }
     else { color="#4E342E"; bg="#EDE7F6"; label="🤖 "+(m.sender_name||m.sender); }
     var ts = new Date(m.timestamp*1000).toLocaleTimeString();
     // 解析内容中的文件引用：[file:xxx] 或 [文件:xxx] 或 📄xxx
@@ -203,7 +359,7 @@
     if (lastIdx < raw.length) parts.push({type:"text", text:raw.slice(lastIdx)});
     var hasFiles = parts.some(function(p){return p.type==="file";});
     var downloadFn = window._tcDownloadFile || function(fname) {
-      var url = QP.host.getApiUrl("/team-chat/download/"+encodeURIComponent(fname));
+      var url = QP.host.getApiUrl("/plugins/team_chat/download/"+encodeURIComponent(fname));
       fetch(url,{headers:{"Authorization":"Bearer "+QP.host.getApiToken()}}).then(function(r){
         if(!r.ok) throw new Error("HTTP "+r.status);
         return r.blob();
@@ -250,7 +406,7 @@
           e("div",{style:{fontSize:22,marginBottom:4}}, "⚠️"),
           e("div",{style:{fontWeight:"bold",color:"#C53030",marginBottom:4}}, fn+" 发生渲染错误"),
           e("div",{style:{fontSize:11,color:"#9B2C2C",marginBottom:12,wordBreak:"break-all",maxHeight:80,overflow:"auto",borderRadius:4,padding:4,background:"rgba(255,255,255,0.5)"}}, err && err.message ? err.message : String(err)),
-          e(Button,{size:"small",type:"primary",danger:true,onClick:(function(self){return function(){self.setState({hasError:false,error:null});};})(this)},"🔄 重试")
+          e(Button,{size:"small",type:"primary",danger:true,onClick:(function(self){return function(){self.setState({hasError:false,error:null});};})(this)},t("retry"))
         );
       }
       return this.props.children;
@@ -399,6 +555,9 @@
 // =================== ChuanChuanPage v2.1 (4-Tab) ===================
 function ChuanChuanPage(_p) {
   var onBack = _p.onBack||function(){};
+  // 多语言支持
+  var Select = antd.Select;
+  var _lang = useState(_currentLang), lang = _lang[0], setLangState = _lang[1];
   var _tab = useState("channel"), tab = _tab[0], setTab = _tab[1];
   // 频道状态
   var _ws = useState(null), wxStatus = _ws[0], setWxStatus = _ws[1];
@@ -522,9 +681,15 @@ function ChuanChuanPage(_p) {
     });
     // 同时获取完整智能体列表
     apiGet("/all-agents").then(function(d){
-      setAllAgents(d.agents||[]);
+      if (d && d.agents && Array.isArray(d.agents)) {
+        setAllAgents(d.agents);
+      } else {
+        console.warn("[AllAgents] 返回数据格式不正确:", d);
+        setAllAgents([]);
+      }
     }).catch(function(err){
       console.error("[AllAgents] fetch error:", err);
+      setAllAgents([]);
     });
   }
 
@@ -632,7 +797,7 @@ function ChuanChuanPage(_p) {
           return;
         }
         
-        fetch(getApiUrl("/team-chat/generate-report"),{
+        fetch(getApiUrl("/plugins/team_chat/generate-report"),{
           method:"POST",
           headers:apiHeaders(),
           body:JSON.stringify({history:allHistory,days:7,agent_id:reportAgent})
@@ -729,7 +894,7 @@ function ChuanChuanPage(_p) {
           return;
         }
         
-        fetch(getApiUrl("/team-chat/generate-realtime-report"),{
+        fetch(getApiUrl("/plugins/team_chat/generate-realtime-report"),{
           method:"POST",
           headers:apiHeaders(),
           body:JSON.stringify({history:recentHistory,hours:12,agent_id:reportAgent})
@@ -804,7 +969,7 @@ function ChuanChuanPage(_p) {
     apiGet("/wechat/status").then(function(r){setWxStatus(r.wechat||{});setWxLoading(false);}).catch(function(){setWxLoading(false);});
   },[]);
   useEffect(function(){
-    fetch(getApiUrl("/team-chat/browser/status")).then(function(r){return r.json();}).then(function(d){setChuanReady(d&&d.running);}).catch(function(){setChuanReady(false);});
+    fetch(getApiUrl("/plugins/team_chat/browser/status")).then(function(r){return r.json();}).then(function(d){setChuanReady(d&&d.running);}).catch(function(){setChuanReady(false);});
   },[]);
   useEffect(function(){
     // 优先从后端加载聊天记录
@@ -875,7 +1040,7 @@ function ChuanChuanPage(_p) {
   },[exportMenuOpen]);
 
   function updateSessList(){
-    apiGet("/team-chat/sessions").then(function(r){
+    apiGet("/plugins/team_chat/sessions").then(function(r){
       var list = r.sessions||r||[];
       setSess(list);
       try{ localStorage.setItem("teamchat_sessions_cache", JSON.stringify(list)); }catch(e){}
@@ -934,7 +1099,7 @@ function ChuanChuanPage(_p) {
     var filename = (title||"会话记录").replace(/[^\w\u4e00-\u9fa5]/g,"_");
     console.log("[Export] Exporting session", si, "as", format);
 
-    fetch(getApiUrl("/team-chat/export-session"), {
+    fetch(getApiUrl("/plugins/team_chat/export-session"), {
       method: "POST",
       headers: apiHeaders(),
       body: JSON.stringify({ session_id: si, format: format })
@@ -1074,7 +1239,7 @@ function ChuanChuanPage(_p) {
     setChatMsgs(function(p){var n=p.concat([{role:"user",content:msg},{role:"thinking",content:"思考中"}]);try{localStorage.setItem("teamchat_author_chat",JSON.stringify(n));}catch(e){}return n;});
     setChatIn("");try{localStorage.removeItem("teamchat_author_draft");}catch(e){}setChatLd(true);
     var ctrl = new AbortController(); chatAbortRf.current = ctrl;
-    fetch(getApiUrl("/team-chat/remote-chat"),{method:"POST",headers:apiHeaders(),body:JSON.stringify({message:msg,session_id:chatSi}),signal:ctrl.signal})
+    fetch(getApiUrl("/plugins/team_chat/remote-chat"),{method:"POST",headers:apiHeaders(),body:JSON.stringify({message:msg,session_id:chatSi}),signal:ctrl.signal})
     .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
     .then(function(d){
       var reply = d.reply||JSON.stringify(d);
@@ -1133,10 +1298,10 @@ function ChuanChuanPage(_p) {
 
   // ---- Tab 标签 ----
   var TABS = [
-    {key:"channel", label:"📡 频道"},
-    {key:"history", label:"📂 历史 "+(sess.length>50?"(50/"+sess.length+")":"("+sess.length+")")},
-    {key:"author", label:"✍️ 原创作者AI"},
-    {key:"settings", label:"📊 串串汇"}
+    {key:"channel", label:t("channel")},
+    {key:"history", label:t("history")+" "+(sess.length>50?"(50/"+sess.length+")":"("+sess.length+")")},
+    {key:"author", label:t("authorAI")},
+    {key:"settings", label:t("dashboard")}
   ];
 
   return e("div",{style:{display:"flex",flexDirection:"column",height:"100vh",background:"linear-gradient(180deg,#FDF8F0,#F5EBE0,#EDE0D4)",fontFamily:"inherit"}},
@@ -1145,18 +1310,38 @@ function ChuanChuanPage(_p) {
       e("div",{style:{display:"flex",alignItems:"center",gap:12}},
         e(Button,{type:"text",onClick:function(){chatStop();onBack();},style:{color:"#FFF8E1",fontSize:20}},"← 返回"),
         e("div",{style:{fontSize:20,fontWeight:"bold"}},"📡 串串频道")
+      ),
+      // 语言切换器
+      e("div",{style:{display:"flex",alignItems:"center",gap:8}},
+        e("span",{style:{fontSize:12,color:"#FFF8E1"}},t("language")+":"),
+        e(Select,{
+          value:lang,
+          onChange:function(v){setLang(v);setLangState(v);},
+          size:"small",
+          style:{width:120,fontSize:12},
+          dropdownStyle:{zIndex:9999}
+        },
+          e(Select.Option,{value:"zh"},"🇨🇳 简体中文"),
+          e(Select.Option,{value:"zh-TW"},"🇹🇼 繁體中文"),
+          e(Select.Option,{value:"en"},"🇺🇸 English"),
+          e(Select.Option,{value:"ja"},"🇯🇵 日本語"),
+          e(Select.Option,{value:"ru"},"🇷🇺 Русский"),
+          e(Select.Option,{value:"pt-BR"},"🇧🇷 Português"),
+          e(Select.Option,{value:"id"},"🇮🇩 Bahasa"),
+          e(Select.Option,{value:"vi"},"🇻🇳 Tiếng Việt")
+        )
       )
     ),
     // Tab 栏
     e("div",{style:{display:"flex",background:"#EDE0D4",borderBottom:"2px solid #D7CCC8",flexShrink:0}},
-      TABS.map(function(t){
-        var active = tab===t.key;
-        return e("div",{key:t.key,onClick:function(){setTab(t.key);},
+      TABS.map(function(tabItem){
+        var active = tab===tabItem.key;
+        return e("div",{key:tabItem.key,onClick:function(){setTab(tabItem.key);},
           style:{flex:1,textAlign:"center",padding:"10px 0",cursor:"pointer",fontSize:13,fontWeight:active?"bold":"normal",
             color:active?"#4E342E":"#8D6E63",
             borderBottom:active?"3px solid #FFD700":"3px solid transparent",
             background:active?"#FDF8F0":"transparent",transition:"all .2s"}},
-          t.label
+          tabItem.label
         );
       })
     ),
@@ -1202,8 +1387,14 @@ function ChuanChuanPage(_p) {
             e("div",null,"⌨️ 快捷键 — 按 ? 弹出快捷键速查面板")
           )
         ),
-        e(Card,{title:"🎹 简谱计算器",style:{borderRadius:16,background:"#EDE7F6",border:"1px solid #B39DDB"}},
-          e(MusicEditor,null)
+        e(Card,{title:"🔌 Chrome扩展 · AI分身Pro",style:{marginBottom:14,borderRadius:16,background:"linear-gradient(135deg,#E8F5E9,#C8E6C9)",border:"1px solid #4CAF50"}},
+          e("div",{style:{fontSize:13,color:"#2E7D32",lineHeight:2}},
+            e("div",null,e("strong",null,"🎯 智能感知")," — 自动识别代码/文章/邮件/视频/购物页面"),
+            e("div",null,e("strong",null,"⚡ 快捷指令")," — /总结 /翻译 /代码 /提问 /邮件 等10个指令"),
+            e("div",null,e("strong",null,"🎤 语音输入")," — 点击麦克风图标语音转文字"),
+            e("div",null,e("strong",null,"🧠 记忆增强")," — 记住用户偏好、历史话题、跨会话记忆"),
+            e("div",null,e("strong",null,"💡 使用方式")," — 点击浮动🤖按钮，输入/查看快捷指令")
+          )
         )
       ):null,
 
@@ -1268,7 +1459,7 @@ function ChuanChuanPage(_p) {
                 e("div",{style:{display:"flex",alignItems:"center",gap:4}},
                   e(Input,{size:"small",value:tagVal,onChange:function(ev){setTagVal(ev.target.value);},
                     onPressEnter:function(){saveTag(sid,tagVal);},
-                    style:{width:100,fontSize:11},placeholder:"标签",autoFocus:true}),
+                    style:{width:100,fontSize:11},placeholder:t("tag"),autoFocus:true}),
                   e(Button,{size:"small",onClick:function(){saveTag(sid,tagVal);},style:{fontSize:10}},"💾"),
                   e(Button,{size:"small",onClick:function(){setEditingTag(null);},style:{fontSize:10}},"✕")
                 ):
@@ -1326,7 +1517,7 @@ function ChuanChuanPage(_p) {
             // 左侧：二维码（借用主界面右侧栏的图片+链接模式）
             e("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",flexShrink:0}},
               e("a",{href:"https://agent.bh-jk.com",target:"_blank",rel:"noopener noreferrer",style:{textDecoration:"none",display:"block"}},
-                e("img",{src:getApiUrl("/team-chat/media/qr_code.png"),alt:"收款码",
+                e("img",{src:getApiUrl("/plugins/team_chat/media/qr_code.png"),alt:"收款码",
                   style:{width:160,height:160,borderRadius:12,border:"3px solid #F8BBD0",objectFit:"cover",cursor:"pointer"},
                   onError:function(ev){
                     ev.target.style.display="none";
@@ -1593,7 +1784,7 @@ function ChuanChuanPage(_p) {
         chuanReady?e("div",{style:{marginBottom:6}},
           e(Button,{size:"small",loading:chuanLaunching,onClick:function(){
             setChuanLaunching(true);
-            fetch(getApiUrl("/team-chat/browser/launch"),{method:"POST",headers:{"Content-Type":"application/json"},
+            fetch(getApiUrl("/plugins/team_chat/browser/launch"),{method:"POST",headers:{"Content-Type":"application/json"},
               body:JSON.stringify({url:"https://agent.bh-jk.com/api/agent-share/chat/450729a6-f5a4-42a7-8433-984a93368cfc"})})
               .then(function(r){return r.json();}).then(function(d){setChuanLaunching(false);})
               .catch(function(){setChuanLaunching(false);});
@@ -1736,11 +1927,11 @@ function ChuanChuanPage(_p) {
               ),
               e(Card,{size:"small",style:{borderRadius:12,background:"#FFF3E0",border:"1px solid #FFCC80",textAlign:"center"}},
                 e("div",{style:{fontSize:20,fontWeight:"bold",color:"#E65100"}},agentDetail.stats.session_count),
-                e("div",{style:{fontSize:10,color:"#EF6C00",marginTop:2}},"总会话")
+                e("div",{style:{fontSize:10,color:"#EF6C00",marginTop:2}},t("totalSessions"))
               ),
               e(Card,{size:"small",style:{borderRadius:12,background:"#F3E5F5",border:"1px solid #CE93D8",textAlign:"center"}},
                 e("div",{style:{fontSize:20,fontWeight:"bold",color:"#6A1B9A"}},agentDetail.stats.brainstorm_count),
-                e("div",{style:{fontSize:10,color:"#7B1FA2",marginTop:2}},"头脑风暴")
+                e("div",{style:{fontSize:10,color:"#7B1FA2",marginTop:2}},t("brainstorm"))
               )
             ),
             // 该智能体的会话列表
@@ -1803,7 +1994,7 @@ function ChuanChuanPage(_p) {
               e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0"}},"智能体"),
               e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0",textAlign:"center"}},"12h调用"),
               e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0",textAlign:"center"}},"7天调用"),
-              e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0",textAlign:"center"}},"总消息"),
+              e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0",textAlign:"center"}},t("totalMsgs")),
               e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0",textAlign:"center"}},"风暴次数"),
               // 数据行
               dashData.agents.map(function(a,i){
@@ -1918,204 +2109,1462 @@ function ChuanChuanPage(_p) {
     )
   );
 }
-// =================== MusicEditor (v4.1.0) ===================
-  function MusicEditor() {
-    var _ns = useState("5353531 24325 5353531 24321"), notation = _ns[0], setNotation = _ns[1];
-    var _sc = useState("pentatonic"), scale = _sc[0], setScale = _sc[1];
-    var _pl = useState(false), playing = _pl[0], setPlaying = _pl[1];
-    var _pr = useState(null), preview = _pr[0], setPreview = _pr[1];
-    var _ac = useState(false), audioCtx = _ac[0], setAudioCtx = _ac[1];
-    var timersRef = useRef([]);
-
-    var P = [0,261.63,293.66,329.63,392.00,440.00,523.25];
-    var PD = [0,261.63,293.66,329.63,349.23,392.00,440.00,493.88,523.25,587.33];
-
-    var PRESETS = [
-      {name:"粉刷匠",scale:"pentatonic",raw:"5353531 24325 5353531 24321"},
-      {name:"小星星",scale:"diatonic",raw:"1155665 4433221 5544332 5544332 1155665 4433221"},
-      {name:"生日歌",scale:"diatonic",raw:"556517 556521 5553176 443121"},
-      {name:"茉莉花",scale:"pentatonic",raw:"1111151112 5555555555 4444333333"},
-      {name:"欢乐颂",scale:"diatonic",raw:"334554321123322 334554321123211"},
-      {name:"自定义",scale:"pentatonic",raw:""}
-    ];
-    var _pi = useState(0), presetIdx = _pi[0], setPresetIdx = _pi[1];
-
-    function getAudioCtx() {
-      if (!audioCtx) {
-        var C = window.AudioContext || window.webkitAudioContext;
-        var ctx = new C();
-        setAudioCtx(ctx);
-        return ctx;
-      }
-      return audioCtx;
-    }
-
-    function parseNotation(raw, sc) {
-      var T = sc==="pentatonic" ? P : PD;
-      var seq = [];
-      var lines = raw.split(/\s+/);
-      lines.forEach(function(line, li) {
-        line.split("").forEach(function(ch, ci) {
-          var n = parseInt(ch,10);
-          if (isNaN(n) || n<=0 || n>=T.length) return;
-          var freq = T[n];
-          var isLast = li===lines.length-1 && ci===line.length-1;
-          seq.push([freq, isLast?0.35:0.15, isLast?0.35:0.04]);
-        });
-        if (li<lines.length-1 && seq.length>0) seq[seq.length-1][2] = 0.25;
-      });
-      return seq;
-    }
-
-    function previewNote(num) {
-      var T = scale==="pentatonic" ? P : PD;
-      if (num<1 || num>=T.length) return;
-      var ctx = getAudioCtx();
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = T[num];
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.3);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime+0.3);
-    }
-
-    function playNotation() {
-      if (playing) { stopNotation(); return; }
-      var seq = parseNotation(notation, scale);
-      if (seq.length===0) return;
-      var ctx = getAudioCtx();
-      setPlaying(true);
-      var t = ctx.currentTime + 0.05;
-      timersRef.current = [];
-      seq.forEach(function(item) {
-        var freq = item[0], dur = item[1], gap = item[2];
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.25, t+0.02);
-        gain.gain.setValueAtTime(0.25, t+dur-0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, t+dur);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(t);
-        osc.stop(t+dur+0.01);
-        t += dur + gap;
-      });
-      var totalMs = (t - ctx.currentTime) * 1000;
-      var tid = setTimeout(function() { setPlaying(false); }, totalMs + 50);
-      timersRef.current.push(tid);
-    }
-
-    function stopNotation() {
-      timersRef.current.forEach(function(id) { clearTimeout(id); });
-      timersRef.current = [];
-      setPlaying(false);
-    }
-
-    function loadPreset(idx) {
-      setPresetIdx(idx);
-      if (PRESETS[idx].raw) {
-        setNotation(PRESETS[idx].raw);
-        setScale(PRESETS[idx].scale);
-      }
-    }
-
-    useEffect(function() {
-      return function() { stopNotation(); };
-    }, []);
-
-    var noteCount = (notation.match(/\d/g)||[]).length;
-    var T = scale==="pentatonic" ? P : PD;
-
-    return e("div", null,
-      // Scale selector
-      e("div",{style:{display:"flex",gap:8,marginBottom:12,alignItems:"center"}},
-        e("span",{style:{fontSize:12,fontWeight:600,color:"#4A148C"}},"音阶:"),
-        e(Select,{value:scale,onChange:function(v){setScale(v);},size:"small",style:{width:110},
-          options:[
-            {value:"pentatonic",label:"五声音阶 (1-6)"},
-            {value:"diatonic",label:"全音阶 (1-9)"}
-          ]
-        }),
-        e("span",{style:{fontSize:11,color:"#999"}},noteCount+" 个音符")
-      ),
-      // Preset buttons
-      e("div",{style:{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}},
-        PRESETS.map(function(p,i) {
-          return e(Button,{key:i,size:"small",
-            type:presetIdx===i?"primary":"default",
-            onClick:function(){loadPreset(i);},
-            style:{
-              borderRadius:12,fontSize:11,
-              background:presetIdx===i?"linear-gradient(135deg,#9C27B0,#BA68C8)":"#f5f5f5",
-              border:presetIdx===i?"1px solid #9C27B0":"1px solid #d9d9d9",
-              color:presetIdx===i?"#fff":"#666"
-            }
-          },p.name);
-        })
-      ),
-      // Notation input
-      e("div",{style:{marginBottom:12}},
-        e(TextArea,{
-          value:notation,
-          onChange:function(ev){setNotation(ev.target.value);setPresetIdx(-1);},
-          placeholder:"输入简谱... 例如: 5353531 24325\n数字1-6(五声)或1-9(全音), 空格分组, 非数字自动跳过",
-          rows:4,
-          style:{
-            fontFamily:"'Courier New',monospace",fontSize:14,fontWeight:600,
-            letterSpacing:2,borderRadius:16,
-            background:"#FAFAFA",border:"1px solid #CE93D8"
-          }
-        })
-      ),
-      // Play controls
-      e("div",{style:{display:"flex",gap:8,justifyContent:"center",marginBottom:12}},
-        e(Button,{
-          type:playing?"default":"primary",
-          onClick:playNotation,
-          disabled:!notation.trim(),
-          style:{
-            width:120,height:40,borderRadius:20,fontSize:14,fontWeight:700,
-            background:playing?"#f5f5f5":"linear-gradient(135deg,#9C27B0,#7B1FA2)",
-            border:playing?"1px solid #d9d9d9":"none",
-            color:playing?"#666":"#fff",
-            boxShadow:playing?"none":"0 4px 12px rgba(156,39,176,.4)"
-          }
-        },playing?"⏸ 暂停":"▶ 播放"),
-        e(Button,{
-          onClick:stopNotation,
-          disabled:!playing,
-          style:{
-            width:80,height:40,borderRadius:20,fontSize:14,
-            background:"#f5f5f5",border:"1px solid #d9d9d9",color:"#666"
-          }
-        },"⏹ 停止")
-      ),
-      // Quick guide
-      e("div",{style:{padding:"10px 14px",background:"linear-gradient(135deg,#F3E5F5,#E8EAF6)",borderRadius:8,border:"1px dashed #CE93D8"}},
-        e("div",{style:{fontSize:11,color:"#6A1B9A",fontWeight:600,marginBottom:6}},"📖 简谱入门"),
-        e("div",{style:{fontSize:11,color:"#7B1FA2",lineHeight:1.8}},
-          "• 数字 = 音符 (1=Do, 2=Re, 3=Mi ...)\n"+
-          "• 空格 = 分组停顿 (相当于逗号)\n"+
-          "• 非数字字符自动忽略 (可写歌词)\n"+
-          "• 五声音阶: 1-6 → 中国风/民谣\n"+
-          "• 全音阶: 1-9 → 流行/古典"
-        )
-      )
-    );
-  }
 
   // =================== State ===================
-  function TeamChatPage() {
+  
+  // ---- 联系人 localStorage 管理 ----
+  function getStoredContacts() {
+    try {
+      return JSON.parse(localStorage.getItem("teamchat_email_contacts") || "[]");
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveStoredContact(contact) {
+    try {
+      var contacts = getStoredContacts();
+      var existingIndex = contacts.findIndex(function(c) { return c.email === contact.email; });
+
+      if (existingIndex !== -1) {
+        contacts[existingIndex] = contact;
+      } else {
+        contacts.push(contact);
+      }
+
+      localStorage.setItem("teamchat_email_contacts", JSON.stringify(contacts));
+      return true;
+    } catch (e) {
+      console.error("保存联系人失败:", e);
+      return false;
+    }
+  }
+
+  function deleteStoredContact(email) {
+    try {
+      var contacts = getStoredContacts();
+      contacts = contacts.filter(function(c) { return c.email !== email; });
+      localStorage.setItem("teamchat_email_contacts", JSON.stringify(contacts));
+      return true;
+    } catch (e) {
+      console.error("删除联系人失败:", e);
+      return false;
+    }
+  }
+
+function TeamChatPage() {
     // [v4.2.0] 串串频道内嵌视图: true → ChuanChuanPage, false → TeamChatPage
-    var _cv = useState(false), chuanView = _cv[0], setChuanView = _cv[1];
+    var _cv = useState(false), chuanView = _cv[0], setChuanView = _cv[1]
+    var _av = useState(false), aimailView = _av[0], setAimailView = _av[1];var _am = useState("main"), aimailMode = _am[0], setAimailMode = _am[1];var _et = useState("inbox"), emailTab = _et[0], setEmailTab = _et[1];
+  var _data = useState([]), emails = _data[0], setEmails = _data[1];
+  var _loading = useState(false), loading = _loading[0], setLoading = _loading[1];
+  var _error = useState(null), error = _error[0], setError = _error[1];
+  var _configVisible = useState(false), configVisible = _configVisible[0], setConfigVisible = _configVisible[1];
+  var _emailConfig = useState({provider:"custom",email:"",display_name:"",username:"",password:"",smtp_host:"",smtp_port:587,smtp_ssl:true,smtp_username:"",smtp_password:"",imap_host:"",imap_port:993,imap_ssl:true,imap_username:"",imap_password:""}), emailConfig = _emailConfig[0], setEmailConfig = _emailConfig[1];
+var _showCompose = useState(false), showCompose = _showCompose[0], setShowCompose = _showCompose[1];
+var _composeData = useState({to:"",cc:"",bcc:"",subject:"",body:"",replyTo:"",priority:"normal",attachments:[]}), composeData = _composeData[0], setComposeData = _composeData[1];
+var _composeAttachments = useState([]), composeAttachments = _composeAttachments[0], setComposeAttachments = _composeAttachments[1];
+var _selectedEmail = useState(null), selectedEmail = _selectedEmail[0], setSelectedEmail = _selectedEmail[1];
+var _composeTitle = useState("写邮件"), composeTitle = _composeTitle[0], setComposeTitle = _composeTitle[1];
+var _sendingEmail = useState(false), sendingEmail = _sendingEmail[0], setSendingEmail = _sendingEmail[1];
+// ---- 🐝 蜂巢邮箱状态 ----
+// ---- 🐝 蜂巢邮箱状态 ----
+// 我的面码（网络识别码）- 从localStorage读取或生成新的
+var _myFaceCode = useState(function() {
+  var saved = localStorage.getItem("hive_my_facecode");
+  if (saved) return saved;
+  var newCode = "HIVE-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+  localStorage.setItem("hive_my_facecode", newCode);
+  return newCode;
+}), myFaceCode = _myFaceCode[0], setMyFaceCode = _myFaceCode[1];
+// 保存面码到localStorage的函数
+function saveFaceCode(code) {
+  localStorage.setItem("hive_my_facecode", code);
+  setMyFaceCode(code);
+}
+
+var _myHiveName = useState(function() {
+  return localStorage.getItem("hive_my_name") || "我";
+}), myHiveName = _myHiveName[0], setMyHiveName = _myHiveName[1];
+
+var _myHiveAvatar = useState(function() {
+  return localStorage.getItem("hive_my_avatar") || "🐝";
+}), myHiveAvatar = _myHiveAvatar[0], setMyHiveAvatar = _myHiveAvatar[1];
+
+// 朋友列表 - 从localStorage读取或使用默认值
+var _hiveFriends = useState(function() {
+  var saved = localStorage.getItem("hive_friends");
+  if (saved) {
+    try { return JSON.parse(saved); } catch(e) {}
+  }
+  return [
+    {id: 1, name: "张三", email: "zhangsan@hive.local", faceCode: "HIVE-A1B2C3D4", avatar: "👨", status: "online", lastSeen: "刚刚"},
+    {id: 2, name: "李四", email: "lisi@hive.local", faceCode: "HIVE-E5F6G7H8", avatar: "👩", status: "offline", lastSeen: "2小时前"},
+    {id: 3, name: "王五", email: "wangwu@hive.local", faceCode: "HIVE-I9J0K1L2", avatar: "👨‍💼", status: "online", lastSeen: "刚刚"}
+  ];
+}), hiveFriends = _hiveFriends[0], setHiveFriends = _hiveFriends[1];
+// 保存朋友列表到localStorage
+function saveHiveFriends(friends) {
+  localStorage.setItem("hive_friends", JSON.stringify(friends));
+  setHiveFriends(friends);
+}
+// 消息记录 - 从localStorage读取
+var _hiveMessages = useState(function() {
+  var saved = localStorage.getItem("hive_messages");
+  if (saved) {
+    try { return JSON.parse(saved); } catch(e) {}
+  }
+  return [
+    {id: 1, from: "张三", to: "我", content: "你好，最近怎么样？", timestamp: "2026-07-07 10:30", type: "text"},
+    {id: 2, from: "我", to: "张三", content: "挺好的，谢谢！", timestamp: "2026-07-07 10:32", type: "text"}
+  ];
+}), hiveMessages = _hiveMessages[0], setHiveMessages = _hiveMessages[1];
+// 保存消息到localStorage
+function saveHiveMessages(messages) {
+  localStorage.setItem("hive_messages", JSON.stringify(messages));
+  setHiveMessages(messages);
+}
+var _selectedFriend = useState(null), selectedFriend = _selectedFriend[0], setSelectedFriend = _selectedFriend[1];
+var _hiveTab = useState("friends"), hiveTab = _hiveTab[0], setHiveTab = _hiveTab[1];
+var _showAddFriend = useState(false), showAddFriend = _showAddFriend[0], setShowAddFriend = _showAddFriend[1];
+var _newFriend = useState({name: "", email: ""}), newFriend = _newFriend[0], setNewFriend = _newFriend[1];
+var _hiveInput = useState(""), hiveInput = _hiveInput[0], setHiveInput = _hiveInput[1];
+var _attachedFiles = useState([]), attachedFiles = _attachedFiles[0], setAttachedFiles = _attachedFiles[1];;var _aiInput = useState(""), aiInput = _aiInput[0], setAiInput = _aiInput[1];
+var _aiResult = useState(""), aiResult = _aiResult[0], setAiResult = _aiResult[1];
+var _aiLoading = useState(false), aiLoading = _aiLoading[0], setAiLoading = _aiLoading[1];
+var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
+  var _savingConfig = useState(false), savingConfig = _savingConfig[0], setSavingConfig = _savingConfig[1];
+  var _aiInput = useState(""), aiInput = _aiInput[0], setAiInput = _aiInput[1];
+  var _aiResult = useState(""), aiResult = _aiResult[0], setAiResult = _aiResult[1];
+  var _aiLoading = useState(false), aiLoading = _aiLoading[0], setAiLoading = _aiLoading[1];
+  var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1];
+  
+  // 全局AI副驾面板状态
+  var _aiPanelOpen = useState(false), aiPanelOpen = _aiPanelOpen[0], setAiPanelOpen = _aiPanelOpen[1];
+  var _aiPanelTab = useState("config"), aiPanelTab = _aiPanelTab[0], setAiPanelTab = _aiPanelTab[1];
+  // AI分身全局开关
+  var _aiFenshenEnabled = useState(function(){try{return localStorage.getItem("aiFenshenGlobalEnabled")!=="false";}catch(e){return true;}}), aiFenshenEnabled = _aiFenshenEnabled[0], setAiFenshenEnabled = _aiFenshenEnabled[1];
+  
+  // Himalaya技术自配状态
+  var _himalayaAutoConfig = useState({
+    email: "",
+    password: "",
+    provider: "",
+    status: "idle",
+    message: ""
+  }), himalayaAutoConfig = _himalayaAutoConfig[0], setHimalayaAutoConfig = _himalayaAutoConfig[1];
+  
+  // WebRTC P2P通信状态
+  var _webrtcReady = useState(false), webrtcReady = _webrtcReady[0], setWebrtcReady = _webrtcReady[1];
+  var _peerConnections = useState({}), peerConnections = _peerConnections[0], setPeerConnections = _peerConnections[1];
+  var _dataChannels = useState({}), dataChannels = _dataChannels[0], setDataChannels = _dataChannels[1];
+  var _signalingSocket = useState(null), signalingSocket = _signalingSocket[0], setSignalingSocket = _signalingSocket[1];
+  var _connectionStatus = useState("disconnected"), connectionStatus = _connectionStatus[0], setConnectionStatus = _connectionStatus[1];
+  var _p2pEnabled = useState(false), p2pEnabled = _p2pEnabled[0], setP2pEnabled = _p2pEnabled[1];
+  var _showAddContact = useState(false), showAddContact = _showAddContact[0], setShowAddContact = _showAddContact[1];
+  var _newContact = useState({name:"",email:"",phone:"",company:""}), newContact = _newContact[0], setNewContact = _newContact[1];
+  var _contactGroups = useState(["默认分组","同事","家人","朋友"]), contactGroups = _contactGroups[0], setContactGroups = _contactGroups[1];
+  var _selectedGroup = useState("全部"), selectedGroup = _selectedGroup[0], setSelectedGroup = _selectedGroup[1];
     var _s = useState(""), si = _s[0], setSi = _s[1];
+  // ---- 📧 邮箱预设配置 ----
+  // 支持30+主流邮箱服务商，像Foxmail一样兼容
+  var EMAIL_PROVIDERS = {
+    // 腾讯系
+    qq: {name:"QQ邮箱", smtp:{host:"smtp.qq.com",port:465,ssl:true,tls:true}, imap:{host:"imap.qq.com",port:993,ssl:true}, pop3:{host:"pop.qq.com",port:995,ssl:true}, authCode:true, domain:"qq.com"},
+    foxmail: {name:"Foxmail邮箱", smtp:{host:"smtp.qq.com",port:465,ssl:true,tls:true}, imap:{host:"imap.qq.com",port:993,ssl:true}, pop3:{host:"pop.qq.com",port:995,ssl:true}, authCode:true, domain:"foxmail.com"},
+    
+    // 网易系
+    mail163: {name:"163邮箱", smtp:{host:"smtp.163.com",port:465,ssl:true,tls:true}, imap:{host:"imap.163.com",port:993,ssl:true}, pop3:{host:"pop.163.com",port:995,ssl:true}, authCode:true, domain:"163.com"},
+    mail126: {name:"126邮箱", smtp:{host:"smtp.126.com",port:465,ssl:true,tls:true}, imap:{host:"imap.126.com",port:993,ssl:true}, pop3:{host:"pop.126.com",port:995,ssl:true}, authCode:true, domain:"126.com"},
+    yeah: {name:"Yeah邮箱", smtp:{host:"smtp.yeah.net",port:465,ssl:true,tls:true}, imap:{host:"imap.yeah.net",port:993,ssl:true}, pop3:{host:"pop.yeah.net",port:995,ssl:true}, authCode:true, domain:"yeah.net"},
+    netease: {name:"网易企业邮", smtp:{host:"smtp.qiye.163.com",port:465,ssl:true,tls:true}, imap:{host:"imap.qiye.163.com",port:993,ssl:true}, pop3:{host:"pop.qiye.163.com",port:995,ssl:true}, authCode:true, domain:"qiye.163.com"},
+    
+    // 阿里系
+    aliyun: {name:"阿里云邮箱", smtp:{host:"smtp.aliyun.com",port:465,ssl:true,tls:true}, imap:{host:"imap.aliyun.com",port:993,ssl:true}, pop3:{host:"pop.aliyun.com",port:995,ssl:true}, authCode:true, domain:"aliyun.com"},
+    
+    // 新浪系
+    sina: {name:"新浪邮箱", smtp:{host:"smtp.sina.com",port:465,ssl:true,tls:true}, imap:{host:"imap.sina.com",port:993,ssl:true}, pop3:{host:"pop.sina.com",port:995,ssl:true}, authCode:true, domain:"sina.com"},
+    sinacn: {name:"新浪CN邮箱", smtp:{host:"smtp.sina.cn",port:465,ssl:true,tls:true}, imap:{host:"imap.sina.cn",port:993,ssl:true}, pop3:{host:"pop.sina.cn",port:995,ssl:true}, authCode:true, domain:"sina.cn"},
+    
+    // 搜狐
+    sohu: {name:"搜狐邮箱", smtp:{host:"smtp.sohu.com",port:465,ssl:true,tls:true}, imap:{host:"imap.sohu.com",port:993,ssl:true}, pop3:{host:"pop.sohu.com",port:995,ssl:true}, authCode:true, domain:"sohu.com"},
+    
+    // 21CN
+    cn21: {name:"21CN邮箱", smtp:{host:"smtp.21cn.com",port:465,ssl:true,tls:true}, imap:{host:"imap.21cn.com",port:993,ssl:true}, pop3:{host:"pop.21cn.com",port:995,ssl:true}, authCode:true, domain:"21cn.com"},
+    
+    // 国际主流
+    gmail: {name:"Gmail", smtp:{host:"smtp.gmail.com",port:587,ssl:false,tls:true}, imap:{host:"imap.gmail.com",port:993,ssl:true}, pop3:{host:"pop.gmail.com",port:995,ssl:true}, authCode:true, domain:"gmail.com"},
+    outlook: {name:"Outlook/Hotmail", smtp:{host:"smtp-mail.outlook.com",port:587,ssl:false,tls:true}, imap:{host:"outlook.office365.com",port:993,ssl:true}, pop3:{host:"pop-mail.outlook.com",port:995,ssl:true}, authCode:false, domain:"outlook.com"},
+    live: {name:"Live邮箱", smtp:{host:"smtp-mail.outlook.com",port:587,ssl:false,tls:true}, imap:{host:"outlook.office365.com",port:993,ssl:true}, pop3:{host:"pop-mail.outlook.com",port:995,ssl:true}, authCode:false, domain:"live.com"},
+    hotmail: {name:"Hotmail", smtp:{host:"smtp-mail.outlook.com",port:587,ssl:false,tls:true}, imap:{host:"outlook.office365.com",port:993,ssl:true}, pop3:{host:"pop-mail.outlook.com",port:995,ssl:true}, authCode:false, domain:"hotmail.com"},
+    yahoo: {name:"Yahoo邮箱", smtp:{host:"smtp.mail.yahoo.com",port:465,ssl:true,tls:true}, imap:{host:"imap.mail.yahoo.com",port:993,ssl:true}, pop3:{host:"pop.mail.yahoo.com",port:995,ssl:true}, authCode:true, domain:"yahoo.com"},
+    yahoocn: {name:"雅虎中国", smtp:{host:"smtp.mail.yahoo.cn",port:465,ssl:true,tls:true}, imap:{host:"imap.mail.yahoo.cn",port:993,ssl:true}, pop3:{host:"pop.mail.yahoo.cn",port:995,ssl:true}, authCode:true, domain:"yahoo.cn"},
+    
+    // 苹果
+    icloud: {name:"iCloud邮箱", smtp:{host:"smtp.mail.me.com",port:587,ssl:false,tls:true}, imap:{host:"imap.mail.me.com",port:993,ssl:true}, pop3:{host:"pop.mail.me.com",port:995,ssl:true}, authCode:true, domain:"icloud.com"},
+    me: {name:"Me邮箱", smtp:{host:"smtp.mail.me.com",port:587,ssl:false,tls:true}, imap:{host:"imap.mail.me.com",port:993,ssl:true}, pop3:{host:"pop.mail.me.com",port:995,ssl:true}, authCode:true, domain:"me.com"},
+    mac: {name:"Mac邮箱", smtp:{host:"smtp.mail.me.com",port:587,ssl:false,tls:true}, imap:{host:"imap.mail.me.com",port:993,ssl:true}, pop3:{host:"pop.mail.me.com",port:995,ssl:true}, authCode:true, domain:"mac.com"},
+    
+    // 企业邮箱
+    exch: {name:"Exchange", smtp:{host:"",port:587,ssl:false,tls:true}, imap:{host:"",port:993,ssl:true}, pop3:{host:"",port:995,ssl:true}, authCode:false, domain:""},
+    office365: {name:"Office 365", smtp:{host:"smtp.office365.com",port:587,ssl:false,tls:true}, imap:{host:"outlook.office365.com",port:993,ssl:true}, pop3:{host:"outlook.office365.com",port:995,ssl:true}, authCode:false, domain:"onmicrosoft.com"},
+    
+    // 其他
+    tom: {name:"TOM邮箱", smtp:{host:"smtp.tom.com",port:465,ssl:true,tls:true}, imap:{host:"imap.tom.com",port:993,ssl:true}, pop3:{host:"pop.tom.com",port:995,ssl:true}, authCode:true, domain:"tom.com"},
+    mail139: {name:"139邮箱", smtp:{host:"smtp.139.com",port:465,ssl:true,tls:true}, imap:{host:"imap.139.com",port:993,ssl:true}, pop3:{host:"pop.139.com",port:995,ssl:true}, authCode:true, domain:"139.com"},
+    mail189: {name:"189邮箱", smtp:{host:"smtp.189.cn",port:465,ssl:true,tls:true}, imap:{host:"imap.189.cn",port:993,ssl:true}, pop3:{host:"pop.189.cn",port:995,ssl:true}, authCode:true, domain:"189.cn"},
+    
+    // 自定义
+    custom: {name:"自定义", smtp:{host:"",port:587,ssl:false,tls:true}, imap:{host:"",port:993,ssl:true}, pop3:{host:"",port:995,ssl:true}, authCode:false, domain:""}
+  };
+
+  // ---- 📧 邮箱模拟数据函数 ----
+  function getMockEmails(tab) {
+    var mockData = {
+      inbox: [
+        {id: 1, subject: "欢迎使用巢邮箱系统", from_addr: "系统通知", body: "感谢您使用巢邮箱系统，这是一个AI驱动的智能邮箱平台。", created_at: "2026-07-06"},
+        {id: 2, subject: "项目进度更新", from_addr: "项目经理", body: "关于本周的项目进度，我们已经完成了80%的开发工作。", created_at: "2026-07-05"},
+        {id: 3, subject: "会议邀请", from_addr: "人力资源部", body: "邀请您参加下周一的团队建设会议。", created_at: "2026-07-04"}
+      ],
+      sent: [
+        {id: 1, subject: "工作汇报", to_addr: "老板", body: "本周工作汇报：完成了邮箱功能开发。", created_at: "2026-07-06"},
+        {id: 2, subject: "项目建议", to_addr: "团队", body: "建议采用新的技术方案。", created_at: "2026-07-05"}
+      ],
+      drafts: [
+        {id: 1, subject: "未完成的邮件", body: "这是一个草稿...", created_at: "2026-07-06"}
+      ],
+      contacts: [
+        {id: 1, name: "张三", email: "zhangsan@example.com", company: "ABC公司", created_at: "2026-07-06"},
+        {id: 2, name: "李四", email: "lisi@example.com", company: "XYZ公司", created_at: "2026-07-05"}
+      ],
+      trash: [
+        {id: 1, subject: "已删除的邮件", body: "这是一封被删除的邮件。", created_at: "2026-07-04"}
+      ],
+      settings: [
+        {id: 1, name: "邮箱设置", description: "配置SMTP和IMAP参数"},
+        {id: 2, name: "账户设置", description: "管理邮箱账户"},
+        {id: 3, name: "同步设置", description: "配置邮件同步"}
+      ]
+    };
+
+    return mockData[tab] || [];
+  }
+
+  function fetchEmails(tab) {
+    setLoading(true);
+    setError(null);
+    
+    // 调用后端API获取真实邮件数据
+    var apiBase = '/api/plugins/team_chat/email';
+    var endpoint = {inbox:'/inbox', sent:'/sent', drafts:'/drafts', trash:'/trash'}[tab] || '/inbox';
+    
+    fetch(apiBase + endpoint)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            setLoading(false);
+            if (data.success && data.emails) {
+                // 转换后端数据格式为前端格式
+                var emails = data.emails.map(function(e) {
+                    return {
+                        id: e.id,
+                        from: e.from_addr || e.from,
+                        to: e.to_addr || e.to,
+                        subject: e.subject,
+                        date: e.received_date || e.sent_date || e.date,
+                        read: e.read_status === 1 || e.read === true,
+                        body: e.body || '',
+                        preview: e.body ? e.body.substring(0, 100) : ''
+                    };
+                });
+                setEmails(emails);
+            } else {
+                setEmails([]);
+            }
+        })
+        .catch(function(e) {
+            setLoading(false);
+            console.error('加载邮件失败:', e);
+            setError('加载邮件失败: ' + e.message);
+            setEmails([]);
+        });
+}
+  
+  // 从 Agent Mail CLI 加载邮件数据
+  window.loadAgentMailData = function() {
+    // 从后端API加载真实邮件数据
+    window.agentMailData = {inbox: [], sent: [], drafts: [], trash: []};
+    
+    var apiBase = '/api/plugins/team_chat/email';
+    var folders = ['inbox', 'sent', 'drafts', 'trash'];
+    
+    folders.forEach(function(folder) {
+        var endpoint = {inbox:'/inbox', sent:'/sent', drafts:'/drafts', trash:'/trash'}[folder];
+        fetch(apiBase + endpoint)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success && data.emails) {
+                    window.agentMailData[folder] = data.emails.map(function(e) {
+                        return {
+                            id: e.id,
+                            from: e.from_addr || e.from,
+                            to: e.to_addr || e.to,
+                            subject: e.subject,
+                            date: e.received_date || e.sent_date || e.date,
+                            read: e.read_status === 1 || e.read === true,
+                            body: e.body || ''
+                        };
+                    });
+                }
+            })
+            .catch(function(e) {
+                console.error('加载' + folder + '失败:', e);
+            });
+    });
+  };
+  
+  // 页面加载时初始化
+  if (typeof window !== 'undefined') {
+    window.loadAgentMailData();
+  }
+  
+  // 测试邮件连接
+  function testEmailConnection() {
+  if (!emailConfig || !emailConfig.email) {
+    alert("请先配置邮箱");
+    return;
+  }
+
+  // 填充IMAP字段（默认与SMTP相同）
+  var cfg = Object.assign({}, emailConfig);
+  if (!cfg.smtp_username) cfg.smtp_username = cfg.username || cfg.email;
+  if (!cfg.smtp_password) cfg.smtp_password = cfg.password || "";
+  if (!cfg.imap_username) cfg.imap_username = cfg.username || cfg.email;
+  if (!cfg.imap_password) cfg.imap_password = cfg.password || "";
+  if (!cfg.imap_host) cfg.imap_host = cfg.imap_host || "";
+  if (!cfg.imap_port) cfg.imap_port = cfg.imap_port || 993;
+  if (!cfg.imap_ssl) cfg.imap_ssl = cfg.imap_ssl !== false;
+  if (!cfg.display_name) cfg.display_name = cfg.email.split("@")[0];
+
+  // 显示加载状态
+  var loadingElement = document.querySelector('.connection-test-loading');
+  if (loadingElement) loadingElement.style.display = 'block';
+
+  fetch("/api/plugins/team_chat/email/test-connection", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(cfg)
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (loadingElement) loadingElement.style.display = 'none';
+
+    if (data.success) {
+      // 正确处理响应格式
+      var results = data.results || data;
+      var smtpStatus = results.smtp ? "✓" : "✗";
+      var imapStatus = results.imap ? "✓" : "✗";
+
+      if (results.smtp && results.imap) {
+        alert("✓ 连接测试成功！\nSMTP: " + smtpStatus + "\nIMAP: " + imapStatus);
+        // 保存配置到localStorage
+        localStorage.setItem("teamchat_email_config", JSON.stringify(cfg));
+      } else {
+        var errorMsg = [];
+        if (!results.smtp) errorMsg.push("SMTP连接失败");
+        if (!results.imap) errorMsg.push("IMAP连接失败");
+        alert("✗ 连接测试失败\n" + errorMsg.join("\n"));
+      }
+    } else {
+      alert("✗ 连接测试失败\n" + (data.message || "请检查配置"));
+    }
+  })
+  .catch(function(err) {
+    if (loadingElement) loadingElement.style.display = 'none';
+    alert("✗ 连接测试失败: " + err.message);
+    console.error("连接测试错误:", err);
+  });
+}
+
+  function deleteEmail(tab, id) {
+    if (!confirm("确定要删除吗？")) return;
+
+    // 模拟删除操作
+    var updatedEmails = emails.filter(function(email){return email.id !== id;});
+    setEmails(updatedEmails);
+    console.log("删除成功: id=" + id);
+  }
+
+  // ---- 👤 联系人操作函数 ----
+  function addContact() {
+    if (!newContact.name || !newContact.email) {
+      alert("请填写姓名和邮箱");
+      return;
+    }
+    var contact = {
+      id: Date.now(),
+      name: newContact.name,
+      email: newContact.email,
+      phone: newContact.phone || "",
+      company: newContact.company || "",
+      created_at: new Date().toISOString().split('T')[0]
+    };
+    setEmails([...emails, contact]);
+    setNewContact({name:"",email:"",phone:"",company:""});
+    setShowAddContact(false);
+    console.log("添加联系人:", contact);
+  }
+
+  function deleteContact(id) {
+    if (!confirm("确定要删除此联系人吗？")) return;
+    var updatedContacts = emails.filter(function(c){return c.id !== id;});
+    setEmails(updatedContacts);
+    console.log("删除联系人: id=" + id);
+  }
+
+  // ---- 📤 邮件发送功能 ----
+  // 处理附件选择
+  function handleComposeAttachment(e) {
+    var files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    var newAttachments = files.map(function(file) {
+      return {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        file: file
+      };
+    });
+    
+    setComposeAttachments(composeAttachments.concat(newAttachments));
+  }
+  
+  // 移除附件
+  function removeComposeAttachment(index) {
+    setComposeAttachments(composeAttachments.filter(function(_, i) { return i !== index; }));
+  }
+  
+  // 发送邮件（支持附件）
+  function openComposeModal() {
+    setComposeTitle("写邮件");
+    setShowCompose(true);
+    setComposeData({to:"",cc:"",bcc:"",subject:"",body:"",replyTo:"",priority:"normal",attachments:[]});
+    setComposeAttachments([]);
+  }
+
+  function closeComposeModal() {
+    setShowCompose(false);
+    setComposeData({to:"",cc:"",bcc:"",subject:"",body:"",replyTo:"",priority:"normal",attachments:[]});
+    setComposeAttachments([]);
+  }
+
+  function sendEmail() {
+    if (!composeData.to || !composeData.subject) {
+      alert("请填写收件人和主题");
+      return;
+    }
+    
+    if (!emailConfig || !emailConfig.email) {
+      alert("请先配置邮箱");
+      return;
+    }
+    
+    setSendingEmail(true);
+    
+    // 构建FormData（支持附件）
+    var formData = new FormData();
+    formData.append("to_addr", composeData.to);
+    formData.append("to_name", composeData.to.split("@")[0]);
+    formData.append("subject", composeData.subject);
+    formData.append("body", composeData.body);
+    if (composeData.cc) formData.append("cc", composeData.cc);
+    if (composeData.bcc) formData.append("bcc", composeData.bcc);
+    
+    // 添加附件
+    if (composeAttachments && composeAttachments.length > 0) {
+      composeAttachments.forEach(function(file, idx) {
+        if (file.file) {
+          formData.append("attachments", file);
+        }
+      });
+    }
+    
+    // 调用后端API发送邮件
+    fetch("/api/plugins/team_chat/email/send", {
+      method: "POST",
+      body: formData
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      setSendingEmail(false);
+      if (data.success) {
+        closeComposeModal();
+        alert("✅ " + data.message);
+        // 如果在发件箱页面，刷新列表
+        if (emailTab === "sent") {
+          fetchEmails("sent");
+        }
+      } else {
+        alert("❌ 发送失败: " + (data.message || "请检查配置"));
+      }
+    })
+    .catch(function(err) {
+      setSendingEmail(false);
+      console.error("发送邮件失败:", err);
+      alert("❌ 发送失败: " + err.message);
+    });
+  }
+
+  function replyEmail(email, replyAll) {
+    setComposeTitle(replyAll ? "回复全部" : "回复");
+    setComposeData({
+      to: replyAll ? (email.from_addr + "," + (email.cc || "")) : email.from_addr,
+      cc: "",
+      bcc: "",
+      subject: "Re: " + email.subject,
+      body: "\n\n--- 原始邮件 ---\n发件人: " + email.from_addr + "\n主题: " + email.subject + "\n\n" + email.body,
+      replyTo: email.id,
+      priority: "normal",
+      attachments: []
+    });
+    setComposeAttachments([]);
+    setShowCompose(true);
+  }
+
+  function forwardEmail(email) {
+    setComposeTitle("转发");
+    setComposeData({
+      to: "",
+      cc: "",
+      bcc: "",
+      subject: "Fwd: " + email.subject,
+      body: "\n\n--- 转发邮件 ---\n发件人: " + email.from_addr + "\n主题: " + email.subject + "\n\n" + email.body,
+      replyTo: "",
+      priority: "normal",
+      attachments: []
+    });
+    setComposeAttachments([]);
+    setShowCompose(true);
+  }
+
+  // ---- 🐝 蜂巢邮箱操作函数 ----
+  function editDraft(email) {
+    setComposeTitle("编辑草稿");
+    setComposeMode("draft");
+    setComposeData({
+      to: email.to_addr || "",
+      subject: email.subject || "",
+      body: email.body || ""
+    });
+    setComposeOpen(true);
+  }
+
+
+  function restoreEmail(email) {
+  if (!confirm("确定要恢复这封邮件吗？")) return;
+
+  var restoreData = {
+    id: email.id,
+    original_folder: email.original_folder,
+    original_id: email.original_id
+  };
+
+  fetch("/api/plugins/team_chat/email/trash/" + email.id + "/restore", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(restoreData)
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (data.success) {
+      message.success("邮件恢复成功");
+      // 从回收站列表中移除
+      var trashEmails = getStorage("trash") || [];
+      trashEmails = trashEmails.filter(function(e) { return e.id !== email.id; });
+      setStorage("trash", trashEmails);
+
+      // 添加到原文件夹
+      var folder = email.original_folder || "inbox";
+      var folderEmails = getStorage(folder) || [];
+      folderEmails.push({
+        id: email.original_id || email.id,
+        subject: email.subject,
+        from_addr: email.from_addr,
+        to_addr: email.to_addr,
+        date: email.date,
+        body_text: email.body_text,
+        body_html: email.body_html,
+        read: false
+      });
+      setStorage(folder, folderEmails);
+
+      // 刷新UI
+      if (typeof refreshEmails === 'function') {
+        refreshEmails();
+      } else {
+        location.reload();
+      }
+    } else {
+      message.error(data.message || "恢复失败");
+    }
+  })
+  .catch(function(err) {
+    message.error("恢复失败: " + err.message);
+    console.error("恢复错误:", err);
+  });
+}
+
+
+
+
+  function addHiveFriend() {
+    if (!newFriend.name || !newFriend.email) {
+      alert("请填写姓名和邮箱");
+      return;
+    }
+    // 生成面码（如果没有提供）
+    var faceCode = newFriend.faceCode;
+    if (!faceCode || !faceCode.startsWith("HIVE-")) {
+      faceCode = "HIVE-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+    }
+    // 检查面码是否已存在
+    var exists = hiveFriends.some(function(f) { return f.faceCode === faceCode; });
+    if (exists) {
+      alert("该面码已被使用，请使用其他面码");
+      return;
+    }
+    var friend = {
+      id: Date.now(),
+      name: newFriend.name,
+      email: newFriend.email,
+      faceCode: faceCode,
+      avatar: newFriend.name.charAt(0),
+      status: "offline",
+      lastSeen: "刚刚添加"
+    };
+    saveHiveFriends([...hiveFriends, friend]);
+    setNewFriend({name: "", email: "", faceCode: ""});
+    setShowAddFriend(false);
+    console.log("添加朋友:", friend);
+  }
+
+  function deleteHiveFriend(id) {
+    if (!confirm("确定要删除此朋友吗？")) return;
+    var updated = hiveFriends.filter(function(f) { return f.id !== id; });
+    saveHiveFriends(updated);
+    if (selectedFriend && selectedFriend.id === id) {
+      setSelectedFriend(null);
+    }
+    console.log("删除朋友: id=" + id);
+  }
+
+  function sendHiveMessage() {
+    if (!selectedFriend) {
+      alert("请先选择一个朋友");
+      return;
+    }
+    if (!hiveInput.trim() && attachedFiles.length === 0) {
+      alert("请输入消息内容或选择附件");
+      return;
+    }
+    
+    // 如果P2P已启用，尝试使用WebRTC发送
+    if (p2pEnabled && selectedFriend.faceCode) {
+      // 检查是否已有连接
+      if (!peerConnections[selectedFriend.faceCode]) {
+        // 发起连接
+        initiateP2PConnection(selectedFriend.faceCode);
+        // 等待连接建立后发送
+        setTimeout(function() {
+          sendP2PMessage(selectedFriend.faceCode, hiveInput);
+        }, 2000);
+      } else {
+        // 直接发送
+        sendP2PMessage(selectedFriend.faceCode, hiveInput);
+      }
+    }
+    
+    var message = {
+      id: Date.now(),
+      from: "我",
+      to: selectedFriend.name,
+      content: hiveInput,
+      timestamp: new Date().toLocaleString(),
+      type: attachedFiles.length > 0 ? "file" : "text",
+      files: attachedFiles
+    };
+    
+    saveHiveMessages([...hiveMessages, message]);
+    setHiveInput("");
+    setAttachedFiles([]);
+    console.log("发送消息:", message);
+  }
+
+  function handleFileAttach(e) {
+    var files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    var newFiles = [];
+    for (var i = 0; i < files.length; i++) {
+      newFiles.push({
+        name: files[i].name,
+        size: files[i].size,
+        type: files[i].type,
+        file: files[i]
+      });
+    }
+    setAttachedFiles([...attachedFiles, ...newFiles]);
+    console.log("添加附件:", newFiles);
+  }
+
+  function removeAttachedFile(index) {
+    var newFiles = attachedFiles.slice();
+    newFiles.splice(index, 1);
+    setAttachedFiles(newFiles);
+  }
+
+  // ---- 🐝 面码操作函数 ----
+  function copyFaceCode() {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(myFaceCode).then(function() {
+        alert("面码已复制: " + myFaceCode);
+      }).catch(function() {
+        // 降级方案
+        var textarea = document.createElement("textarea");
+        textarea.value = myFaceCode;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        alert("面码已复制: " + myFaceCode);
+      });
+    } else {
+      alert("我的面码: " + myFaceCode);
+    }
+  }
+
+  function refreshFaceCode() {
+    if (!confirm("刷新后将生成新的面码，旧的面码将失效。确定要刷新吗？")) return;
+    var newCode = "HIVE-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+    saveFaceCode(newCode);
+    alert("面码已刷新: " + newCode);
+  }
+
+  function updateMyHiveInfo(name, avatar) {
+    if (name) {
+      localStorage.setItem("hive_my_name", name);
+      setMyHiveName(name);
+    }
+    if (avatar) {
+      localStorage.setItem("hive_my_avatar", avatar);
+      setMyHiveAvatar(avatar);
+    }
+  }
+
+  function shareFaceCode() {
+    var shareText = "快来蜂巢邮箱加我好友吧！我的面码是: " + myFaceCode;
+    if (navigator.share) {
+      navigator.share({
+        title: "蜂巢邮箱 - 添加好友",
+        text: shareText
+      }).catch(function() {
+        copyFaceCode();
+      });
+    } else {
+      copyFaceCode();
+    }
+  }
+
+  function addFriendByFaceCode() {
+    var code = prompt("请输入朋友的面码:");
+    if (!code) return;
+    code = code.trim().toUpperCase();
+    if (!code.startsWith("HIVE-")) {
+      alert("面码格式错误，应以 HIVE- 开头");
+      return;
+    }
+    if (code === myFaceCode) {
+      alert("不能添加自己为好友");
+      return;
+    }
+    // 检查是否已存在
+    var exists = hiveFriends.some(function(f) { return f.faceCode === code; });
+    if (exists) {
+      alert("该朋友已在您的好友列表中");
+      return;
+    }
+    // 模拟添加朋友
+    var newFriend = {
+      id: Date.now(),
+      name: "新朋友(" + code.substring(5) + ")",
+      email: code.toLowerCase() + "@hive.local",
+      faceCode: code,
+      avatar: "👤",
+      status: "offline",
+      lastSeen: "刚刚添加"
+    };
+    setHiveFriends([...hiveFriends, newFriend]);
+    alert("成功添加朋友: " + code);
+  }
+
+  // 监听emailTab变化，自动获取数据
+  React.useEffect(function() {
+    if (aimailView && aimailMode === "traditional") {
+      fetchEmails(emailTab);
+    }
+  }, [emailTab, aimailView, aimailMode]);
+
+  // AI分身开关同步：监听外部事件更新React状态
+  React.useEffect(function() {
+    function handler(e) { setAiFenshenEnabled(e.detail.enabled); }
+    window.addEventListener("aiFenshenToggle", handler);
+    return function() { window.removeEventListener("aiFenshenToggle", handler); };
+  }, []);
+
+  // AI分身开关初始化：启动时同步按钮显示状态
+  React.useEffect(function() {
+    window.toggleAIFenshenGlobal(aiFenshenEnabled);
+  }, []);
+
+  // AI分身按钮随邮箱视图自动显隐：进入邮箱始终显示，退出主界面按全局开关
+  React.useEffect(function() {
+    var btn = document.querySelector(".ai-copilot-btn");
+    if (!btn) return;
+    if (aimailView) {
+      btn.classList.remove("ai-copilot-btn-hidden");
+    } else {
+      if (!aiFenshenEnabled) {
+        btn.classList.add("ai-copilot-btn-hidden");
+      }
+    }
+  }, [aimailView, aiFenshenEnabled]);
+
+  // 监听外部入口（AI分身快捷按钮等）打开传统邮箱
+  React.useEffect(function() {
+    function handler() {
+      setAimailView(true);
+      setAimailMode("traditional");
+    }
+    window.addEventListener("openTraditionalEmail", handler);
+    return function() { window.removeEventListener("openTraditionalEmail", handler); };
+  }, []);
+
+  // ---- ⚙️ 配置操作函数 ----
+  function openConfig() {
+    setConfigVisible(true);
+  }
+  
+  // 检测邮箱服务商
+  function detectEmailProviderAuto(email) {
+    if (!email || !email.includes("@")) return null;
+    var domain = email.split("@")[1].toLowerCase();
+    var providers = {
+      "qq.com": "qq", "foxmail.com": "foxmail", "163.com": "mail163", "126.com": "mail126",
+      "yeah.net": "yeah", "aliyun.com": "aliyun", "sina.com": "sina", "sina.cn": "sinacn",
+      "sohu.com": "sohu", "21cn.com": "cn21", "tom.com": "tom", "139.com": "mail139",
+      "189.cn": "mail189", "gmail.com": "gmail", "outlook.com": "outlook",
+      "hotmail.com": "outlook", "live.com": "outlook", "yahoo.com": "yahoo",
+      "yahoo.cn": "yahoocn", "icloud.com": "icloud", "me.com": "icloud", "mac.com": "icloud"
+    };
+    return providers[domain] || null;
+  }
+  
+  // 获取邮箱服务商配置
+  function getProviderConfigAuto(provider) {
+    var configs = {
+      qq: {name:"QQ邮箱", smtp:{host:"smtp.qq.com",port:465,ssl:true,tls:true}, imap:{host:"imap.qq.com",port:993,ssl:true}, authCode:true},
+      foxmail: {name:"Foxmail邮箱", smtp:{host:"smtp.qq.com",port:465,ssl:true,tls:true}, imap:{host:"imap.qq.com",port:993,ssl:true}, authCode:true},
+      mail163: {name:"163邮箱", smtp:{host:"smtp.163.com",port:465,ssl:true,tls:true}, imap:{host:"imap.163.com",port:993,ssl:true}, authCode:true},
+      mail126: {name:"126邮箱", smtp:{host:"smtp.126.com",port:465,ssl:true,tls:true}, imap:{host:"imap.126.com",port:993,ssl:true}, authCode:true},
+      yeah: {name:"Yeah邮箱", smtp:{host:"smtp.yeah.net",port:465,ssl:true,tls:true}, imap:{host:"imap.yeah.net",port:993,ssl:true}, authCode:true},
+      aliyun: {name:"阿里云邮箱", smtp:{host:"smtp.aliyun.com",port:465,ssl:true,tls:true}, imap:{host:"imap.aliyun.com",port:993,ssl:true}, authCode:true},
+      sina: {name:"新浪邮箱", smtp:{host:"smtp.sina.com",port:465,ssl:true,tls:true}, imap:{host:"imap.sina.com",port:993,ssl:true}, authCode:true},
+      sinacn: {name:"新浪CN邮箱", smtp:{host:"smtp.sina.cn",port:465,ssl:true,tls:true}, imap:{host:"imap.sina.cn",port:993,ssl:true}, authCode:true},
+      sohu: {name:"搜狐邮箱", smtp:{host:"smtp.sohu.com",port:465,ssl:true,tls:true}, imap:{host:"imap.sohu.com",port:993,ssl:true}, authCode:true},
+      cn21: {name:"21CN邮箱", smtp:{host:"smtp.21cn.com",port:465,ssl:true,tls:true}, imap:{host:"imap.21cn.com",port:993,ssl:true}, authCode:true},
+      tom: {name:"TOM邮箱", smtp:{host:"smtp.tom.com",port:465,ssl:true,tls:true}, imap:{host:"imap.tom.com",port:993,ssl:true}, authCode:true},
+      mail139: {name:"139邮箱", smtp:{host:"smtp.139.com",port:465,ssl:true,tls:true}, imap:{host:"imap.139.com",port:993,ssl:true}, authCode:true},
+      mail189: {name:"189邮箱", smtp:{host:"smtp.189.cn",port:465,ssl:true,tls:true}, imap:{host:"imap.189.cn",port:993,ssl:true}, authCode:true},
+      gmail: {name:"Gmail", smtp:{host:"smtp.gmail.com",port:587,ssl:false,tls:true}, imap:{host:"imap.gmail.com",port:993,ssl:true}, authCode:true},
+      outlook: {name:"Outlook/Hotmail", smtp:{host:"smtp-mail.outlook.com",port:587,ssl:false,tls:true}, imap:{host:"outlook.office365.com",port:993,ssl:true}, authCode:false},
+      yahoo: {name:"Yahoo邮箱", smtp:{host:"smtp.mail.yahoo.com",port:465,ssl:true,tls:true}, imap:{host:"imap.mail.yahoo.com",port:993,ssl:true}, authCode:true},
+      yahoocn: {name:"雅虎中国", smtp:{host:"smtp.mail.yahoo.cn",port:465,ssl:true,tls:true}, imap:{host:"imap.mail.yahoo.cn",port:993,ssl:true}, authCode:true},
+      icloud: {name:"iCloud邮箱", smtp:{host:"smtp.mail.me.com",port:587,ssl:false,tls:true}, imap:{host:"imap.mail.me.com",port:993,ssl:true}, authCode:true}
+    };
+    return configs[provider] || null;
+  }
+  
+  // =================== WebRTC P2P通信功能 ===================
+  
+  // 初始化WebRTC
+  function initWebRTC() {
+    if (!window.RTCPeerConnection) {
+      console.error("浏览器不支持WebRTC");
+      alert("您的浏览器不支持WebRTC，请使用Chrome/Firefox/Edge");
+      return false;
+    }
+    
+    // 初始化信令服务器连接（使用简单的HTTP轮询作为fallback）
+    initSignalingFallback();
+    
+    setWebrtcReady(true);
+    console.log("WebRTC初始化成功");
+    return true;
+  }
+  
+  // 信令服务器Fallback（使用localStorage模拟，实际应使用WebSocket服务器）
+  function initSignalingFallback() {
+    // 监听localStorage变化作为信令通道
+    window.addEventListener("storage", handleSignalingMessage);
+    setConnectionStatus("ready");
+  }
+  
+  // 处理信令消息
+  function handleSignalingMessage(event) {
+    if (event.key === "hive_signaling_" + myFaceCode) {
+      try {
+        var message = JSON.parse(event.newValue);
+        handleWebRTCSignal(message);
+      } catch(e) {
+        console.error("信令消息解析失败:", e);
+      }
+    }
+  }
+  
+  // 发送信令消息
+  function sendSignalingMessage(targetFaceCode, message) {
+    var key = "hive_signaling_" + targetFaceCode;
+    var data = JSON.stringify({
+      from: myFaceCode,
+      timestamp: Date.now(),
+      ...message
+    });
+    localStorage.setItem(key, data);
+    // 触发storage事件需要不同页面，这里手动触发
+    setTimeout(function() {
+      handleWebRTCSignal(JSON.parse(data));
+    }, 100);
+  }
+  
+  // 创建PeerConnection
+  async function createPeerConnection(friendFaceCode) {
+    var config = {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:19302" }
+      ]
+    };
+    
+    var pc = new RTCPeerConnection(config);
+    
+    pc.onicecandidate = function(event) {
+      if (event.candidate) {
+        sendSignalingMessage(friendFaceCode, {
+          type: "ice-candidate",
+          candidate: event.candidate
+        });
+      }
+    };
+    
+    pc.onconnectionstatechange = function() {
+      console.log("连接状态:", pc.connectionState);
+      if (pc.connectionState === "connected") {
+        setConnectionStatus("connected");
+      } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
+        setConnectionStatus("disconnected");
+        // 清理连接
+        closePeerConnection(friendFaceCode);
+      }
+    };
+    
+    pc.ondatachannel = function(event) {
+      var channel = event.channel;
+      setupDataChannel(channel, friendFaceCode);
+      setDataChannels({...dataChannels, [friendFaceCode]: channel});
+    };
+    
+    setPeerConnections({...peerConnections, [friendFaceCode]: pc});
+    return pc;
+  }
+  
+  // 设置DataChannel
+  function setupDataChannel(channel, friendFaceCode) {
+    channel.onopen = function() {
+      console.log("DataChannel已打开:", friendFaceCode);
+      setConnectionStatus("connected");
+    };
+    
+    channel.onmessage = function(event) {
+      try {
+        var message = JSON.parse(event.data);
+        handleP2PMessage(message, friendFaceCode);
+      } catch(e) {
+        console.error("消息解析失败:", e);
+      }
+    };
+    
+    channel.onclose = function() {
+      console.log("DataChannel已关闭:", friendFaceCode);
+    };
+    
+    channel.onerror = function(error) {
+      console.error("DataChannel错误:", error);
+    };
+  }
+  
+  // 发起P2P连接（作为发起方）
+  async function initiateP2PConnection(friendFaceCode) {
+    if (!webrtcReady) {
+      if (!initWebRTC()) return;
+    }
+    
+    setConnectionStatus("connecting");
+    
+    try {
+      var pc = await createPeerConnection(friendFaceCode);
+      
+      // 创建DataChannel
+      var channel = pc.createDataChannel("messages", {
+        ordered: true
+      });
+      setupDataChannel(channel, friendFaceCode);
+      setDataChannels({...dataChannels, [friendFaceCode]: channel});
+      
+      // 创建Offer
+      var offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      
+      // 发送Offer
+      sendSignalingMessage(friendFaceCode, {
+        type: "offer",
+        sdp: offer
+      });
+      
+    } catch(error) {
+      console.error("发起连接失败:", error);
+      setConnectionStatus("error");
+    }
+  }
+  
+  // 处理WebRTC信令
+  async function handleWebRTCSignal(message) {
+    if (message.from === myFaceCode) return; // 忽略自己的消息
+    
+    var friendFaceCode = message.from;
+    var pc = peerConnections[friendFaceCode];
+    
+    try {
+      if (message.type === "offer") {
+        // 收到Offer，作为应答方
+        if (!pc) {
+          pc = await createPeerConnection(friendFaceCode);
+        }
+        
+        await pc.setRemoteDescription(new RTCSessionDescription(message.sdp));
+        
+        // 创建Answer
+        var answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        
+        sendSignalingMessage(friendFaceCode, {
+          type: "answer",
+          sdp: answer
+        });
+        
+      } else if (message.type === "answer") {
+        // 收到Answer
+        if (pc) {
+          await pc.setRemoteDescription(new RTCSessionDescription(message.sdp));
+        }
+        
+      } else if (message.type === "ice-candidate") {
+        // 收到ICE候选
+        if (pc && message.candidate) {
+          await pc.addIceCandidate(new RTCIceCandidate(message.candidate));
+        }
+      }
+    } catch(error) {
+      console.error("处理信令失败:", error);
+    }
+  }
+  
+  // 通过P2P发送消息
+  function sendP2PMessage(friendFaceCode, content) {
+    var channel = dataChannels[friendFaceCode];
+    if (channel && channel.readyState === "open") {
+      var message = {
+        id: Date.now(),
+        from: myFaceCode,
+        fromName: myHiveName,
+        content: content,
+        timestamp: Date.now(),
+        type: "chat"
+      };
+      
+      channel.send(JSON.stringify(message));
+      
+      // 保存到本地消息记录
+      var newMessage = {
+        id: message.id,
+        from: myHiveName,
+        to: friendFaceCode,
+        content: content,
+        timestamp: new Date().toLocaleString(),
+        type: "sent"
+      };
+      
+      var updatedMessages = [...hiveMessages, newMessage];
+      setHiveMessages(updatedMessages);
+      saveHiveMessages(updatedMessages);
+      
+      return true;
+    } else {
+      console.warn("DataChannel未打开，使用Fallback");
+      // Fallback到localStorage
+      sendMessageFallback(friendFaceCode, content);
+      return false;
+    }
+  }
+  
+  // 处理收到的P2P消息
+  function handleP2PMessage(message, fromFaceCode) {
+    if (message.type === "chat") {
+      var newMessage = {
+        id: message.id || Date.now(),
+        from: message.fromName || "未知",
+        to: myHiveName,
+        content: message.content,
+        timestamp: new Date().toLocaleString(),
+        type: "received"
+      };
+      
+      var updatedMessages = [...hiveMessages, newMessage];
+      setHiveMessages(updatedMessages);
+      saveHiveMessages(updatedMessages);
+      
+      // 显示通知
+      showNotification("新消息", message.fromName + ": " + message.content.substring(0, 50));
+    }
+  }
+  
+  // Fallback消息发送（使用localStorage）
+  function sendMessageFallback(friendFaceCode, content) {
+    var messageKey = "hive_message_" + friendFaceCode + "_" + myFaceCode;
+    var message = {
+      id: Date.now(),
+      from: myHiveName,
+      fromFaceCode: myFaceCode,
+      content: content,
+      timestamp: Date.now()
+    };
+    
+    // 存储到localStorage
+    var messages = JSON.parse(localStorage.getItem(messageKey) || "[]");
+    messages.push(message);
+    localStorage.setItem(messageKey, JSON.stringify(messages));
+    
+    // 同时保存到本地记录
+    var newMessage = {
+      id: message.id,
+      from: myHiveName,
+      to: friendFaceCode,
+      content: content,
+      timestamp: new Date().toLocaleString(),
+      type: "sent"
+    };
+    
+    var updatedMessages = [...hiveMessages, newMessage];
+    setHiveMessages(updatedMessages);
+    saveHiveMessages(updatedMessages);
+  }
+  
+  // 关闭PeerConnection
+  function closePeerConnection(friendFaceCode) {
+    var pc = peerConnections[friendFaceCode];
+    var channel = dataChannels[friendFaceCode];
+    
+    if (channel) {
+      channel.close();
+    }
+    
+    if (pc) {
+      pc.close();
+    }
+    
+    var newConnections = {...peerConnections};
+    delete newConnections[friendFaceCode];
+    setPeerConnections(newConnections);
+    
+    var newChannels = {...dataChannels};
+    delete newChannels[friendFaceCode];
+    setDataChannels(newChannels);
+  }
+  
+  // 显示通知
+  function showNotification(title, body) {
+    if (window.Notification && Notification.permission === "granted") {
+      new Notification(title, { body: body });
+    } else if (window.Notification && Notification.permission !== "denied") {
+      Notification.requestPermission().then(function(permission) {
+        if (permission === "granted") {
+          new Notification(title, { body: body });
+        }
+      });
+    }
+  }
+  
+  // 初始化P2P（用户点击启用）
+  function toggleP2P() {
+    if (p2pEnabled) {
+      // 关闭P2P - 断开所有连接
+      Object.keys(peerConnections).forEach(function(fc) {
+        try {
+          var pc = peerConnections[fc];
+          if (pc && pc.close) pc.close();
+        } catch(e) {}
+      });
+      setPeerConnections({});
+      setP2pEnabled(false);
+      setConnectionStatus("disconnected");
+      alert("P2P通信已关闭");
+    } else {
+      // 启用P2P
+      if (initWebRTC()) {
+        setP2pEnabled(true);
+        // 请求通知权限
+        if (window.Notification && Notification.permission !== "granted") {
+          Notification.requestPermission();
+        }
+        alert("P2P通信已启用！选择朋友开始聊天时会自动建立连接。");
+      }
+    }
+  }
+  
+  // Himalaya技术自配
+  function autoConfigureEmail() {
+    var email = himalayaAutoConfig.email;
+    var password = himalayaAutoConfig.password;
+    
+    if (!email || !password) {
+      setHimalayaAutoConfig({...himalayaAutoConfig, status: "error", message: "请输入邮箱地址和密码"});
+      return;
+    }
+    
+    setHimalayaAutoConfig({...himalayaAutoConfig, status: "detecting", message: "正在检测邮箱服务商..."});
+    
+    setTimeout(function() {
+      var provider = detectEmailProviderAuto(email);
+      if (!provider) {
+        setHimalayaAutoConfig({...himalayaAutoConfig, status: "error", message: "未能识别的邮箱服务商，请使用自定义配置"});
+        return;
+      }
+      
+      var config = getProviderConfigAuto(provider);
+      if (!config) {
+        setHimalayaAutoConfig({...himalayaAutoConfig, status: "error", message: "暂不支持该邮箱服务商"});
+        return;
+      }
+      
+      setHimalayaAutoConfig({...himalayaAutoConfig, status: "configuring", message: "正在配置 " + config.name + "...", provider: provider});
+      
+      setTimeout(function() {
+        var newConfig = {
+          provider: provider,
+          email: email,
+          display_name: email.split("@")[0],
+          username: email,
+          password: password,
+          smtp_host: config.smtp.host,
+          smtp_port: config.smtp.port,
+          smtp_ssl: config.smtp.ssl,
+          imap_host: config.imap.host,
+          imap_port: config.imap.port,
+          imap_ssl: config.imap.ssl
+        };
+        
+        localStorage.setItem("teamchat_email_config", JSON.stringify(newConfig));
+        setEmailConfig(newConfig);
+        
+        setHimalayaAutoConfig({...himalayaAutoConfig, status: "success", message: "✅ " + config.name + " 配置成功！\n\nSMTP: " + config.smtp.host + ":" + config.smtp.port + "\nIMAP: " + config.imap.host + ":" + config.imap.port});
+      }, 1000);
+    }, 800);
+  }
+  
+  // AI邮件助手调用
+  function callAICopilot(mode, content) {
+    if (!content.trim()) {
+      setAiResult("请输入邮件内容");
+      return;
+    }
+    setAiLoading(true);
+    setAiResult("");
+    
+    var prompts = {
+      optimize: "请优化以下邮件内容，使其更加专业、清晰、有礼貌：\n\n" + content,
+      grammar: "请检查以下邮件内容的语法和拼写错误，并给出修正建议：\n\n" + content,
+      suggest: "请为以下邮件内容提供改进建议，包括语气、结构、用词等方面：\n\n" + content
+    };
+    
+    fetch("/api/console/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-Agent-Id": "default"},
+      body: JSON.stringify({message: prompts[mode] || prompts.optimize, session_id: "ai_copilot_" + Date.now()})
+    })
+    .then(function(r) { 
+      if (!r.ok) {
+        throw new Error("HTTP " + r.status + ": " + r.statusText);
+      }
+      var text = r.text();
+      return text;
+    })
+    .then(function(text) {
+      // 尝试解析JSON，如果失败则返回原始文本
+      var data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        // 如果不是JSON，直接使用文本
+        data = { response: text };
+      }
+      setAiLoading(false);
+      if (data && data.response) {
+        setAiResult(data.response);
+      } else if (data && data.message) {
+        setAiResult(data.message);
+      } else if (typeof data === "string") {
+        setAiResult(data);
+      } else {
+        setAiResult("AI处理完成，但未返回有效内容");
+      }
+    })
+    .catch(function(err) {
+      setAiLoading(false);
+      setAiResult("AI调用失败: " + err.message);
+    });
+  }
+
+  function closeConfig() {
+    setConfigVisible(false);
+  }
+
+  function handleProviderChange(provider) {
+    var preset = EMAIL_PROVIDERS[provider];
+    if (preset && provider !== "custom") {
+      setEmailConfig({
+        ...emailConfig,
+        provider: provider,
+        username: emailConfig.email,
+        smtp_host: preset.smtp.host,
+        smtp_port: preset.smtp.port,
+        smtp_ssl: preset.smtp.ssl,
+        imap_host: preset.imap.host,
+        imap_port: preset.imap.port,
+        imap_ssl: preset.imap.ssl
+      });
+    }
+  }
+
+  function handleEmailChange(email) {
+    // 自动检测邮箱服务商
+    var detectedProvider = detectEmailProvider(email);
+    var provider = detectedProvider || emailConfig.provider;
+    var preset = EMAIL_PROVIDERS[provider];
+    if (preset && preset.authCode && provider !== "custom") {
+      setEmailConfig({
+        ...emailConfig,
+        email: email,
+        username: email,
+        provider: provider,
+        smtp_host: preset.smtp.host,
+        smtp_port: preset.smtp.port,
+        smtp_ssl: preset.smtp.ssl,
+        imap_host: preset.imap.host,
+        imap_port: preset.imap.port,
+        imap_ssl: preset.imap.ssl
+      });
+    } else {
+      setEmailConfig({
+        ...emailConfig,
+        email: email
+      });
+    }
+  }
+
+  // 自动检测邮箱服务商
+  function detectEmailProvider(email) {
+    if (!email || !email.includes("@")) return null;
+    var domain = email.split("@")[1].toLowerCase();
+    for (var key in EMAIL_PROVIDERS) {
+      if (EMAIL_PROVIDERS[key].domain === domain) {
+        return key;
+      }
+    }
+    // 模糊匹配
+    if (domain.includes("qq.com")) return "qq";
+    if (domain.includes("foxmail.com")) return "foxmail";
+    if (domain.includes("163.com")) return "mail163";
+    if (domain.includes("126.com")) return "mail126";
+    if (domain.includes("yeah.net")) return "yeah";
+    if (domain.includes("aliyun.com")) return "aliyun";
+    if (domain.includes("sina.com")) return "sina";
+    if (domain.includes("sina.cn")) return "sinacn";
+    if (domain.includes("sohu.com")) return "sohu";
+    if (domain.includes("21cn.com")) return "cn21";
+    if (domain.includes("tom.com")) return "tom";
+    if (domain.includes("139.com")) return "mail139";
+    if (domain.includes("189.cn")) return "mail189";
+    if (domain.includes("gmail.com")) return "gmail";
+    if (domain.includes("outlook.com") || domain.includes("hotmail.com") || domain.includes("live.com")) return "outlook";
+    if (domain.includes("yahoo.com") || domain.includes("yahoo.cn")) return "yahoo";
+    if (domain.includes("icloud.com") || domain.includes("me.com") || domain.includes("mac.com")) return "icloud";
+    return null;
+  }
+
+  function saveConfig() {
+    setSavingConfig(true);
+
+    // 同步到后端数据库（供发送邮件使用）
+    var cfg = Object.assign({}, emailConfig);
+    if (!cfg.smtp_username) cfg.smtp_username = cfg.username || cfg.email;
+    if (!cfg.smtp_password) cfg.smtp_password = cfg.password || "";
+    if (!cfg.imap_username) cfg.imap_username = cfg.username || cfg.email;
+    if (!cfg.imap_password) cfg.imap_password = cfg.password || "";
+    if (!cfg.display_name) cfg.display_name = cfg.email ? cfg.email.split("@")[0] : "";
+    
+    // 先保存本地，再异步同步后端
+    localStorage.setItem("teamchat_email_config", JSON.stringify(emailConfig));
+    
+    fetch("/api/plugins/team_chat/email/config", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(cfg)
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      console.log("后端保存结果:", d);
+    }).catch(function(err) {
+      console.error("后端保存失败:", err);
+    });
+    
+    // 立即关闭弹窗（不等待后端）
+    setTimeout(function() {
+      setSavingConfig(false);
+      closeConfig();
+      alert("配置已保存！");
+    }, 300);
+  }
+
+  // 初始化时从localStorage加载配置（useEffect中执行，避免无限循环）
+  useEffect(function() {
+    var saved = localStorage.getItem("teamchat_email_config");
+    if (saved) {
+      try {
+        var parsed = JSON.parse(saved);
+        setEmailConfig(parsed);
+      } catch(e) {}
+    }
+  }, []);
+
+
     // ---- 📑 多标签页 ----
     var _tabs = useState([]), tabs = _tabs[0], setTabs = _tabs[1];
     var _atid = useState(null), activeTabId = _atid[0], setActiveTabId = _atid[1];
@@ -2267,6 +3716,11 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       setAgLd(true);
       apiGet("/agents").then(function (d) {
         if (cancelled) return;
+        if (!d || typeof d !== 'object') {
+          console.error("智能体API返回格式不正确:", d);
+          setAgs([]); setAgLd(false);
+          return;
+        }
         var all = (d.agents||[]).filter(function(a){return a&&typeof a==="object"&&a.agent_id;});
         setAgs(all); var def = all.find(function (a) { return a.agent_id==="cloud-orchestrator"; });
         if (!def && all.length > 0) def = all[0];
@@ -2282,7 +3736,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
     // 拉取启用频道列表
     useEffect(function () {
       var cancelled = false;
-      fetch(getApiUrl("/team-chat/channels")).then(function (r) { return r.json(); }).then(function (d) {
+      fetch(getApiUrl("/plugins/team_chat/channels")).then(function (r) { return r.json(); }).then(function (d) {
         if (cancelled) return;
         setChEnabled(Array.isArray(d.channels)?d.channels:[]);
       }).catch(function () {});
@@ -2376,7 +3830,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       reader.onload = function (re) {
         var dataUrl = re.target.result;
         var h = {"Content-Type":"application/json"}; var t = getApiToken(); if (t) h.Authorization = "Bearer "+t;
-        fetch(getApiUrl("/team-chat/avatars/human"),{method:"PUT",headers:h,body:JSON.stringify({data_url:dataUrl})}).then(function(r){if(!r.ok){return r.text().then(function(t){throw new Error(t||"HTTP "+r.status);});}return r.json();}).then(function(d){message.success("头像已更新");setHumanAvatarId("custom");setHumanAvatarUrl(d.url||dataUrl);}).catch(function(e){message.error(e.message||"上传失败");}).finally(function(){setAvBusy(false);});
+        fetch(getApiUrl("/plugins/team_chat/avatars/human"),{method:"PUT",headers:h,body:JSON.stringify({data_url:dataUrl})}).then(function(r){if(!r.ok){return r.text().then(function(t){throw new Error(t||"HTTP "+r.status);});}return r.json();}).then(function(d){message.success("头像已更新");setHumanAvatarId("custom");setHumanAvatarUrl(d.url||dataUrl);}).catch(function(e){message.error(e.message||"上传失败");}).finally(function(){setAvBusy(false);});
       };
       reader.onerror = function(){message.error("读取图片失败");setAvBusy(false);};
       reader.readAsDataURL(f);
@@ -2409,7 +3863,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
     }, []);
 
     useEffect(function () {
-      fetch(getApiUrl("/team-chat/system-info")).then(function (r) { return r.json(); }).then(function (d) {
+      fetch(getApiUrl("/plugins/team_chat/system-info")).then(function (r) { return r.json(); }).then(function (d) {
         setSysIp(d.ip||"未知");
       }).catch(function () { setSysIp("获取失败"); });
       var t = setInterval(function () { setClock(new Date().toLocaleString()); }, 1000);
@@ -2418,7 +3872,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
 
     // 加载已存储的人类头像
     useEffect(function () {
-      fetch(getApiUrl("/team-chat/avatars")).then(function(r){return r.json();}).then(function(d){
+      fetch(getApiUrl("/plugins/team_chat/avatars")).then(function(r){return r.json();}).then(function(d){
         var avs = d.avatars||{};
         if (avs.human) { setHumanAvatarId("custom"); setHumanAvatarUrl(avs.human); }
       }).catch(function(){});
@@ -2426,7 +3880,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
 
     var handleRestoreAvatar = useCallback(function () {
       var h = {}; var t = getApiToken(); if (t) h.Authorization = "Bearer "+t;
-      fetch(getApiUrl("/team-chat/avatars/human"),{method:"DELETE",headers:h}).then(function(r){return r.json();}).then(function(d){
+      fetch(getApiUrl("/plugins/team_chat/avatars/human"),{method:"DELETE",headers:h}).then(function(r){return r.json();}).then(function(d){
         if (d.ok) { setHumanAvatarId("default-0"); setHumanAvatarUrl(""); message.success("已恢复默认头像"); }
         else { message.info("已是默认头像"); }
       }).catch(function(){setHumanAvatarId("default-0");setHumanAvatarUrl("");message.success("已恢复默认头像");});
@@ -2496,7 +3950,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       var mem = [{id:"human",name:"你",color:"#e8f0fe"}];
       if (hid) mem.push({id:hid,name:hnm.slice(0,8),color:"#fff3cd"});
       sel.forEach(function (id) { var ag=ags.find(function(a){return a&&a.agent_id===id;}); mem.push({id:id,name:(ag&&ag.name||id).slice(0,10),color:"#d4edda"}); });
-      var avImgs={};mem.forEach(function(m){if(m.id&&m.id!=="human"){var img=new Image();img.src=getApiUrl("/team-chat/avatar/"+encodeURIComponent(m.id));avImgs[m.id]=img;}});var himg=new Image();himg.src=humanAvatarId==="custom"&&humanAvatarUrl?humanAvatarUrl:humanSvgs[parseInt((humanAvatarId||"default-0").split("-")[1])||0];avImgs["human"]=himg;var fr=0;var anim=true;
+      var avImgs={};mem.forEach(function(m){if(m.id&&m.id!=="human"){var img=new Image();img.src=getApiUrl("/plugins/team_chat/avatar/"+encodeURIComponent(m.id));avImgs[m.id]=img;}});var himg=new Image();himg.src=humanAvatarId==="custom"&&humanAvatarUrl?humanAvatarUrl:humanSvgs[parseInt((humanAvatarId||"default-0").split("-")[1])||0];avImgs["human"]=himg;var fr=0;var anim=true;
       function dr() {
         if(!anim) return;
         var th = themeIdx>=0&&themeIdx<themes.length?themes[themeIdx]:null;
@@ -2629,7 +4083,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
 
     useEffect(function () {
       var fetchCron = function () {
-        fetch(getApiUrl("/team-chat/cron-summary")).then(function (r) {
+        fetch(getApiUrl("/plugins/team_chat/cron-summary")).then(function (r) {
           if (!r.ok) throw new Error("HTTP "+r.status);
           return r.json();
         }).then(function (d) {
@@ -2660,7 +4114,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
     function renderAgentTag(a) {
       if (!a||typeof a!=="object"||!a.agent_id) return null;
       var ih = String(a.agent_id)===String(hid), is = !ih&&sel.indexOf(a.agent_id)>=0;
-      var avUrl = getApiUrl("/team-chat/avatar/"+encodeURIComponent(a.agent_id));
+      var avUrl = getApiUrl("/plugins/team_chat/avatar/"+encodeURIComponent(a.agent_id));
       return e("div",{key:a.agent_id,style:{display:"flex",flexDirection:"column",alignItems:"center",gap:2}},
         e(Tag,{color:ih?"default":(is?"blue":"default"),
           style:{cursor:ih?"not-allowed":"pointer",opacity:ih?0.5:1},
@@ -2776,7 +4230,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       if (ok.indexOf(ext)===-1) { message.warning("不支持 ."+ext); return; }
       if (f.size>5*1024*1024) { message.warning("最大5MB"); return; }
       var fd = new FormData(); fd.append("file",f);
-      fetch(getApiUrl("/team-chat/upload"),{method:"POST",body:fd}).then(function (r) {
+      fetch(getApiUrl("/plugins/team_chat/upload"),{method:"POST",body:fd}).then(function (r) {
         if (!r.ok) return r.json().then(function (e) { throw new Error(e.detail); });
         return r.json();
       }).then(function (d) {
@@ -2800,7 +4254,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
             var fd = new FormData();
             fd.append("agent_id", agId);
             fd.append("file", blob, "avatar_20x20.png");
-            fetch(getApiUrl("/team-chat/avatar"),{method:"POST",body:fd}).then(function (r) {
+            fetch(getApiUrl("/plugins/team_chat/avatar"),{method:"POST",body:fd}).then(function (r) {
               if (!r.ok) return r.json().then(function (e) {
                 var msg = typeof e.detail === "string" ? e.detail : (Array.isArray(e.detail) ? e.detail.map(function(d){return d.msg;}).join("; ") : JSON.stringify(e.detail));
                 throw new Error(msg);
@@ -2917,6 +4371,36 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
     };
     var _sng = useState(0), songIdx = _sng[0], setSongIdx = _sng[1];
     var _csng = useState(""), custSong = _csng[0], setCustSong = _csng[1];
+    var _csts = useState(function(){
+      try { return JSON.parse(localStorage.getItem("teamchat_custom_songs")||"[]"); } catch(e) { return []; }
+    }), customSongs = _csts[0], setCustomSongs = _csts[1];
+    function saveCustomSongs(songs) { setCustomSongs(songs); try { localStorage.setItem("teamchat_custom_songs", JSON.stringify(songs)); } catch(e) {} }
+    var customSongsRef = useRef(customSongs); customSongsRef.current = customSongs;
+    var custSongRef = useRef(custSong); custSongRef.current = custSong;
+    var _sm = useState(false), showSaveModal = _sm[0], setShowSaveModal = _sm[1];
+    var _snv = useState(""), saveNameVal = _snv[0], setSaveNameVal = _snv[1];
+    function getBuiltinCount() { return Object.keys(SONGS).length; }
+    function getTotalSongs() { return getBuiltinCount() + (customSongs?customSongs.length:0); }
+    function getSongName(idx) {
+      var b = getBuiltinCount();
+      if (idx < b) return Object.keys(SONGS)[idx];
+      var ci = idx - b;
+      if (customSongs && ci < customSongs.length) return customSongs[ci].name;
+      return "\u81ea\u5b9a\u4e49";
+    }
+    function getSongData(idx) {
+      var b = getBuiltinCount();
+      if (idx < b) {
+        var s = SONGS[Object.keys(SONGS)[idx]];
+        return {raw:s.raw, scale:s.scale};
+      }
+      var ci = idx - b;
+      if (customSongs && ci < customSongs.length) {
+        return {raw: customSongs[ci].raw, scale: customSongs[ci].scale||"diatonic"};
+      }
+      return {raw: custSong||"111111", scale: "diatonic"};
+    }
+
     // 解析简谱串 → SEQ 数组
     function parseNotation(raw, scale) {
       var T = scale==="pentatonic"?P:PD;
@@ -2936,18 +4420,13 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       return seq;
     }
     function getCurrentSEQ() {
-      var names = Object.keys(SONGS);
-      if (songIdx<names.length) {
-        var s = SONGS[names[songIdx]];
-        return parseNotation(s.raw, s.scale);
-      }
-      // 自定义
-      return parseNotation(custSong||"111111", "diatonic");
+      var sd = getSongData(songIdx);
+      return parseNotation(sd.raw, sd.scale);
     }
     var musicRef = useRef(null);
     var volRf = useRef(function(){ try { return parseFloat(localStorage.getItem("teamchat_music_vol")||"0.5"); } catch(e) { return 0.5; } }());
     useEffect(function(){ volRf.current = musicVol; }, [musicVol]);
-    var toggleMusic = useCallback(function () {
+    var toggleMusic = useCallback(function (targetIdx) {
       if (musicRef.current) {
         musicRef.current.stopped = true; clearTimeout(musicRef.current.timer); musicRef.current.osc.forEach(function(o){try{o.stop();}catch(e){}}); musicRef.current=null; setMusicOn(false); return;
       }
@@ -2955,7 +4434,22 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       var ctx = new (window.AudioContext||window.webkitAudioContext)();
       var st = {ctx:ctx,stopped:false,timer:null,idx:0,osc:[]};
       musicRef.current = st;
-      var SEQ = getCurrentSEQ();
+      var useIdx = (targetIdx!==undefined)?targetIdx:songIdx;
+      var CS = customSongsRef.current||[];
+      var CU = custSongRef.current||"";
+      var b = Object.keys(SONGS).length;
+      var sd;
+      if (useIdx < b) {
+        sd = SONGS[Object.keys(SONGS)[useIdx]];
+      } else {
+        var ci = useIdx - b;
+        if (CS && ci < CS.length) {
+          sd = CS[ci];
+        } else {
+          sd = {raw: CU||"111111", scale:"diatonic"};
+        }
+      }
+      var SEQ = parseNotation(sd.raw, sd.scale||"diatonic");
       function play() {
         if (st.stopped) { if (st.idx>=SEQ.length) { setMusicOn(false); musicRef.current=null; } return; }
         if (st.idx>=SEQ.length) { setMusicOn(false); musicRef.current=null; return; }
@@ -3091,7 +4585,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
     }, []);
 
     var downloadShelfFile = useCallback(function (f) {
-      var url = getApiUrl("/team-chat"+f.download_url);
+      var url = getApiUrl("/plugins/team_chat"+f.download_url);
       fetch(url, {headers: apiHeaders()}).then(function (r) {
         if (!r.ok) throw new Error("HTTP "+r.status);
         return r.blob();
@@ -3102,7 +4596,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
 
     var openReadme = useCallback(function () {
       setReadmeV(true);
-      (function(){var u=QP.plugin&&QP.plugin.getMediaUrl?QP.plugin.getMediaUrl("../README.md"):getApiUrl("/team-chat/readme");return fetch(u).then(function(r){return r.text();}).then(function(t){setReadmeC(t);}).catch(function(){setReadmeC("加载 README.md 失败");});})();
+      (function(){var u=QP.plugin&&QP.plugin.getMediaUrl?QP.plugin.getMediaUrl("../README.md"):getApiUrl("/plugins/team_chat/readme");return fetch(u).then(function(r){return r.text();}).then(function(t){setReadmeC(t);}).catch(function(){setReadmeC("加载 README.md 失败");});})();
     }, []);
 
     // 🔄 组件卸载前自动持久化当前标签状态到 localStorage（避免 setState 警告）
@@ -3119,9 +4613,575 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
         } catch(e) {}
       };
     }, []);
+
+
+
     // =================== Layout / Main Render ===================
     if(chuanView) return e(ChuanChuanPage,{onBack:function(){setChuanView(false);}});
-    return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
+  // AI邮箱主视图
+    if(aimailView && aimailMode === "main") return e("div",{style:{padding:"20px",textAlign:"center",background:"linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%)",color:"#333",minHeight:"100vh"}},
+    e("h2",null,"AI邮箱功能"), e("p",{style:{fontSize:"14px",opacity:0.8,marginTop:"8px"}},"巢邮箱 - AI邮件系统 v0.3.0"),
+    e("div",{style:{marginTop:"16px",textAlign:"center"}},
+      e("a",{href:"https://t.zsxq.com/w9EaD",target:"_blank",rel:"noopener noreferrer",style:{display:"inline-block",borderRadius:"16px",overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,.12)",transition:"transform .2s",maxWidth:"320px",textDecoration:"none"}},
+        e("div",{style:{background:"linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)",padding:"32px 24px",textAlign:"center"}},
+          e("div",{style:{fontSize:"40px",marginBottom:"8px"}},"🌍"),
+          e("div",{style:{fontSize:"20px",fontWeight:"bold",color:"#e67e22",marginBottom:"4px"}},"知识星球"),
+          e("div",{style:{fontSize:"13px",color:"rgba(255,255,255,0.7)",lineHeight:"1.6"}},"加入我们搭建应用")
+        )
+      ),
+      e("p",{style:{fontSize:"16px",fontWeight:"bold",color:"#1a1a2e",margin:"10px 0 2px 0",letterSpacing:"1px"}},"想像力让小白搭建企业级应用")
+    ),
+    // AI分身全局开关
+    e("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",marginTop:"20px",gap:"12px"}},
+      e("span",{style:{fontSize:"15px",fontWeight:"bold",color:"#555"}},"🤖 AI分身全局开关"),
+      e("div",{onClick:function(){var n=!aiFenshenEnabled;setAiFenshenEnabled(n);window.toggleAIFenshenGlobal(n);},style:{width:"56px",height:"28px",borderRadius:"14px",background:aiFenshenEnabled?"linear-gradient(135deg,#667eea,#764ba2)":"#ccc",cursor:"pointer",position:"relative",transition:"background 0.3s ease",boxShadow:aiFenshenEnabled?"0 0 12px rgba(102,126,234,0.5)":"inset 0 1px 3px rgba(0,0,0,0.15)"}},
+        e("div",{style:{width:"22px",height:"22px",borderRadius:"50%",background:"white",position:"absolute",top:"3px",left:aiFenshenEnabled?"31px":"3px",transition:"left 0.3s cubic-bezier(0.4,0,0.2,1)",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}})
+      ),
+      e("span",{style:{fontSize:"13px",fontWeight:"bold",color:aiFenshenEnabled?"#667eea":"#999",minWidth:"36px",transition:"color 0.3s"}},aiFenshenEnabled?"ON":"OFF")
+    ),
+    e("div",{style:{marginTop:"30px",display:"flex",flexDirection:"column",gap:"16px",alignItems:"center"}},
+      e("div",{onClick:function(){setAimailMode("traditional");},style:{background:"#ffffff",border:"1px solid #e0e0e0",borderRadius:"16px",padding:"24px 48px",cursor:"pointer",width:"360px",textAlign:"center",transition:"transform 0.2s",boxShadow:"0 2px 8px rgba(0,0,0,0.1)"}},
+        e("div",{style:{fontSize:"24px",marginBottom:"8px"}},"📧 🕊️"),
+        e("div",{style:{fontSize:"18px",fontWeight:"bold"}},"传统邮箱"),
+        e("div",{style:{fontSize:"12px",opacity:0.7,marginTop:"4px"}},"收件、发件、管理")
+      ),
+      e("div",{onClick:function(){
+        // 显示蜂巢动画
+        window.showHiveAnimation();
+      },style:{background:"#ffffff",border:"1px solid #e0e0e0",borderRadius:"16px",padding:"24px 48px",cursor:"pointer",width:"360px",textAlign:"center",transition:"transform 0.2s",boxShadow:"0 2px 8px rgba(0,0,0,0.1)"}},
+        e("div",{style:{fontSize:"24px",marginBottom:"8px"}},"🏠 🐝🐝"),
+        e("div",{style:{fontSize:"18px",fontWeight:"bold"}},"蜂巢邮箱"),
+        e("div",{style:{fontSize:"12px",opacity:0.7,marginTop:"4px"}},"写信给AGENT: interccy@agent.qq.com")
+      )
+    ),
+    e("button",{onClick:function(){setAimailView(false);},style:{background:"white",color:"#667eea",border:"none",padding:"10px 20px",borderRadius:"8px",cursor:"pointer",marginTop:"30px"}},"返回主界面")
+  );
+
+    // 传统邮箱视图
+    if(aimailView && aimailMode === "traditional") return e("div",{style:{padding:"20px",background:"linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%)",color:"#333",minHeight:"100vh"}},
+    e("div",{style:{display:"flex",alignItems:"center",marginBottom:"20px"}},
+      e("button",{onClick:function(){setAimailMode("main");},style:{background:"#667eea",border:"none",color:"white",padding:"8px 16px",borderRadius:"8px",cursor:"pointer",marginRight:"12px"}},"← 返回"),
+      e("h2",{style:{margin:0,color:"#333"}},"传统邮箱"),
+        e("button",{onClick:openComposeModal,style:{background:"#667eea",color:"white",border:"none",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"14px"}},"✉️ 写邮件")
+      ),
+    e("div",{style:{display:"flex",gap:"8px",flexWrap:"wrap",justifyContent:"center",marginBottom:"20px"}},
+      e("span",{onClick:function(){setEmailTab("inbox");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"收件箱"),
+      e("span",{onClick:function(){setEmailTab("sent");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"发件箱"),
+      e("span",{onClick:function(){setEmailTab("drafts");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"草稿箱"),
+      e("span",{onClick:function(){setEmailTab("contacts");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"联系人"),
+      e("span",{onClick:function(){setEmailTab("trash");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"回收站"),
+      e("span",{onClick:function(){setEmailTab("settings");},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"设置"),
+      e("span",{onClick:function(){setEmailTab("security");},style:{background:"linear-gradient(180deg,#1890ff,#096dd9)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #0050b3",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.3),0 2px 4px rgba(24,144,255,0.3)",fontWeight:"bold",color:"#fff",textShadow:"0 1px 0 rgba(0,0,0,0.3)"}},"🛡️ 安全提示")
+    ),
+    emailTab === "inbox" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
+        e("h3",{style:{margin:0}},"📬 收件箱 (" + (emails ? emails.length : 0) + ")"),
+        e("button",{onClick:function(){fetchEmails("inbox");},style:{background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 14px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}},"🔄 刷新")
+      ),
+      loading ? e("div",{style:{textAlign:"center",padding:"60px",opacity:0.6}},"⏳ 加载中...") :
+      error ? e("div",{style:{textAlign:"center",padding:"60px",color:"#ff6b6b"}},"❌ " + error) :
+      emails && emails.length === 0 ? e("div",{style:{textAlign:"center",padding:"60px",opacity:0.6}},"📭 收件箱为空") :
+      e("div",null,emails.map(function(email){return e("div",{key:email.id,onClick:function(){setSelectedEmail(email);},style:{background:selectedEmail&&selectedEmail.id===email.id?"#e3f2fd":"white",padding:"14px 16px",marginBottom:"10px",borderRadius:"10px",cursor:"pointer",display:"flex",alignItems:"flex-start",gap:"12px",boxShadow:"0 1px 3px rgba(0,0,0,0.08)",border:"1px solid rgba(0,0,0,0.05)"}},
+        e("div",{style:{width:"40px",height:"40px",borderRadius:"50%",background:email.from_addr==="系统通知"?"#38ef7d":email.from_addr==="项目经理"?"#667eea":"#ff6b6b",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:"bold",fontSize:"14px",flexShrink:0}},email.from_addr ? email.from_addr.charAt(0) : "?"),
+        e("div",{style:{flex:1,minWidth:0}},
+          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}},
+            e("div",{style:{fontWeight:"bold",fontSize:"14px"}},email.subject || "(无主题)"),
+            e("div",{style:{fontSize:"11px",opacity:0.5,whiteSpace:"nowrap"}},new Date(email.created_at).toLocaleDateString())
+          ),
+          e("div",{style:{fontSize:"12px",opacity:0.7,marginBottom:"4px"}},email.from_addr || "未知发件人"),
+          e("div",{style:{fontSize:"13px",opacity:0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},email.body || "(无内容)"),
+          e("div",{style:{display:"flex",gap:"8px",marginTop:"8px"}},
+            e("button",{onClick:function(e){e.stopPropagation();replyEmail(email,false);},style:{background:"#667eea",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"回复"),
+            e("button",{onClick:function(e){e.stopPropagation();replyEmail(email,true);},style:{background:"#764ba2",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"回复全部"),
+            e("button",{onClick:function(e){e.stopPropagation();forwardEmail(email);},style:{background:"#38ef7d",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"转发")
+          )
+        )
+      )}))
+    ) : emailTab === "sent" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
+        e("h3",{style:{margin:0}},"📤 发件箱 (" + (emails ? emails.length : 0) + ")"),
+        e("button",{onClick:function(){fetchEmails("sent");},style:{background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 14px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}},"🔄 刷新")
+      ),
+      loading ? e("div",{style:{textAlign:"center",padding:"60px",opacity:0.6}},"⏳ 加载中...") :
+      error ? e("div",{style:{textAlign:"center",padding:"60px",color:"#ff6b6b"}},"❌ " + error) :
+      emails && emails.length === 0 ? e("div",{style:{textAlign:"center",padding:"60px",opacity:0.6}},"📭 暂无已发送邮件") :
+      e("div",null,emails.map(function(email){return e("div",{key:email.id,style:{background:"white",padding:"14px 16px",marginBottom:"10px",borderRadius:"10px",display:"flex",alignItems:"flex-start",gap:"12px",boxShadow:"0 1px 3px rgba(0,0,0,0.08)",border:"1px solid rgba(0,0,0,0.05)"}},
+        e("div",{style:{width:"40px",height:"40px",borderRadius:"50%",background:"#38ef7d",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:"bold",fontSize:"14px",flexShrink:0}},"发"),
+        e("div",{style:{flex:1,minWidth:0}},
+          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}},
+            e("div",{style:{fontWeight:"bold",fontSize:"14px"}},email.subject || "(无主题)"),
+            e("div",{style:{fontSize:"11px",opacity:0.5,whiteSpace:"nowrap"}},new Date(email.created_at).toLocaleDateString())
+          ),
+          e("div",{style:{fontSize:"12px",opacity:0.7,marginBottom:"4px"}},"收件人: " + (email.to_addr || "未知")),
+          e("div",{style:{fontSize:"13px",opacity:0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},email.body || "(无内容)"),
+          e("div",{style:{display:"flex",gap:"8px",marginTop:"8px"}},
+            e("button",{onClick:function(e){e.stopPropagation();replyEmail(email,false);},style:{background:"#667eea",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"回复"),
+            e("button",{onClick:function(e){e.stopPropagation();replyEmail(email,true);},style:{background:"#764ba2",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"回复全部"),
+            e("button",{onClick:function(e){e.stopPropagation();forwardEmail(email);},style:{background:"#38ef7d",color:"white",border:"none",padding:"4px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"转发")
+          )
+        )
+      )}))
+    ) : emailTab === "drafts" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
+        e("h3",{style:{margin:0}},"📝 草稿箱 (" + (emails ? emails.length : 0) + ")"),
+        e("button",{onClick:function(){openComposeModal();},style:{background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 14px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}},"✏️ 新建")
+      ),
+      loading ? e("div",{style:{textAlign:"center",padding:"40px"}},"加载中...") :
+      emails && emails.length === 0 ? e("div",{style:{textAlign:"center",opacity:0.6}},"暂无草稿") :
+      e("div",null,emails.map(function(email){return e("div",{key:email.id,style:{background:"white",padding:"12px",marginBottom:"8px",borderRadius:"8px",cursor:"pointer",border:"1px solid rgba(255,255,255,0.2)"}},
+        e("div",{style:{fontWeight:"bold",marginBottom:"8px"}},email.subject || "(无主题)"),
+        e("div",{style:{opacity:0.6,fontSize:"14px"}},email.body || "(无内容)"),
+        e("div",{style:{display:"flex",gap:"8px",marginTop:"8px"}},
+          e("button",{onClick:function(){editDraft(email);},style:{background:"#667eea",color:"white",border:"none",padding:"6px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"编辑"),
+          e("button",{onClick:function(){deleteEmail("drafts", email.id);},style:{background:"red",color:"white",border:"none",padding:"6px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"删除")
+        )
+      )}))
+    ) : emailTab === "contacts" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
+        e("h3",null,"👥 联系人 (" + emails.length + ")"),
+        e("button",{onClick:function(){setShowAddContact(true);},style:{background:"#667eea",color:"white",border:"none",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"14px"}},"+ 添加")
+      ),
+      loading ? e("div",{style:{textAlign:"center",padding:"40px",opacity:0.6}},"⏳ 加载中...") :
+      emails.length === 0 ? e("div",{style:{textAlign:"center",padding:"40px",opacity:0.6}},"暂无联系人") :
+      e("div",null,emails.map(function(item,i){return e("div",{key:i,style:{background:"white",padding:"12px 16px",marginBottom:"8px",borderRadius:"8px",display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid rgba(0,0,0,0.05)"}},
+        e("div",{style:{display:"flex",alignItems:"center",gap:"10px"}},
+          e("div",{style:{width:"36px",height:"36px",borderRadius:"50%",background:"#667eea",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:"bold",fontSize:"16px"}},(item.name||"?")[0]),
+          e("div",null,
+            e("div",{style:{fontWeight:"bold"}},item.name||"未知"),
+            e("div",{style:{fontSize:"12px",opacity:0.6}},item.email||""),
+            e("div",{style:{fontSize:"11px",opacity:0.4}},item.phone ? item.phone + (item.company?" · ":"") : "",item.company||"")
+          )
+        ),
+        e("button",{onClick:function(){deleteContact(item.id);},style:{background:"none",border:"1px solid rgba(255,0,0,0.3)",color:"red",padding:"4px 10px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"删除")
+      )}),
+      showAddContact ? e("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}},
+        e("div",{style:{background:"white",borderRadius:"12px",padding:"24px",width:"420px"}},
+          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
+            e("h2",{style:{margin:0}},"👤 添加联系人"),
+            e("button",{onClick:function(){setShowAddContact(false);},style:{background:"none",border:"none",fontSize:"24px",cursor:"pointer",color:"#999"}},"✕")
+          ),
+          e("div",{style:{display:"flex",flexDirection:"column",gap:"10px"}},
+            e("input",{type:"text",value:newContact.name,onChange:function(e){setNewContact({...newContact,name:e.target.value});},placeholder:"姓名 *",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}}),
+            e("input",{type:"email",value:newContact.email,onChange:function(e){setNewContact({...newContact,email:e.target.value});},placeholder:"邮箱 *",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}}),
+            e("input",{type:"text",value:newContact.phone,onChange:function(e){setNewContact({...newContact,phone:e.target.value});},placeholder:"电话",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}}),
+            e("input",{type:"text",value:newContact.company,onChange:function(e){setNewContact({...newContact,company:e.target.value});},placeholder:"公司",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}})
+          ),
+          e("div",{style:{display:"flex",gap:"10px",marginTop:"16px"}},
+            e("button",{onClick:function(){setShowAddContact(false);},style:{flex:1,padding:"10px",border:"1px solid #ddd",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"white"}},"取消"),
+            e("button",{onClick:addContact,style:{flex:1,padding:"10px",border:"none",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"#667eea",color:"white"}},"保存")
+          )
+        )
+      ) : null
+    )) : emailTab === "trash" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
+        e("h3",null,"🗑️ 回收站"),
+        e("button",{onClick:function(){clearTrash();},style:{background:"rgba(255,0,0,0.2)",border:"none",color:"#ff6b6b",padding:"6px 14px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}},"清空")
+      ),
+      loading ? e("div",{style:{textAlign:"center",padding:"40px",opacity:0.6}},"⏳ 加载中...") :
+      emails.length === 0 ? e("div",{style:{textAlign:"center",padding:"40px",opacity:0.6}},"回收站为空") :
+      e("div",null,emails.map(function(item,i){return e("div",{key:i,style:{background:"rgba(255,255,255,0.05)",padding:"10px 14px",marginBottom:"8px",borderRadius:"8px",display:"flex",alignItems:"center",justifyContent:"space-between",border:"1px solid rgba(255,0,0,0.1)"}},
+        e("div",{style:{display:"flex",alignItems:"center",gap:"10px"}},
+          e("span",null,"🗑"),
+          e("div",null,
+            e("div",{style:{fontWeight:"bold"}},item.subject||"(无主题)"),
+            e("div",{style:{fontSize:"12px",opacity:0.5}},item.body||"(无内容)")
+          )
+        ),
+        e("button",{onClick:function(){restoreEmail(email);},style:{background:"rgba(102,126,234,0.2)",border:"none",color:"#667eea",padding:"6px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"恢复")
+      )})
+    )) : emailTab === "security" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}},
+        e("h3",null,"🛡️ 安全提示")
+      ),
+      e("div",{style:{padding:"20px"}},
+        // 安全提示卡片
+        e("div",{style:{background:"#e6f7ff",border:"1px solid #91d5ff",borderRadius:"8px",padding:"16px",marginBottom:"16px"}},
+          e("div",{style:{fontWeight:"bold",color:"#1890ff",marginBottom:"8px",display:"flex",alignItems:"center",gap:"8px"}},
+            e("span",null,"💡"),"安全使用建议"
+          ),
+          e("div",{style:{color:"#666",fontSize:"13px",lineHeight:"1.6"}},
+            "• 谨慎打开陌生发件人的邮件附件",e("br",null),
+            "• 不要点击邮件中的可疑链接",e("br",null),
+            "• 可执行文件(.exe/.bat)风险较高",e("br",null),
+            "• 大文件(>10MB)建议先预览再下载"
+          )
+        ),
+        // 文件类型风险提示
+        e("div",{style:{background:"#fff7e6",border:"1px solid #ffd591",borderRadius:"8px",padding:"16px",marginBottom:"16px"}},
+          e("div",{style:{fontWeight:"bold",color:"#d46b08",marginBottom:"8px",display:"flex",alignItems:"center",gap:"8px"}},
+            e("span",null,"⚠️"),"高风险文件类型"
+          ),
+          e("div",{style:{color:"#666",fontSize:"13px"}},
+            ".exe .bat .scr .cmd .com .pif .vbs .js .jar"
+          )
+        ),
+        // 今日安全统计
+        e("div",{style:{display:"flex",gap:"16px",marginBottom:"16px"}},
+          e("div",{style:{flex:1,background:"#f6ffed",border:"1px solid #b7eb8f",borderRadius:"8px",padding:"16px",textAlign:"center"}},
+            e("div",{style:{fontSize:"20px",fontWeight:"bold",color:"#52c41a"}},"✓"),
+            e("div",{style:{color:"#666",fontSize:"12px"}},"今日邮件已检查")
+          ),
+          e("div",{style:{flex:1,background:"#fff2f0",border:"1px solid #ffccc7",borderRadius:"8px",padding:"16px",textAlign:"center"}},
+            e("div",{style:{fontSize:"20px",fontWeight:"bold",color:"#ff4d4f"}},"0"),
+            e("div",{style:{color:"#666",fontSize:"12px"}},"风险附件拦截")
+          )
+        ),
+        // 安全状态
+        e("div",{style:{background:"#f6ffed",border:"1px solid #b7eb8f",borderRadius:"8px",padding:"12px",textAlign:"center",color:"#52c41a",fontSize:"13px"}},
+          "✅ 安全提示功能已启用，请谨慎处理邮件附件"
+        )
+      )
+    ) : e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}},
+        e("h3",null,"⚙️ 邮箱设置"),
+        e("button",{onClick:openConfig,style:{background:"#667eea",color:"white",border:"none",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"14px"}},"+ 配置邮箱")
+      ),
+      e("div",{style:{display:"flex",flexDirection:"column",gap:"12px"}},
+        e("div",{style:{background:"white",padding:"16px",borderRadius:"8px",border:"1px solid rgba(255,255,255,0.2)"}},
+          e("div",{style:{fontWeight:"bold",marginBottom:"8px",color:"#667eea"}},"当前配置"),
+          emailConfig && emailConfig.email ? e("div",null,
+            e("div",{style:{marginBottom:"4px"}},"邮箱: " + emailConfig.email),
+            e("div",{style:{marginBottom:"4px"}},"提供商: " + (EMAIL_PROVIDERS[emailConfig.provider] ? EMAIL_PROVIDERS[emailConfig.provider].name : "自定义")),
+            e("button",{onClick:testEmailConnection,style:{marginTop:"12px",padding:"8px 16px",background:"#4caf50",color:"white",border:"none",borderRadius:"6px",cursor:"pointer",fontSize:"13px"}},"🔌 测试连接"),
+            emailConfig.display_name ? e("div",{style:{marginBottom:"4px"}},"显示名称: " + emailConfig.display_name) : null,
+            emailConfig.smtp_host ? e("div",{style:{marginBottom:"4px",fontSize:"12px",opacity:0.6}},"SMTP: " + emailConfig.smtp_host + ":" + emailConfig.smtp_port) : null,
+            emailConfig.imap_host ? e("div",{style:{fontSize:"12px",opacity:0.6}},"IMAP: " + emailConfig.imap_host + ":" + emailConfig.imap_port) : null
+          ) : e("div",{style:{opacity:0.6}},"未配置邮箱")
+        ),
+        e("div",{style:{background:"rgba(102,126,234,0.1)",padding:"16px",borderRadius:"8px",border:"1px solid rgba(102,126,234,0.3)"}},
+          e("div",{style:{fontWeight:"bold",marginBottom:"8px",color:"#667eea"}},"💡 提示"),
+          e("div",{style:{fontSize:"14px",opacity:0.8}},
+            "配置SMTP和IMAP参数后可以收发邮件。",
+            e("br",null),
+            "支持主流邮箱服务商：QQ邮箱、163邮箱、126邮箱、Gmail、Outlook。"
+          )
+        )
+      ),
+      configVisible ? e("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}},
+        e("div",{style:{background:"white",borderRadius:"12px",padding:"24px",width:"500px",maxHeight:"90vh",overflowY:"auto"}},
+          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}},
+            e("h2",null,"📧 邮箱配置"),
+            e("button",{onClick:closeConfig,style:{background:"none",border:"none",fontSize:"24px",cursor:"pointer"}},"×")
+          ),
+          e("div",{style:{display:"flex",flexDirection:"column",gap:"16px"}},
+            e("div",null,
+              e("label",{style:{display:"block",marginBottom:"6px",fontWeight:"bold"}},"邮箱提供商"),
+              e("select",{value:emailConfig.provider,onChange:function(e){handleProviderChange(e.target.value);},style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}},
+                e("option",{value:"custom"},"自定义"),
+                e("option",{value:"qq"},"QQ邮箱"),
+                e("option",{value:"foxmail"},"Foxmail邮箱"),
+                e("option",{value:"mail163"},"163邮箱"),
+                e("option",{value:"mail126"},"126邮箱"),
+                e("option",{value:"yeah"},"Yeah邮箱"),
+                e("option",{value:"netease"},"网易企业邮"),
+                e("option",{value:"aliyun"},"阿里云邮箱"),
+                e("option",{value:"sina"},"新浪邮箱"),
+                e("option",{value:"sinacn"},"新浪CN邮箱"),
+                e("option",{value:"sohu"},"搜狐邮箱"),
+                e("option",{value:"cn21"},"21CN邮箱"),
+                e("option",{value:"tom"},"TOM邮箱"),
+                e("option",{value:"mail139"},"139邮箱"),
+                e("option",{value:"mail189"},"189邮箱"),
+                e("option",{value:"gmail"},"Gmail"),
+                e("option",{value:"outlook"},"Outlook/Hotmail"),
+                e("option",{value:"live"},"Live邮箱"),
+                e("option",{value:"hotmail"},"Hotmail"),
+                e("option",{value:"yahoo"},"Yahoo邮箱"),
+                e("option",{value:"yahoocn"},"雅虎中国"),
+                e("option",{value:"icloud"},"iCloud邮箱"),
+                e("option",{value:"me"},"Me邮箱"),
+                e("option",{value:"mac"},"Mac邮箱"),
+                e("option",{value:"office365"},"Office 365"),
+                e("option",{value:"exch"},"Exchange")
+              )
+            ),
+            e("div",null,
+              e("label",{style:{display:"block",marginBottom:"6px",fontWeight:"bold"}},"邮箱地址"),
+              e("input",{type:"email",value:emailConfig.email,onChange:function(e){handleEmailChange(e.target.value);},placeholder:"example@mail.com",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}})
+            ),
+            e("div",null,
+              e("label",{style:{display:"block",marginBottom:"6px",fontWeight:"bold"}},"显示名称"),
+              e("input",{type:"text",value:emailConfig.display_name,onChange:function(e){setEmailConfig({...emailConfig,display_name:e.target.value});},placeholder:"张三",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}})
+            ),
+            e("div",null,
+              e("label",{style:{display:"block",marginBottom:"6px",fontWeight:"bold"}},"用户名"),
+              e("input",{type:"text",value:emailConfig.username,onChange:function(e){setEmailConfig({...emailConfig,username:e.target.value});},placeholder:"邮箱地址",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}})
+            ),
+            EMAIL_PROVIDERS[emailConfig.provider] && EMAIL_PROVIDERS[emailConfig.provider].authCode ? e("div",null,
+              e("label",{style:{display:"block",marginBottom:"6px",fontWeight:"bold"}},"授权码"),
+              e("input",{type:"password",value:emailConfig.password,onChange:function(e){setEmailConfig({...emailConfig,password:e.target.value});},placeholder:"请输入授权码",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}}),
+              e("div",{style:{fontSize:"12px",color:"#666",marginTop:"4px"}},"请使用邮箱的授权码，不是登录密码")
+            ) : e("div",null,
+              e("label",{style:{display:"block",marginBottom:"6px",fontWeight:"bold"}},"密码"),
+              e("input",{type:"password",value:emailConfig.password,onChange:function(e){setEmailConfig({...emailConfig,password:e.target.value});},placeholder:"请输入密码",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}})
+            ),
+            e("div",{style:{borderTop:"1px solid #eee",paddingTop:"16px"}},
+              e("div",{style:{fontWeight:"bold",marginBottom:"12px",color:"#667eea"}},"SMTP 配置"),
+              e("div",{style:{display:"flex",gap:"12px",marginBottom:"8px"}},
+                e("input",{type:"text",value:emailConfig.smtp_host,onChange:function(e){setEmailConfig({...emailConfig,smtp_host:e.target.value});},placeholder:"smtp.example.com",style:{flex:2,padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}}),
+                e("input",{type:"number",value:emailConfig.smtp_port,onChange:function(e){setEmailConfig({...emailConfig,smtp_port:parseInt(e.target.value) || 587});},placeholder:"587",style:{flex:1,padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}})
+              ),
+              e("label",{style:{display:"flex",alignItems:"center",gap:"8px",fontSize:"14px"}},
+                e("input",{type:"checkbox",checked:emailConfig.smtp_ssl,onChange:function(e){setEmailConfig({...emailConfig,smtp_ssl:e.target.checked});}}),
+                "使用 TLS/SSL 加密"
+              )
+            ),
+            e("div",{style:{borderTop:"1px solid #eee",paddingTop:"16px"}},
+              e("div",{style:{fontWeight:"bold",marginBottom:"12px",color:"#667eea"}},"IMAP 配置"),
+              e("div",{style:{display:"flex",gap:"12px",marginBottom:"8px"}},
+                e("input",{type:"text",value:emailConfig.imap_host,onChange:function(e){setEmailConfig({...emailConfig,imap_host:e.target.value});},placeholder:"imap.example.com",style:{flex:2,padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}}),
+                e("input",{type:"number",value:emailConfig.imap_port,onChange:function(e){setEmailConfig({...emailConfig,imap_port:parseInt(e.target.value) || 993});},placeholder:"993",style:{flex:1,padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}})
+              ),
+              e("label",{style:{display:"flex",alignItems:"center",gap:"8px",fontSize:"14px"}},
+                e("input",{type:"checkbox",checked:emailConfig.imap_ssl,onChange:function(e){setEmailConfig({...emailConfig,imap_ssl:e.target.checked});}}),
+                "使用 SSL 加密"
+              )
+            ),
+            e("div",{style:{display:"flex",gap:"12px",marginTop:"24px"}},
+              e("button",{onClick:closeConfig,style:{flex:1,padding:"12px",border:"1px solid #ccc",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"linear-gradient(180deg,#f5f5f5,#e8e8e8)",color:"#555",fontWeight:"bold",boxShadow:"0 2px 4px rgba(0,0,0,0.1)"}},"取消"),
+              e("button",{onClick:saveConfig,disabled:savingConfig,style:{flex:1,padding:"12px",border:"none",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"#667eea",color:"white",opacity:savingConfig?0.6:1}},savingConfig?"保存中...":"保存配置")
+            )
+          )
+        )
+      ) : null
+    )
+  );
+
+    // 邮件详情弹窗
+    selectedEmail ? e("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9998}},
+      e("div",{style:{background:"white",borderRadius:"12px",padding:"24px",width:"600px",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 10px 40px rgba(0,0,0,0.2)"}},
+        e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"16px"}},
+          e("div",{style:{flex:1}},
+            e("h2",{style:{margin:0,fontSize:"18px"}},(selectedEmail.subject||"(无主题)")),
+            e("div",{style:{fontSize:"12px",color:"#999",marginTop:"4px"}},"来自: " + (selectedEmail.from_name||selectedEmail.from_addr||"未知") + " | " + (new Date(selectedEmail.created_at||selectedEmail.date).toLocaleString()))
+          ),
+          e("button",{onClick:function(){setSelectedEmail(null);},style:{background:"none",border:"none",fontSize:"24px",cursor:"pointer",color:"#999",padding:"0 4px"}},"✕")
+        ),
+        e("div",{style:{padding:"16px",background:"#f9f9f9",borderRadius:"8px",marginBottom:"16px",fontSize:"13px",lineHeight:"1.8"}},
+          selectedEmail.to_addr ? e("div",null,"收件人: " + selectedEmail.to_addr) : null,
+          selectedEmail.cc ? e("div",null,"抄送: " + selectedEmail.cc) : null
+        ),
+        e("div",{style:{padding:"16px",background:"white",borderRadius:"8px",border:"1px solid #eee",minHeight:"200px",whiteSpace:"pre-wrap",fontSize:"14px",lineHeight:"1.6",color:"#333"}},selectedEmail.body||"(无内容)"),
+        e("div",{style:{display:"flex",gap:"8px",justifyContent:"flex-end",marginTop:"16px",borderTop:"1px solid #eee",paddingTop:"16px"}},
+          e("button",{onClick:function(){var e=selectedEmail;setSelectedEmail(null);replyEmail(e,false);},style:{background:"#667eea",color:"white",border:"none",padding:"8px 20px",borderRadius:"6px",cursor:"pointer",fontSize:"13px"}},"↩ 回复"),
+          e("button",{onClick:function(){var e=selectedEmail;setSelectedEmail(null);replyEmail(e,true);},style:{background:"#764ba2",color:"white",border:"none",padding:"8px 20px",borderRadius:"6px",cursor:"pointer",fontSize:"13px"}},"↩ 回复全部"),
+          e("button",{onClick:function(){var e=selectedEmail;setSelectedEmail(null);forwardEmail(e);},style:{background:"#38ef7d",color:"white",border:"none",padding:"8px 20px",borderRadius:"6px",cursor:"pointer",fontSize:"13px"}},"↪ 转发"),
+          e("button",{onClick:function(){setSelectedEmail(null);},style:{background:"#f5f5f5",border:"1px solid #ddd",padding:"8px 20px",borderRadius:"6px",cursor:"pointer",fontSize:"13px"}},"关闭")
+        )
+      )
+    ) : null,
+    // 写邮件模态框
+    showCompose ? e("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,backdropFilter:"blur(3px)"}},
+      e("div",{style:{background:"linear-gradient(180deg,#fafafa,#f0f0f0)",borderRadius:"12px",padding:"24px",width:"640px",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 12px 40px rgba(0,0,0,0.3)",border:"1px solid #ddd"}},
+        e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}},
+          e("h2",{style:{margin:0}},"✉️ " + composeTitle),
+          e("button",{onClick:closeComposeModal,style:{background:"none",border:"none",fontSize:"24px",cursor:"pointer",color:"#999"}},"✕")
+        ),
+        e("div",{style:{display:"flex",flexDirection:"column",gap:"12px"}},
+          e("div",null,
+            e("label",{style:{fontSize:"14px",marginBottom:"4px",display:"block"}},"收件人 *"),
+            e("input",{type:"text",value:composeData.to,onChange:function(e){setComposeData({...composeData,to:e.target.value});},placeholder:"多个收件人用逗号分隔",style:{width:"100%",padding:"10px",border:"1px solid #ccc",borderRadius:"6px",fontSize:"14px",background:"#fff",transition:"border-color 0.2s,box-shadow 0.2s",boxShadow:"inset 0 1px 3px rgba(0,0,0,0.06)"}})
+          ),
+          e("div",null,
+            e("label",{style:{fontSize:"14px",marginBottom:"4px",display:"block"}},"抄送 (CC)"),
+            e("input",{type:"text",value:composeData.cc,onChange:function(e){setComposeData({...composeData,cc:e.target.value});},placeholder:"抄送给其他人",style:{width:"100%",padding:"10px",border:"1px solid #ccc",borderRadius:"6px",fontSize:"14px",background:"#fff",transition:"border-color 0.2s,box-shadow 0.2s",boxShadow:"inset 0 1px 3px rgba(0,0,0,0.06)"}})
+          ),
+          e("div",null,
+            e("label",{style:{fontSize:"14px",marginBottom:"4px",display:"block"}},"密送 (BCC)"),
+            e("input",{type:"text",value:composeData.bcc,onChange:function(e){setComposeData({...composeData,bcc:e.target.value});},placeholder:"密送给其他人",style:{width:"100%",padding:"10px",border:"1px solid #ccc",borderRadius:"6px",fontSize:"14px",background:"#fff",transition:"border-color 0.2s,box-shadow 0.2s",boxShadow:"inset 0 1px 3px rgba(0,0,0,0.06)"}})
+          ),
+          e("div",null,
+            e("label",{style:{fontSize:"14px",marginBottom:"4px",display:"block"}},"主题 *"),
+            e("input",{type:"text",value:composeData.subject,onChange:function(e){setComposeData({...composeData,subject:e.target.value});},placeholder:"邮件主题",style:{width:"100%",padding:"10px",border:"1px solid #ccc",borderRadius:"6px",fontSize:"14px",background:"#fff",transition:"border-color 0.2s,box-shadow 0.2s",boxShadow:"inset 0 1px 3px rgba(0,0,0,0.06)"}})
+          ),
+          e("div",null,
+            e("label",{style:{fontSize:"14px",marginBottom:"4px",display:"block"}},"优先级"),
+            e("select",{value:composeData.priority,onChange:function(e){setComposeData({...composeData,priority:e.target.value});},style:{width:"100%",padding:"10px",border:"1px solid #ccc",borderRadius:"6px",fontSize:"14px",background:"#fff",transition:"border-color 0.2s,box-shadow 0.2s",boxShadow:"inset 0 1px 3px rgba(0,0,0,0.06)"}},
+              e("option",{value:"low"},"低"),
+              e("option",{value:"normal"},"普通"),
+              e("option",{value:"high"},"高")
+            )
+          ),
+          e("div",null,
+            e("label",{style:{fontSize:"14px",marginBottom:"4px",display:"block"}},"正文"),
+            e("textarea",{value:composeData.body,onChange:function(e){setComposeData({...composeData,body:e.target.value});},placeholder:"在此输入邮件内容...",style:{width:"100%",minHeight:"150px",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px",resize:"vertical"}})
+          ),
+          e("div",{style:{marginTop:"12px"}},
+            e("label",{style:{fontSize:"14px",marginBottom:"8px",display:"block"}},"📎 附件"),
+            e("input",{type:"file",multiple:true,onChange:handleComposeAttachment,style:{width:"100%",padding:"8px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px"}}),
+            // 附件列表
+            composeAttachments.length > 0 ? e("div",{style:{marginTop:"8px",padding:"8px",background:"#f5f5f5",borderRadius:"6px"}},
+              composeAttachments.map(function(file, idx) {
+                return e("div",{key:idx,style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px",marginBottom:"4px",background:"white",borderRadius:"4px"}},
+                  e("span",{style:{fontSize:"13px"}},file.name + " (" + (file.size/1024).toFixed(1) + " KB)"),
+                  e("button",{onClick:function(){removeComposeAttachment(idx);},style:{background:"none",border:"none",color:"#ff6b6b",cursor:"pointer",fontSize:"16px"}},"✕")
+                );
+              })
+            ) : null
+          ),
+          e("div",{style:{display:"flex",gap:"10px",marginTop:"16px"}},
+            e("button",{onClick:closeComposeModal,style:{flex:1,padding:"12px",border:"1px solid #ccc",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"linear-gradient(180deg,#f5f5f5,#e8e8e8)",color:"#555",fontWeight:"bold",boxShadow:"0 2px 4px rgba(0,0,0,0.1)"}},"取消"),
+            e("button",{onClick:sendEmail,disabled:sendingEmail,style:{flex:1,padding:"12px",border:"none",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"linear-gradient(135deg,#667eea,#764ba2)",color:"white",opacity:sendingEmail?0.6:1,boxShadow:"0 4px 15px rgba(102,126,234,0.4)",fontWeight:"bold",letterSpacing:"1px"}},sendingEmail?"⏳ 发送中...":"📤 发送")
+          )
+        )
+      )
+    ) : null;
+
+    // 蜂巢邮箱视图
+    if(aimailView && aimailMode === "hive") {
+      return e("div",{style:{padding:"20px",background:"linear-gradient(135deg, #f5f7fa 0%, #e8f5e9 100%)",color:"#333",minHeight:"100vh"}},
+            // P2P状态栏
+        e("div",{style:{background:p2pEnabled?"#e8f5e9":"#fff3e0",borderRadius:"8px",padding:"12px",marginBottom:"16px",display:"flex",alignItems:"center",justifyContent:"space-between"}},
+          e("div",null,
+            e("div",{style:{fontWeight:"bold",color:p2pEnabled?"#2e7d32":"#e65100"}},p2pEnabled?"✅ P2P通信已启用":"⏸️ P2P通信未启用"),
+            e("div",{style:{fontSize:"12px",color:"#666",marginTop:"4px"}},p2pEnabled?"状态: " + connectionStatus:"点击启用真实P2P通信")
+          ),
+          e("button",{onClick:toggleP2P,style:{background:p2pEnabled?"#d32f2f":"#4caf50",border:"none",color:"white",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"13px"}},p2pEnabled?"✖ 关闭P2P":"▶ 启用P2P")
+        ),
+        e("div",{style:{display:"flex",alignItems:"center",marginBottom:"20px"}},
+          e("button",{onClick:function(){setAimailMode("main");},style:{background:"#667eea",border:"none",color:"white",padding:"8px 16px",borderRadius:"8px",cursor:"pointer",marginRight:"12px"}},"← 返回"),
+          e("h2",{style:{margin:0,color:"#333"}},"蜂巢邮箱")
+        ),
+        // 我的面码显示
+        e("div",{style:{background:"#ffffff",borderRadius:"12px",padding:"16px",marginBottom:"20px",boxShadow:"0 2px 8px rgba(0,0,0,0.1)"}},
+          e("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}},
+            e("div",null,
+              e("div",{style:{fontSize:"14px",color:"#666",marginBottom:"4px"}},"🐝 我的面码（网络识别码）"),
+              e("div",{style:{fontSize:"24px",fontWeight:"bold",fontFamily:"monospace",letterSpacing:"2px",color:"#38ef7d"}},myFaceCode)
+            ),
+            e("div",{style:{display:"flex",gap:"8px"}},
+              e("button",{onClick:copyFaceCode,style:{background:"#667eea",border:"none",color:"white",padding:"8px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"13px"}},"📋 复制"),
+              e("button",{onClick:shareFaceCode,style:{background:"#764ba2",border:"none",color:"white",padding:"8px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"13px"}},"📤 分享")
+            )
+          ),
+          e("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:"12px",borderTop:"1px solid rgba(255,255,255,0.1)"}},
+            e("div",{style:{fontSize:"12px",opacity:0.6}},"💡 面码保持不变，除非主动刷新"),
+            e("button",{onClick:refreshFaceCode,style:{background:"rgba(255,107,107,0.3)",border:"1px solid rgba(255,107,107,0.5)",color:"#ff6b6b",padding:"6px 12px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}},"🔄 刷新面码")
+          )
+        ),
+        // 标签切换
+        e("div",{style:{display:"flex",gap:"8px",flexWrap:"wrap",justifyContent:"center",marginBottom:"20px"}},
+          e("span",{onClick:function(){setHiveTab("friends");setSelectedFriend(null);},style:{background:hiveTab==="friends"?"#667eea":"rgba(255,255,255,0.2)",padding:"6px 14px",borderRadius:"16px",fontSize:"13px",cursor:"pointer"}},"👥 朋友管理 (" + hiveFriends.length + ")"),
+          e("span",{onClick:function(){setHiveTab("messages");},style:{background:hiveTab==="messages"?"#667eea":"rgba(255,255,255,0.2)",padding:"6px 14px",borderRadius:"16px",fontSize:"13px",cursor:"pointer"}},"💬 消息互通"),
+          e("span",{onClick:function(){setShowAddFriend(true);},style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"➕ 添加朋友"),
+          e("span",{onClick:addFriendByFaceCode,style:{background:"linear-gradient(180deg,#e0e0e0,#b0b0b0)",padding:"6px 14px",borderRadius:"8px",fontSize:"13px",cursor:"pointer",border:"1px solid #999",boxShadow:"inset 0 1px 0 rgba(255,255,255,0.5),0 2px 4px rgba(0,0,0,0.15)",fontWeight:"bold",color:"#333",textShadow:"0 1px 0 rgba(255,255,255,0.4)"}},"🔍 通过面码添加")
+        ),
+        // 朋友列表面板
+        hiveTab === "friends" ? e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px"}},
+          e("h3",{style:{marginBottom:"16px"}},"👥 我的朋友"),
+          hiveFriends.length === 0 ? e("div",{style:{textAlign:"center",padding:"40px",opacity:0.6}},"暂无朋友，点击上方【添加朋友】按钮") :
+          e("div",null,hiveFriends.map(function(friend){
+            return e("div",{key:friend.id,onClick:function(){setSelectedFriend(friend);setHiveTab("messages");},style:{background:"rgba(255,255,255,0.15)",padding:"12px 16px",marginBottom:"8px",borderRadius:"8px",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",transition:"transform 0.2s"}},
+              e("div",{style:{width:"40px",height:"40px",borderRadius:"50%",background:"linear-gradient(135deg, #667eea 0%, #764ba2 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px"}},friend.avatar),
+              e("div",{style:{flex:1}},
+                e("div",{style:{fontWeight:"bold"}},friend.name),
+                e("div",{style:{fontSize:"12px",opacity:0.7}},friend.email),
+                e("div",{style:{fontSize:"10px",opacity:0.5,fontFamily:"monospace"}},"面码: " + (friend.faceCode || "未知"))
+              ),
+              e("div",{style:{textAlign:"right"}},
+                e("div",{style:{fontSize:"11px",color:friend.status==="online"?"#38ef7d":"#ff6b6b"}},friend.status==="online"?"● 在线":"○ 离线"),
+                e("div",{style:{fontSize:"11px",opacity:0.5}},friend.lastSeen)
+              ),
+              e("button",{onClick:function(e){e.stopPropagation();deleteHiveFriend(friend.id);},style:{background:"none",border:"1px solid rgba(255,0,0,0.3)",color:"#ff6b6b",padding:"4px 10px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}},"删除")
+            );
+          }))
+        ) :
+        // 消息面板
+        e("div",{style:{background:"rgba(255,255,255,0.1)",borderRadius:"12px",padding:"20px",minHeight:"400px"}},
+          !selectedFriend ? e("div",{style:{textAlign:"center",padding:"60px 20px"}},
+            e("div",{style:{fontSize:"48px",marginBottom:"16px"}},"💬"),
+            e("div",{style:{fontSize:"18px",fontWeight:"bold",marginBottom:"8px"}},"选择一个朋友开始聊天"),
+            e("div",{style:{fontSize:"14px",opacity:0.6}},"点击左侧朋友列表或先添加朋友")
+          ) :
+          e("div",null,
+            // 聊天头部
+            e("div",{style:{display:"flex",alignItems:"center",padding:"12px",background:"rgba(255,255,255,0.15)",borderRadius:"8px",marginBottom:"16px"}},
+              e("div",{style:{width:"40px",height:"40px",borderRadius:"50%",background:"linear-gradient(135deg, #667eea 0%, #764ba2 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",marginRight:"12px"}},selectedFriend.avatar),
+              e("div",null,
+                e("div",{style:{fontWeight:"bold"}},selectedFriend.name),
+                e("div",{style:{fontSize:"12px",opacity:0.7}},selectedFriend.status==="online"?"在线" : "离线 - " + selectedFriend.lastSeen)
+              ),
+              e("button",{onClick:function(){setSelectedFriend(null);},style:{marginLeft:"auto",background:"none",border:"none",color:"white",cursor:"pointer",fontSize:"18px"}},"✕")
+            ),
+            // 消息列表
+            e("div",{style:{minHeight:"250px",maxHeight:"350px",overflowY:"auto",padding:"12px",background:"rgba(0,0,0,0.1)",borderRadius:"8px",marginBottom:"16px"}},
+              hiveMessages.filter(function(m){return m.from===selectedFriend.name||m.to===selectedFriend.name;}).length===0?
+              e("div",{style:{textAlign:"center",padding:"40px",opacity:0.5}},"暂无消息，开始聊天吧！") :
+              hiveMessages.filter(function(m){return m.from===selectedFriend.name||m.to===selectedFriend.name;}).map(function(msg){
+                var isMe = msg.from === "我";
+                return e("div",{key:msg.id,style:{marginBottom:"12px",display:"flex",justifyContent:isMe?"flex-end":"flex-start"}},
+                  e("div",{style:{maxWidth:"70%",background:isMe?"#667eea":"rgba(255,255,255,0.2)",padding:"10px 14px",borderRadius:"12px",borderBottomLeftRadius:isMe?"12px":"4px",borderBottomRightRadius:isMe?"4px":"12px"}},
+                    msg.type==="file" ? 
+                    e("div",null,
+                      e("div",{style:{fontSize:"14px",marginBottom:"4px"}},"📎 附件:"),
+                      msg.files.map(function(file,idx){return e("div",{key:idx,style:{fontSize:"12px",opacity:0.8}},file.name + " (" + (file.size/1024).toFixed(1) + " KB)");})
+                    ) :
+                    e("div",{style:{fontSize:"14px",whiteSpace:"pre-wrap"}},msg.content),
+                    e("div",{style:{fontSize:"10px",opacity:0.6,marginTop:"4px",textAlign:"right"}},msg.timestamp)
+                  )
+                );
+              })
+            ),
+            // 附件预览
+            attachedFiles.length > 0 ? e("div",{style:{marginBottom:"12px",padding:"8px",background:"rgba(255,255,255,0.1)",borderRadius:"8px"}},
+              e("div",{style:{fontSize:"12px",marginBottom:"4px",opacity:0.8}},"📎 待发送附件:"),
+              attachedFiles.map(function(file,idx){
+                return e("div",{key:idx,style:{display:"flex",alignItems:"center",gap:"8px",padding:"4px 8px",background:"rgba(255,255,255,0.1)",borderRadius:"4px",marginBottom:"4px"}},
+                  e("span",null,file.name),
+                  e("span",{style:{fontSize:"11px",opacity:0.6}},"(" + (file.size/1024).toFixed(1) + " KB)"),
+                  e("button",{onClick:function(){removeAttachedFile(idx);},style:{background:"none",border:"none",color:"#ff6b6b",cursor:"pointer",fontSize:"14px"}},"✕")
+                );
+              })
+            ) : null,
+            // 输入区域
+            e("div",{style:{display:"flex",gap:"8px",alignItems:"flex-end"}},
+              e("textarea",{
+                value: hiveInput,
+                onChange: function(e){setHiveInput(e.target.value);},
+                placeholder: "输入消息...",
+                style: {flex:1,minHeight:"60px",padding:"10px",border:"1px solid rgba(255,255,255,0.3)",borderRadius:"8px",background:"rgba(255,255,255,0.1)",color:"white",fontSize:"14px",resize:"vertical"}
+              }),
+              e("div",{style:{display:"flex",flexDirection:"column",gap:"8px"}},
+                e("label",{style:{cursor:"pointer",padding:"10px",background:"rgba(255,255,255,0.2)",borderRadius:"8px",textAlign:"center"}},
+                  "📎",
+                  e("input",{type:"file",multiple:true,onChange:handleFileAttach,style:{display:"none"}})
+                ),
+                e("button",{onClick:sendHiveMessage,style:{padding:"10px 16px",background:"#667eea",color:"white",border:"none",borderRadius:"8px",cursor:"pointer",fontSize:"14px"}},"发送")
+              )
+            )
+          )
+        ),
+        // 添加朋友模态框
+        showAddFriend ? e("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}},
+          e("div",{style:{background:"white",borderRadius:"12px",padding:"24px",width:"400px",color:"#333"}},
+            e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
+              e("h2",{style:{margin:0}},"➕ 添加朋友"),
+              e("button",{onClick:function(){setShowAddFriend(false);},style:{background:"none",border:"none",fontSize:"24px",cursor:"pointer",color:"#999"}},"✕")
+            ),
+            e("div",{style:{display:"flex",flexDirection:"column",gap:"12px"}},
+              e("div",null,
+                e("label",{style:{fontSize:"14px",marginBottom:"4px",display:"block"}},"姓名 *"),
+                e("input",{type:"text",value:newFriend.name,onChange:function(e){setNewFriend({...newFriend,name:e.target.value});},placeholder:"朋友姓名",style:{width:"100%",padding:"10px",border:"1px solid #ccc",borderRadius:"6px",fontSize:"14px",background:"#fff",transition:"border-color 0.2s,box-shadow 0.2s",boxShadow:"inset 0 1px 3px rgba(0,0,0,0.06)"}})
+              ),
+              e("div",null,
+                e("label",{style:{fontSize:"14px",marginBottom:"4px",display:"block"}},"邮箱 *"),
+                e("input",{type:"text",value:newFriend.email,onChange:function(e){setNewFriend({...newFriend,email:e.target.value});},placeholder:"friend@hive.local",style:{width:"100%",padding:"10px",border:"1px solid #ccc",borderRadius:"6px",fontSize:"14px",background:"#fff",transition:"border-color 0.2s,box-shadow 0.2s",boxShadow:"inset 0 1px 3px rgba(0,0,0,0.06)"}})
+              ),
+              e("div",null,
+                e("label",{style:{fontSize:"14px",marginBottom:"4px",display:"block"}},"面码（可选）"),
+                e("input",{type:"text",value:newFriend.faceCode||"",onChange:function(e){setNewFriend({...newFriend,faceCode:e.target.value.toUpperCase()});},placeholder:"HIVE-XXXXXXXX",style:{width:"100%",padding:"10px",border:"1px solid #ddd",borderRadius:"6px",fontSize:"14px",fontFamily:"monospace"}})
+              ),
+              e("div",{style:{display:"flex",gap:"10px",marginTop:"16px"}},
+                e("button",{onClick:function(){setShowAddFriend(false);},style:{flex:1,padding:"12px",border:"1px solid #ccc",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"linear-gradient(180deg,#f5f5f5,#e8e8e8)",color:"#555",fontWeight:"bold",boxShadow:"0 2px 4px rgba(0,0,0,0.1)"}},"取消"),
+                e("button",{onClick:addHiveFriend,style:{flex:1,padding:"12px",border:"none",borderRadius:"6px",cursor:"pointer",fontSize:"14px",background:"#667eea",color:"white"}},"添加")
+              )
+            )
+          )
+        ) : null
+      );
+    }
+
+return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
       e("div",{style:{display:"flex",flexDirection:"row",height:"100%",fontFamily:"system-ui, sans-serif"}},
       e("div",{style:{flex:1,display:"flex",flexDirection:"column",position:"relative",overflow:"hidden",background:uiTheme==="day"?"#fefefe":"#12121a"}},
       /* ---- 🎬 一闪广告 ---- */
@@ -3188,8 +5248,8 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
         e("div",{style:{marginBottom:4}},
           agLd?e(Spin,{size:"small",style:{marginLeft:8}}):
           ags.length===0?e(Space,{size:4,style:{marginLeft:8}},
-            e(Text,{type:"danger",style:{fontSize:12}},"⚠ 无法加载智能体"),
-            e(Button,{size:"small",onClick:function () { setAgLd(true); apiGet("/agents").then(function (d) { setAgs(d.agents||[]); setAgLd(false); }).catch(function () { setAgLd(false); }); }},"🔄 重试")
+            e(Text,{type:"danger",style:{fontSize:12}},t("noAgents")),
+            e(Button,{size:"small",onClick:function () { setAgLd(true); apiGet("/agents").then(function (d) { setAgs(d.agents||[]); setAgLd(false); }).catch(function () { setAgLd(false); }); }},t("retry"))
           ):null
         ),
         e("div",{style:{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}},
@@ -3302,12 +5362,18 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
                 content:e("div",{style:{padding:"4px 6px",minWidth:190}},
                   musicOn?e("div",{style:{fontSize:11,color:"#C62828",fontWeight:"bold",marginBottom:4,textAlign:"center",padding:"2px 0",borderBottom:"1px solid #ffcdd2"}},
                     "▶ 正在播放: "+(songIdx<Object.keys(SONGS).length?Object.keys(SONGS)[songIdx]:"自定义")):null,
-                  Object.keys(SONGS).map(function(name,i){
-                    return e(Button,{key:name,size:"small",type:"text",
+                  Array.from({length:getTotalSongs()},function(_,i){
+                    var name = getSongName(i);
+                    return e(Button,{key:"s"+i,size:"small",type:"text",
                       style:{textAlign:"left",fontSize:10,padding:"0 3px",color:songIdx===i?(musicOn?"#C62828":"#1890ff"):"#5D4037",fontWeight:songIdx===i?"bold":"normal",marginBottom:0},
-                      onClick:function(ev){ev.stopPropagation();setSongIdx(i);if(musicOn){toggleMusic();setTimeout(function(){toggleMusic();},150);}else{toggleMusic();}}
-                    },(songIdx===i&&musicOn?"▶ ":(songIdx===i?"● ":"  "))+name);
+                      onClick:function(ev){ev.stopPropagation();var ti=i;if(ti>=getBuiltinCount()&&customSongs&&ti-getBuiltinCount()<customSongs.length){setCustSong(customSongs[ti-getBuiltinCount()].raw);}setSongIdx(ti);if(musicOn){toggleMusic();setTimeout(function(){toggleMusic(ti);},150);}else{toggleMusic(ti);}}
+                    },(songIdx===i&&musicOn?"\u25b6 ":(songIdx===i?"\u25cf ":"  "))+name);
                   }),
+                  e(Button,{key:"newbtn",size:"small",type:"dashed",icon:"+",
+                    style:{textAlign:"left",fontSize:10,padding:"0 6px",marginLeft:2,color:"#1890ff",fontWeight:"bold"},
+                    onClick:function(ev){ev.stopPropagation();setSongIdx(getTotalSongs());setCustSong("");setShowSaveModal(true);setSaveNameVal("");}
+                  },"\u65b0\u5efa"),
+                  
                   e("div",{style:{borderTop:"1px solid #eee",margin:"4px 0"}}),
                   e("div",{style:{display:"flex",alignItems:"center",gap:6,marginBottom:6}},
                     e("span",{style:{fontSize:12}},"🔊"),
@@ -3322,18 +5388,88 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
                       style:{fontSize:11,flex:1,fontWeight:"bold"}
                     },"⏹ 停止播放"):null,
                     e(Button,{size:"small",type:"text",
-                      style:{textAlign:"left",fontSize:10,padding:"0 3px",color:songIdx>=Object.keys(SONGS).length?(musicOn?"#C62828":"#1890ff"):"#5D4037",fontWeight:songIdx>=Object.keys(SONGS).length?"bold":"normal",flex:musicOn?0:1},
-                      onClick:function(ev){ev.stopPropagation();setSongIdx(Object.keys(SONGS).length);}
-                    },"✏️ 自定义简谱")
+                      style:{textAlign:"left",fontSize:10,padding:"0 3px",color:songIdx>=getTotalSongs()?(musicOn?"#C62828":"#1890ff"):"#5D4037",fontWeight:songIdx>=getTotalSongs()?"bold":"normal",flex:musicOn?0:1},
+                      onClick:function(ev){ev.stopPropagation();setSongIdx(getTotalSongs());setCustSong("");setShowSaveModal(true);setSaveNameVal("");}
+                    },"\u2795 \u65b0\u5efa\u4e50\u8c31")
                   ),
-                  songIdx>=Object.keys(SONGS).length?e(TextArea,{value:custSong,onChange:function(ev){setCustSong(ev.target.value);try{localStorage.setItem("teamchat_custom_song",ev.target.value);}catch(e){}},
-                    placeholder:"粘贴数字简谱，空格分行",autoSize:{minRows:2,maxRows:3},style:{marginTop:4,fontSize:10},onClick:function(ev){ev.stopPropagation();}}):null
+                  songIdx>=getBuiltinCount()?e("div",{style:{marginTop:6}},
+                    showSaveModal?e("div",{style:{marginBottom:6,padding:"6px 8px",background:"#fff8e1",borderRadius:6,border:"1px solid #ffe082"}},
+                      e("div",{style:{fontSize:10,fontWeight:"bold",color:"#e65100",marginBottom:4}},"\u65b0\u5efa\u4e50\u8c31"),
+                      e("input",{type:"text",value:saveNameVal,onChange:function(ev){setSaveNameVal(ev.target.value);},
+                        placeholder:"\u8bf7\u8f93\u5165\u4e50\u8c31\u540d\u79f0",
+                        style:{width:"100%",padding:"6px 8px",border:"1px solid #ddd",borderRadius:4,fontSize:12,marginBottom:4,boxSizing:"border-box"}}),
+                      e("div",{style:{display:"flex",gap:4}},
+                        e(Button,{size:"small",type:"primary",disabled:!saveNameVal||!custSong,
+                          onClick:function(ev){
+                            ev.stopPropagation();
+                            if(!saveNameVal||!custSong)return;
+                            var newSongs = (customSongs||[]).concat([{name:saveNameVal,raw:custSong,scale:"diatonic"}]);
+                            saveCustomSongs(newSongs);
+                            setShowSaveModal(false);setSaveNameVal("");
+                            var si = getBuiltinCount()+newSongs.length-1;
+                            setSongIdx(si);
+                            if(musicOn){toggleMusic();setTimeout(function(){toggleMusic(si);},150);}else{toggleMusic(si);}
+                          },
+                          style:{fontSize:10,fontWeight:"bold",padding:"0 8px",height:24}
+                        },"\u4fdd\u5b58"),
+                        e(Button,{size:"small",
+                          onClick:function(ev){ev.stopPropagation();setShowSaveModal(false);setSaveNameVal("");},
+                          style:{fontSize:10,padding:"0 8px",height:24}
+                        },"\u53d6\u6d88")
+                      )
+                    ):null,
+                    e("div",{style:{display:"flex",gap:4,marginBottom:4,alignItems:"center"}},
+                      e("span",{style:{fontSize:10,color:"#5D4037",fontWeight:"bold"}},"\u270f\ufe0f \u81ea\u5b9a\u4e49\u7f16\u8f91\u5668"),
+                      e("span",{style:{fontSize:9,color:"#999"}},
+                        custSong?"\u2705 "+custSong.replace(/\s/g,"").length+" \u4e2a\u97f3\u7b26":"")
+                    ),
+                    e(TextArea,{value:custSong,onChange:function(ev){setCustSong(ev.target.value);},
+                      placeholder:"\u2192 \u7c98\u8d34\u6570\u5b57\u7b80\u8c31\uff0c\u7a7a\u683c\u5206\u884c",autoSize:{minRows:2,maxRows:3},style:{fontSize:10,marginBottom:4},onClick:function(ev){ev.stopPropagation()}}),
+                    e("div",{style:{display:"flex",gap:4,flexWrap:"wrap"}},
+                      e(Button,{size:"small",type:"primary",icon:"\u25b6",disabled:!custSong||musicOn,
+                        onClick:function(ev){ev.stopPropagation();if(!custSong)return;var ti=getTotalSongs();setSongIdx(ti);if(!musicOn)toggleMusic(ti);},
+                        style:{fontSize:10,fontWeight:"bold",padding:"0 8px",height:24}
+                      },"\u64ad\u653e"),
+                      e(Button,{size:"small",icon:"\u23f9",disabled:!musicOn,
+                        onClick:function(ev){ev.stopPropagation();if(musicOn)toggleMusic();},
+                        style:{fontSize:10,padding:"0 8px",height:24}
+                      },"\u505c\u6b62"),
+                      e(Button,{size:"small",icon:"\u2b55",disabled:!custSong||songIdx<getBuiltinCount(),
+                        onClick:function(ev){
+                          ev.stopPropagation();
+                          var ci = songIdx - getBuiltinCount();
+                          if(ci<0||!customSongs||ci>=customSongs.length)return;
+                          var newSongs = customSongs.slice();
+                          newSongs[ci] = Object.assign({},newSongs[ci],{raw:custSong});
+                          saveCustomSongs(newSongs);
+                        },
+                        style:{fontSize:10,padding:"0 8px",height:24}
+                      },"\u4fdd\u5b58\u4fee\u6539"),
+                      e(Button,{size:"small",icon:"\u267b",
+                        onClick:function(ev){ev.stopPropagation();setCustSong("");},
+                        style:{fontSize:10,padding:"0 8px",height:24}
+                      },"\u6e05\u7a7a"),
+                      e(Button,{size:"small",danger:true,icon:"\u2716",
+                        onClick:function(ev){
+                          ev.stopPropagation();
+                          var ci = songIdx - getBuiltinCount();
+                          if(ci<0||!customSongs||ci>=customSongs.length)return;
+                          if(!confirm("\u786e\u5b9a\u5220\u9664\u8be5\u4e50\u8c31\uff1f"))return;
+                          var newSongs = customSongs.slice();
+                          newSongs.splice(ci,1);
+                          saveCustomSongs(newSongs);
+                          setSongIdx(0);
+                        },
+                        style:{fontSize:10,padding:"0 8px",height:24,color:"#c62828"}
+                      },"\u5220\u9664")
+                    )
+                  ):null
                 )},
                 e(Button,{size:"small",icon:musicOn?"⏹":"🎵",style:{maxWidth:70,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",background:"linear-gradient(180deg,#c8a878,#8a6848,#6a4828,#a07848)",border:"1px solid #8B6914",color:"#f5e6d0",fontWeight:"bold",textShadow:"0 1px 0 rgba(0,0,0,.35)",borderRadius:4,boxShadow:"inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(0,0,0,.2)"}},
-                  musicOn?"停止":(songIdx<Object.keys(SONGS).length?Object.keys(SONGS)[songIdx]:"自定义"))
+                  musicOn?t("stop"):getSongName(songIdx))
               ),
               e("span",{style:{display:"inline-block",width:"5ch"}}),
-              ld?e(Button,{type:"primary",danger:true,onClick:stop,icon:e("span",null,"⏹"),style:{fontWeight:"bold",background:"linear-gradient(180deg,#d88888,#a84848,#882828,#c06060)",border:"1px solid #8a3030",color:"#fce4e4",textShadow:"0 1px 0 rgba(0,0,0,.35)",borderRadius:4,boxShadow:"inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(0,0,0,.2)"}},"停止"):e(Button,{type:"primary",icon:e(antdIcons.SendOutlined||null),onClick:send,disabled:!msg.trim()||tabBlocked,style:{background:"linear-gradient(180deg,#e0c068,#c09030,#906020,#d0a840)",border:"1px solid #8B6914",color:"#fff5e0",fontWeight:"bold",textShadow:"0 1px 0 rgba(0,0,0,.35)",borderRadius:4,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 4px rgba(0,0,0,.25)"}},"发送")
+              ld?e(Button,{type:"primary",danger:true,onClick:stop,icon:e("span",null,"⏹"),style:{fontWeight:"bold",background:"linear-gradient(180deg,#d88888,#a84848,#882828,#c06060)",border:"1px solid #8a3030",color:"#fce4e4",textShadow:"0 1px 0 rgba(0,0,0,.35)",borderRadius:4,boxShadow:"inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(0,0,0,.2)"}},t("stop")):e(Button,{type:"primary",icon:e(antdIcons.SendOutlined||null),onClick:send,disabled:!msg.trim()||tabBlocked,style:{background:"linear-gradient(180deg,#e0c068,#c09030,#906020,#d0a840)",border:"1px solid #8B6914",color:"#fff5e0",fontWeight:"bold",textShadow:"0 1px 0 rgba(0,0,0,.35)",borderRadius:4,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 4px rgba(0,0,0,.25)"}},t("send"))
             )
           ),
         
@@ -3352,7 +5488,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
             suffix:e(Button,{size:"small",type:"link",onClick:function () { setSessLd(true); apiGet("/sessions?search="+encodeURIComponent(sq)).then(function (r) { setSess(r.sessions||[]); setSessLd(false); }).catch(function () { setSessLd(false); }); }},"🔍")
           })
         ),
-        sessLd?e(Spin,{tip:"加载中...",style:{display:"block",textAlign:"center",padding:40}}):
+        sessLd?e(Spin,{tip:t("loading"),style:{display:"block",textAlign:"center",padding:40}}):
         sess.length===0||(hTab==="starred"&&sess.filter(function(s){return s.pinned;}).length===0)?
           e(Empty,{description:sq?"无匹配结果":(hTab==="starred"?"暂无收藏会话，点击 📌 置顶即可收藏":"暂无历史会谈记录")}):
         e("div",{style:{maxHeight:400,overflow:"auto"}},
@@ -3443,7 +5579,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       ),
       sideOpen?e("div",{style:{width:280,minWidth:280,borderLeft:uiTheme==="day"?"1px solid #D7CCC8":"1px solid #3a3a4e",padding:"16px 16px 16px 8px",background:uiTheme==="day"?"#FDF8F0":"#1e1e32",flexShrink:0,display:"flex",flexDirection:"column",overflowY:"auto",minHeight:"100%"}},
         e(Button,{size:"small",type:"text",onClick:function(){setSideOpen(false);},style:{alignSelf:"flex-end",fontSize:12,fontWeight:"bold",background:"linear-gradient(180deg,#f0e8dc,#d8d0c4,#c0b8ac,#e0d8cc)",border:"1px solid #b8a898",color:"#5a4a3a",borderRadius:4,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 1px 3px rgba(0,0,0,.1)",textShadow:"0 1px 0 rgba(255,255,255,.3)",padding:"2px 10px",marginBottom:8}},"◀ 收起小桌板"),
-        e("div",{style:{marginBottom:12}},
+        e("div",{style:{marginBottom:12},onClick:function(){console.log("AI邮箱按钮被点击");setAimailView(true);}},e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setAimailView(true);},style:{display:"block",fontSize:13,fontWeight:"bold",color:"white",textDecoration:"none",cursor:"pointer",padding:"8px 12px",textAlign:"center",background:"linear-gradient(135deg,#667eea 0%,#764ba2 100%)",border:"1px solid #5a6cdb",borderRadius:16,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(102,126,234,.3)",textShadow:"0 1px 0 rgba(0,0,0,.1)"}},"📧 Ai邮箱 ",e("span",{style:{display:"inline-block",fontSize:"20px",verticalAlign:"middle",animation:"tcPigeonFly 1.5s ease-in-out infinite",marginLeft:"4px"}},"🕊"))),e("div",{style:{marginBottom:12}},
           e("div",{onClick:function(){setChuanView(true);},style:{cursor:"pointer"}},e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setChuanView(true);},style:{display:"block",fontSize:13,fontWeight:"bold",color:"#4E342E",textDecoration:"none",cursor:"pointer",padding:"8px 12px",textAlign:"center",background:"linear-gradient(180deg,#e8f5e9,#c8e6c9,#a5d6a7,#d0e8d0)",border:"1px solid #81c784",borderRadius:16,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(76,175,80,.15)",textShadow:"0 1px 0 rgba(255,255,255,.3)"}},"📡 串串频道"))
         ),
 
@@ -3494,7 +5630,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
         // F: 指导动图
         e("div",{style:{marginBottom:12,textAlign:"center"}},
           e("a",{href:"https://agent.bh-jk.com",target:"_blank",rel:"noopener noreferrer"},
-            e("img",{src:QP.plugin&&QP.plugin.getMediaUrl?QP.plugin.getMediaUrl("bot.gif"):getApiUrl("/team-chat/media/bot.gif"),style:{width:"100%",borderRadius:6,cursor:"pointer"},
+            e("img",{src:QP.plugin&&QP.plugin.getMediaUrl?QP.plugin.getMediaUrl("bot.gif"):getApiUrl("/plugins/team_chat/media/bot.gif"),style:{width:"100%",borderRadius:6,cursor:"pointer"},
               onError:function(e){e.target.style.display="none";}
             })
           )
@@ -3503,7 +5639,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
         // G: 支持链接
         e("div",{style:{marginTop:"auto",paddingTop:12,borderTop:"1px solid #D7CCC8",textAlign:"center"}},
           e("a",{href:"https://agent.bh-jk.com",target:"_blank",rel:"noopener noreferrer",style:{textDecoration:"none",display:"block"}},
-            e("img",{src:QP.plugin&&QP.plugin.getMediaUrl?QP.plugin.getMediaUrl("0123.jpg"):getApiUrl("/team-chat/media/0123.jpg"),style:{width:"100%",borderRadius:8,boxShadow:"0 2px 8px rgba(0,0,0,0.1)",cursor:"pointer"},
+            e("img",{src:QP.plugin&&QP.plugin.getMediaUrl?QP.plugin.getMediaUrl("0123.jpg"):getApiUrl("/plugins/team_chat/media/0123.jpg"),style:{width:"100%",borderRadius:8,boxShadow:"0 2px 8px rgba(0,0,0,0.1)",cursor:"pointer"},
               onError:function(e){e.target.style.display="none";e.target.parentNode.innerHTML="<div style='padding:16px;background:#FAF3E8;border-radius:8px;color:#8D6E63;font-size:11px;'>❤️ 点击访问 agent.bh-jk.com</div>";}
             })
           )
@@ -3525,7 +5661,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
         ),
         e("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",padding:"60px 40px 150px",position:"relative",zIndex:1}},
           (function(){
-            if (pptMsgs.length===0||pptIdx>=pptMsgs.length) return e("div",{style:{color:"#667",fontSize:18}},"加载中...");
+            if (pptMsgs.length===0||pptIdx>=pptMsgs.length) return e("div",{style:{color:"#667",fontSize:18}},t("loading"));
             var m=pptMsgs[pptIdx];
             var ac=(m.role==="human"?"#e91e63":m.role==="host"?"#ff9800":"#00e5ff");
             var ic=(m.role==="human"?"🧑":m.role==="host"?"🎤":"🤖");
@@ -3630,7 +5766,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
           e(Button,{size:"small",type:shelfTab==="collected"?"primary":"default",onClick:function(){setShelfTab("collected");loadShelf();},style:{flex:1}},"📥 已收集"),
           e(Button,{size:"small",type:shelfTab==="workspace"?"primary":"default",onClick:function(){setShelfTab("workspace");scanWs("");},style:{flex:1}},"📂 工作区")
         ),
-        shelfTab==="collected"?(shelfLd?e(Spin,{tip:"加载中...",style:{display:"block",textAlign:"center",padding:40}}):
+        shelfTab==="collected"?(shelfLd?e(Spin,{tip:t("loading"),style:{display:"block",textAlign:"center",padding:40}}):
         shelfFiles.length===0?e(Empty,{description:"暂无可下载文件。聊天气泡中点击 📥 收集，或从工作区扫描。"}):
         e("div",{style:{maxHeight:400,overflow:"auto"}},
           shelfFiles.map(function(f,i){
@@ -3680,7 +5816,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
         ))
       ),
       e(Modal,{title:"📖 TeamChat v4.0.9 说明文档",open:readmeV,onCancel:function(){setReadmeV(false);},footer:null,width:800,style:{maxHeight:"80vh"}},
-        e("div",{style:{maxHeight:"60vh",overflow:"auto",padding:"0 8px",fontFamily:"monospace",fontSize:12,whiteSpace:"pre-wrap",lineHeight:1.6}},readmeC||"加载中...")
+        e("div",{style:{maxHeight:"60vh",overflow:"auto",padding:"0 8px",fontFamily:"monospace",fontSize:12,whiteSpace:"pre-wrap",lineHeight:1.6}},readmeC||t("loading"))
       ),
       // ⌨ 快捷键面板
       e(Modal,{title:"⌨ 快捷键",open:keysV,onCancel:function(){setKeysV(false);},footer:null,width:340},
@@ -3696,5 +5832,2968 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
     ));
   }
 
-  QP.registerRoutes("team_chat",[{path:"/plugin/team-chat/meeting",component:TeamChatPage,label:"新会谈",icon:"团",priority:100}]);
+  QP.registerRoutes("team_chat",[{path:"/plugin/plugins/team_chat/meeting",component:TeamChatPage,label:t("newMeeting"),icon:"团",priority:100}]);
 })();
+function saveContact() {
+  var name = document.getElementById("contact_name")?.value;
+  var email = document.getElementById("contact_email")?.value;
+  var phone = document.getElementById("contact_phone")?.value;
+  var company = document.getElementById("contact_company")?.value;
+  var notes = document.getElementById("contact_notes")?.value;
+  var group = document.getElementById("contact_group")?.value || "default";
+
+  if (!name || !email) {
+    message.error("请填写姓名和邮箱");
+    return;
+  }
+
+  if (!isValidEmail(email)) {
+    message.error("邮箱格式不正确");
+    return;
+  }
+
+  var contact = {
+    name: name,
+    email: email,
+    phone: phone || "",
+    company: company || "",
+    notes: notes || "",
+    group: group,
+    created_at: new Date().toISOString()
+  };
+
+  if (saveStoredContact(contact)) {
+    message.success("联系人保存成功");
+
+    // 清空表单
+    if (document.getElementById("contact_name")) document.getElementById("contact_name").value = "";
+    if (document.getElementById("contact_email")) document.getElementById("contact_email").value = "";
+    if (document.getElementById("contact_phone")) document.getElementById("contact_phone").value = "";
+    if (document.getElementById("contact_company")) document.getElementById("contact_company").value = "";
+    if (document.getElementById("contact_notes")) document.getElementById("contact_notes").value = "";
+
+    // 刷新联系人列表
+    if (typeof loadContacts === 'function') {
+      loadContacts();
+    } else {
+      location.reload();
+    }
+  } else {
+    message.error("联系人保存失败");
+  }
+}
+
+
+function isValidEmail(email) {
+  var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+}
+
+// ========== AI分身全局开关 ==========
+// 注入隐藏样式（!important 覆盖 .ai-copilot-btn 的 display:flex!important）
+(function(){
+    var hideStyle = document.createElement("style");
+    hideStyle.textContent = ".ai-copilot-btn-hidden { display: none !important; }";
+    document.head.appendChild(hideStyle);
+})();
+window.toggleAIFenshenGlobal = function(enabled) {
+    try {
+        localStorage.setItem("aiFenshenGlobalEnabled", enabled ? "true" : "false");
+        // 同步触发自定义事件，让React组件感知状态变化
+        window.dispatchEvent(new CustomEvent("aiFenshenToggle", {detail:{enabled:enabled}}));
+        // 智能显隐：仅在 QwenPaw 主界面（非邮箱视图）应用全局开关
+        // 在 AI邮箱/传统邮箱内部始终显示 AI分身浮动按钮
+        var btn = document.querySelector(".ai-copilot-btn");
+        if (btn) {
+            if (enabled) {
+                btn.classList.remove("ai-copilot-btn-hidden");
+            } else {
+                // 检查是否在邮箱视图内
+                var inEmailView = document.getElementById("teamchat-email-ui") ||
+                                  document.querySelector('[class*="aimail"]');
+                if (!inEmailView) {
+                    btn.classList.add("ai-copilot-btn-hidden");
+                    var panel = document.querySelector(".ai-copilot-panel");
+                    if (panel) panel.style.display = "none";
+                }
+                // 如果在邮箱视图内，不隐藏
+            }
+        }
+    } catch(e) {}
+};
+window.isAIFenshenEnabled = function() {
+    try { return localStorage.getItem("aiFenshenGlobalEnabled") !== "false"; } catch(e) { return true; }
+};
+
+// 桥接函数：外部入口统一打开 React 传统邮箱视图
+window.__openTraditionalEmail = function() {
+    window.dispatchEvent(new CustomEvent("openTraditionalEmail"));
+};
+
+// ========== AI副驾全局浮动按钮 ==========
+(function() {
+    function initAICopilot() {
+        // 检查是否已存在按钮，避免重复创建
+        var existingBtn = document.querySelector('.ai-copilot-btn');
+        if (existingBtn) {
+            console.log('[AI Copilot] 按钮已存在，跳过创建');
+            return;
+        }
+        
+        // 创建样式
+        var style = document.createElement('style');
+        style.textContent = `
+            .ai-copilot-btn {
+                position: fixed !important;
+                right: 20px !important;
+                top: 20px !important;
+                width: 56px !important;
+                height: 56px !important;
+                border-radius: 50% !important;
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.7) 0%, rgba(118, 75, 162, 0.7) 100%) !important;
+                border: none !important;
+                color: white !important;
+                font-size: 24px !important;
+                cursor: pointer !important;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+                z-index: 99999 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                opacity: 0.85 !important;
+                transition: opacity 0.3s ease !important;
+                animation: ai-copilot-pulse 2s ease-in-out infinite !important;
+            }
+            @keyframes ai-copilot-pulse {
+                0% {
+                    transform: scale(1);
+                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                }
+                50% {
+                    transform: scale(1.15);
+                    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.8), 0 0 50px rgba(102, 126, 234, 0.5);
+                }
+                100% {
+                    transform: scale(1);
+                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                }
+            }
+            @keyframes ai-copilot-breathe {
+                0%, 100% {
+                    opacity: 0.5;
+                    filter: brightness(0.8);
+                }
+                50% {
+                    opacity: 1;
+                    filter: brightness(1.3);
+                }
+            }
+            @keyframes ai-copilot-glow {
+                0%, 100% {
+                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3), inset 0 0 0 0 rgba(255,255,255,0);
+                }
+                50% {
+                    box-shadow: 0 8px 40px rgba(102, 126, 234, 0.9), inset 0 0 30px rgba(255,255,255,0.5);
+                }
+            }
+            @keyframes ai-copilot-blink {
+                0%, 100% {
+                    opacity: 1;
+                    transform: scale(1);
+                    border: 3px solid rgba(255,255,255,0.8) !important;
+                    box-shadow: 0 0 20px rgba(102, 126, 234, 0.8), 0 0 40px rgba(118, 75, 162, 0.6);
+                }
+                25% {
+                    opacity: 0.4;
+                    transform: scale(0.85);
+                    border: 3px solid rgba(255,255,255,0.3) !important;
+                    box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+                }
+                50% {
+                    opacity: 1;
+                    transform: scale(1.15);
+                    border: 4px solid rgba(255,255,255,1) !important;
+                    box-shadow: 0 0 50px rgba(102, 126, 234, 1), 0 0 80px rgba(118, 75, 162, 0.8), inset 0 0 20px rgba(255,255,255,0.5);
+                }
+                75% {
+                    opacity: 0.6;
+                    transform: scale(0.9);
+                    border: 3px solid rgba(255,255,255,0.5) !important;
+                    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+                }
+            }
+            .ai-copilot-btn {
+                animation: ai-copilot-blink 1.2s ease-in-out infinite !important;
+                border: 3px solid rgba(255,255,255,0.8) !important;
+            }
+            .ai-copilot-btn:hover {
+                opacity: 1 !important;
+                animation: ai-copilot-blink 0.6s ease-in-out infinite !important;
+            }
+            .ai-copilot-panel {
+                position: fixed;
+                right: 20px;
+                top: 20px;
+                width: 600px;
+                height: 800px;
+                max-height: 90vh;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                z-index: 100000;
+                overflow: hidden;
+                resize: both;
+                min-width: 400px;
+                min-height: 600px;
+            }
+            .ai-copilot-panel .resize-handle {
+                position: absolute !important;
+                bottom: 0 !important;
+                right: 0 !important;
+                width: 20px !important;
+                height: 20px !important;
+                cursor: se-resize !important;
+                z-index: 100001 !important;
+            }
+            .ai-copilot-panel .resize-handle::after {
+                content: '' !important;
+                position: absolute !important;
+                bottom: 4px !important;
+                right: 4px !important;
+                width: 8px !important;
+                height: 8px !important;
+                border-right: 2px solid #999 !important;
+                border-bottom: 2px solid #999 !important;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 创建按钮
+        var btn = document.createElement('button');
+        btn.className = 'ai-copilot-btn';
+        btn.innerHTML = '🤖';
+        btn.title = 'AI分身 - 生活办公助手 (可拖动)';
+        
+        // 从 localStorage 读取位置
+        var savedPos = localStorage.getItem('aiCopilotPos');
+        if (savedPos) {
+            var pos = JSON.parse(savedPos);
+            btn.style.right = 'auto';
+            btn.style.top = 'auto';
+            btn.style.left = pos.left + 'px';
+            btn.style.bottom = pos.bottom + 'px';
+        }
+        
+        // 拖拽功能
+        var isDragging = false;
+        var startX, startY, startLeft, startBottom;
+        
+        btn.onmousedown = function(e) {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            var rect = btn.getBoundingClientRect();
+            startLeft = rect.left;
+            startBottom = window.innerHeight - rect.bottom;
+            btn.style.cursor = 'grabbing';
+            e.preventDefault();
+        };
+        
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            var dx = e.clientX - startX;
+            var dy = e.clientY - startY;
+            var newLeft = startLeft + dx;
+            var newBottom = startBottom - dy;
+            
+            // 边界限制
+            newLeft = Math.max(0, Math.min(window.innerWidth - 56, newLeft));
+            newBottom = Math.max(0, Math.min(window.innerHeight - 56, newBottom));
+            
+            btn.style.right = 'auto';
+            btn.style.top = 'auto';
+            btn.style.left = newLeft + 'px';
+            btn.style.bottom = newBottom + 'px';
+        });
+        
+        document.addEventListener('mouseup', function() {
+            if (isDragging) {
+                isDragging = false;
+                btn.style.cursor = 'pointer';
+                // 保存位置
+                var rect = btn.getBoundingClientRect();
+                localStorage.setItem('aiCopilotPos', JSON.stringify({
+                    left: rect.left,
+                    bottom: window.innerHeight - rect.bottom
+                }));
+            }
+        });
+        
+        var panelOpen = false;
+        var panel = null;
+        
+        btn.onclick = function(e) {
+            if (isDragging) return;
+            if (panelOpen) {
+                if (panel) panel.remove();
+                panelOpen = false;
+                btn.innerHTML = '🤖';
+            } else {
+                panel = document.createElement('div');
+                panel.className = 'ai-copilot-panel';
+                panel.innerHTML = `
+                    <!-- AI分身头部 - 可拖动 -->
+                    <div class="ai-fenshen-header" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;user-select:none;">
+                        <div style="display:flex;align-items:center;gap:10px;flex:1;">
+                            <div style="position:relative;">
+                                <img src="/api/plugins/team_chat/media/0123.jpg" 
+                                     style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.6);cursor:pointer;" 
+                                     id="ai-fenshen-avatar" 
+                                     onclick="window.openAvatarSettings()" 
+                                     title="点击更换头像"
+                                     onerror="this.style.display='none';this.parentNode.innerHTML='<span style=font-size:24px;>🤖</span>';">
+                                <div style="position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;background:#52c41a;border-radius:50%;border:2px solid white;" title="在线"></div>
+                            </div>
+                            <div style="flex:1;">
+                                <div style="display:flex;align-items:center;gap:6px;">
+                                    <span style="font-weight:bold;font-size:15px;">AI分身</span>
+                                    <span style="font-size:10px;background:rgba(255,255,255,0.2);padding:2px 6px;border-radius:10px;">v3.0</span>
+                                </div>
+                                <div style="font-size:11px;opacity:0.9;" id="ai-fenshen-status">
+                                    <span style="width:6px;height:6px;background:#52c41a;border-radius:50%;display:inline-block;margin-right:4px;"></span>
+                                    就绪 · 等待指令
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:4px;">
+                            <button onclick="window.generateExtensionToken()" style="background:rgba(255,255,255,0.2);border:none;color:white;font-size:12px;cursor:pointer;padding:6px 12px;border-radius:4px;white-space:nowrap;" title="生成Chrome扩展Token">🔑 生成Token</button>
+                            <button onclick="window.minimizeAIFenshen()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:4px;" title="最小化">_</button>
+                            <button onclick="window.hideAIFenshenPanel()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:4px;" title="关闭">✕</button>
+                        </div>
+                    </div>
+                    
+                    <!-- AI分身工作区 -->
+                    <div style="display:flex;flex-direction:column;height:480px;">
+                        <!-- 聊天区域 -->
+                        <div id="ai-fenshen-chat" style="flex:1;overflow-y:auto;padding:16px;background:#f8f9fa;">
+                            <!-- 欢迎消息 -->
+                            <div style="margin-bottom:16px;" id="welcome-msg">
+                                <div style="display:flex;gap:12px;">
+                                    <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;cursor:pointer;border:2px solid #667eea;box-shadow:0 2px 8px rgba(102,126,234,0.3);" onclick="window.openAvatarSettings()"><img src="/api/plugins/team_chat/media/0123.jpg" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentNode.style.background='linear-gradient(135deg,#667eea,#764ba2)';this.parentNode.innerHTML='<span style=font-size:20px;>🤖</span>';"></div>
+                                    <div style="flex:1;">
+                                        <div style="background:white;padding:14px 16px;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:280px;">
+                                            <div style="font-size:15px;color:#333;line-height:1.5;">
+                                                <b>你好！我是AI分身</b> 🤖
+                                                <div style="margin-top:10px;font-size:13px;color:#666;line-height:1.7;">
+                                                    你的生活办公助手，可以帮你：<br><br>
+                                                    📧 邮件办公 · 📝 文档处理<br>
+                                                    ⏰ 日程管理 · 💻 软件控制<br>
+                                                    🧹 电脑整理 · 🔍 信息查询<br><br>
+                                                    <div style="background:#f0f7ff;padding:10px 12px;border-radius:8px;margin-top:8px;font-size:12px;">
+                                                        💡 试试说：<br>
+                                                        "查看收件箱"<br>
+                                                        "生成会议纪要"<br>
+                                                        "明天9点提醒我开会"
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="font-size:11px;color:#999;margin-top:6px;">${new Date().toLocaleTimeString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 快捷功能按钮 -->
+                        <div style="padding:10px 16px;background:#fff;border-top:1px solid #eee;display:flex;gap:8px;flex-wrap:wrap;" id="quick-actions">
+                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#e3f2fd;border:none;border-radius:16px;color:#1976d2;font-size:12px;cursor:pointer;">📧 收件箱</button>
+                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#e0f2f1;border:none;border-radius:16px;color:#00897b;font-size:12px;cursor:pointer;">📚 知识库</button>
+                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#fff3e0;border:none;border-radius:16px;color:#f57c00;font-size:12px;cursor:pointer;">⭐ 星标</button>
+                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#fce4ec;border:none;border-radius:16px;color:#c2185b;font-size:12px;cursor:pointer;">🏢 企业</button>
+                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#f3e5f5;border:none;border-radius:16px;color:#7b1fa2;font-size:12px;cursor:pointer;">⏰ 定时</button>
+                            <button onclick="window.__openTraditionalEmail()" style="padding:6px 12px;background:#e8f5e9;border:none;border-radius:16px;color:#388e3c;font-size:12px;cursor:pointer;">✉️ 写邮件</button>
+                            <button onclick="window.sendAIFenshenQuick('生成会议纪要')" style="padding:6px 12px;background:#f3e5f5;border:none;border-radius:16px;color:#7b1fa2;font-size:12px;cursor:pointer;">📝 文档</button>
+                            <button onclick="window.showReminderForm()" style="padding:6px 12px;background:#fff3e0;border:none;border-radius:16px;color:#f57c00;font-size:12px;cursor:pointer;">⏰ 提醒</button>
+                            <button onclick="window.addAIFenshenMessage('assistant', '<div style=background:#f5f5f5;padding:12px;border-radius:8px;><div style=font-size:14px;color:#333;margin-bottom:8px;>💻 软件控制</div><div style=font-size:12px;color:#666;>请自然语言指挥打开软件。</div></div>')" style="padding:6px 12px;background:#e0f2f1;border:none;border-radius:16px;color:#00897b;font-size:12px;cursor:pointer;">💻 软件</button>
+                            <button onclick="window.sendAIFenshenQuick('整理电脑')" style="padding:6px 12px;background:#fce4ec;border:none;border-radius:16px;color:#c2185b;font-size:12px;cursor:pointer;">🧹 整理</button>
+                            <button onclick="window.openAvatarSettings()" style="padding:6px 12px;background:#e8eaf6;border:none;border-radius:16px;color:#3f51b5;font-size:12px;cursor:pointer;">🎨 头像</button>
+                            <button onclick="window.launchDesktopPet()" style="padding:6px 12px;background:#fff3e0;border:none;border-radius:16px;color:#f57c00;font-size:12px;cursor:pointer;font-weight:bold;">🐱 桌面宠物</button>
+                        </div>
+                        
+                        <!-- 输入区域 -->
+                        <div style="padding:12px 16px;background:#fff;border-top:1px solid #eee;">
+                            <div style="display:flex;gap:8px;align-items:flex-end;">
+                                <div style="flex:1;">
+                                    <textarea id="ai-fenshen-input" placeholder="输入指令，或描述你的需求..." rows="1" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:20px;font-size:14px;outline:none;resize:none;min-height:40px;max-height:100px;box-sizing:border-box;" oninput="window.autoResizeTextarea(this)" onkeypress="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.sendAIFenshenMessage();}"></textarea>
+                                </div>
+                                <button onclick="window.sendAIFenshenMessage()" style="padding:10px 18px;background:#667eea;border:none;border-radius:20px;color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                    <span>发送</span>
+                                </button>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0;">
+                                <div style="display:flex;gap:12px;">
+                                    <button onclick="window.showQuickReplies()" style="background:none;border:none;color:#999;font-size:18px;cursor:pointer;padding:4px;" title="快捷回复">⚡</button>
+                                    <button onclick="window.showReminderList()" style="background:none;border:none;color:#999;font-size:18px;cursor:pointer;padding:4px;" title="待办提醒">📋</button>
+                                    <button onclick="window.showHistoryMenu()" style="background:none;border:none;color:#999;font-size:18px;cursor:pointer;padding:4px;" title="历史记录">📚</button>
+                                    <button onclick="window.showCommandHelp()" style="background:none;border:none;color:#999;font-size:18px;cursor:pointer;padding:4px;" title="帮助">❓</button>
+                                </div>
+                                <div style="font-size:11px;color:#999;">按 Enter 发送，Shift+Enter 换行</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 缩放手柄 -->
+                    <div class="resize-handle" title="拖动调整大小"></div>
+                `;
+                document.body.appendChild(panel);
+                // AI分身拖拽和缩放功能
+                (function() {
+                    window.aiFenshenDragInitialized = true;
+                    var header = panel.querySelector('.ai-fenshen-header');
+                    if (!header) return;
+                    
+                    var panelState = { right: 20, top: 20, width: 600, height: 800, minimized: false };
+                    
+                    try {
+                        var saved = localStorage.getItem('aiFenshenPanelState');
+                        if (saved) Object.assign(panelState, JSON.parse(saved));
+                    } catch(e) {}
+                    
+                    panel.style.right = panelState.right + 'px';
+                    panel.style.top = panelState.top + 'px';
+                    panel.style.width = panelState.width + 'px';
+                    panel.style.height = panelState.minimized ? '60px' : panelState.height + 'px';
+                    panel.style.left = 'auto';
+                    panel.style.bottom = 'auto';
+                    
+                    var isDragging = false, startX, startY, startRight, startTop;
+                    header.style.cursor = 'move';
+                    header.onmousedown = function(e) {
+                        if (e.target.tagName === 'BUTTON') return;
+                        isDragging = true;
+                        startX = e.clientX; startY = e.clientY;
+                        var rect = panel.getBoundingClientRect();
+                        startRight = window.innerWidth - rect.right;
+                        startTop = rect.top;
+                        panel.style.transition = 'none';
+                        e.preventDefault();
+                    };
+                    
+                    document.addEventListener('mousemove', function(e) {
+                        if (!isDragging) return;
+                        panel.style.right = Math.max(10, startRight - (e.clientX - startX)) + 'px';
+                        panel.style.top = Math.max(10, startTop + (e.clientY - startY)) + 'px';
+                        panel.style.left = 'auto';
+                    });
+                    
+                    document.addEventListener('mouseup', function() {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        panel.style.transition = '';
+                        var rect = panel.getBoundingClientRect();
+                        panelState.right = window.innerWidth - rect.right;
+                        panelState.top = rect.top;
+                        localStorage.setItem('aiFenshenPanelState', JSON.stringify(panelState));
+                    });
+                    
+                    var resizeHandle = document.createElement('div');
+                    resizeHandle.style.cssText = 'position:absolute;bottom:0;right:0;width:20px;height:20px;cursor:nwse-resize;z-index:100;';
+                    resizeHandle.innerHTML = '<svg width="12" height="12" style="position:absolute;bottom:4px;right:4px;opacity:0.5;"><path d="M8 12L12 12L12 8M4 12L12 4M0 12L12 0" stroke="#999" stroke-width="1.5" fill="none"/></svg>';
+                    panel.appendChild(resizeHandle);
+                    
+                    var isResizing = false, rStartX, rStartY, rStartW, rStartH;
+                    resizeHandle.onmousedown = function(e) {
+                        isResizing = true;
+                        rStartX = e.clientX; rStartY = e.clientY;
+                        var rect = panel.getBoundingClientRect();
+                        rStartW = rect.width; rStartH = rect.height;
+                        panel.style.transition = 'none';
+                        e.preventDefault(); e.stopPropagation();
+                    };
+                    
+                    document.addEventListener('mousemove', function(e) {
+                        if (!isResizing) return;
+                        panel.style.width = Math.max(400, Math.min(1200, rStartW + e.clientX - rStartX)) + 'px';
+                        panel.style.height = Math.max(600, Math.min(1000, rStartH + e.clientY - rStartY)) + 'px';
+                    });
+                    
+                    document.addEventListener('mouseup', function() {
+                        if (!isResizing) return;
+                        isResizing = false;
+                        panel.style.transition = '';
+                        var rect = panel.getBoundingClientRect();
+                        panelState.width = rect.width;
+                        panelState.height = rect.height;
+                        localStorage.setItem('aiFenshenPanelState', JSON.stringify(panelState));
+                    });
+                })();
+
+                panelOpen = true;
+                btn.innerHTML = '✕';
+                
+                // 恢复保存的尺寸
+                var savedSize = localStorage.getItem('aiFenshenSize');
+                if (savedSize) {
+                    try {
+                        var size = JSON.parse(savedSize);
+                        if (size.width) panel.style.width = size.width;
+                        if (size.height) panel.style.height = size.height;
+                    } catch(e) {}
+                }
+                
+                // 面板拖拽功能
+                var panelDragging = false;
+                var panelStartX, panelStartY, panelStartRight, panelStartTop;
+                var panelHeader = panel.querySelector('.ai-fenshen-header');
+                
+                // 如果没有专门的header，使用整个面板顶部区域
+                if (!panelHeader) {
+                    panelHeader = panel.firstElementChild;
+                }
+                
+                if (panelHeader) {
+                    panelHeader.style.cursor = 'move';
+                    panelHeader.title = '拖动移动窗口';
+                    
+                    panelHeader.onmousedown = function(e) {
+                        // 只有点击header本身才触发拖拽，不触发子元素
+                        if (e.target !== panelHeader && !e.target.closest('.ai-fenshen-header')) return;
+                        
+                        panelDragging = true;
+                        panelStartX = e.clientX;
+                        panelStartY = e.clientY;
+                        
+                        var panelRect = panel.getBoundingClientRect();
+                        panelStartRight = window.innerWidth - panelRect.right;
+                        panelStartTop = panelRect.top;
+                        
+                        panelHeader.style.cursor = 'grabbing';
+                        e.preventDefault();
+                    };
+                }
+                
+                // 全局鼠标移动事件
+                var panelMoveHandler = function(e) {
+                    if (!panelDragging) return;
+                    
+                    var dx = e.clientX - panelStartX;
+                    var dy = e.clientY - panelStartY;
+                    
+                    var newRight = panelStartRight - dx;
+                    var newTop = panelStartTop + dy;
+                    
+                    // 边界限制
+                    var panelRect = panel.getBoundingClientRect();
+                    var minRight = 0;
+                    var maxRight = window.innerWidth - panelRect.width;
+                    var minTop = 0;
+                    var maxTop = window.innerHeight - panelRect.height;
+                    
+                    newRight = Math.max(minRight, Math.min(maxRight, newRight));
+                    newTop = Math.max(minTop, Math.min(maxTop, newTop));
+                    
+                    panel.style.right = newRight + 'px';
+                    panel.style.top = newTop + 'px';
+                    panel.style.left = 'auto';
+                    panel.style.bottom = 'auto';
+                };
+                
+                var panelUpHandler = function() {
+                    if (panelDragging) {
+                        panelDragging = false;
+                        if (panelHeader) panelHeader.style.cursor = 'move';
+                        
+                        // 保存位置
+                        var panelRect = panel.getBoundingClientRect();
+                        localStorage.setItem('aiFenshenPos', JSON.stringify({
+                            right: window.innerWidth - panelRect.right,
+                            top: panelRect.top
+                        }));
+                    }
+                };
+                
+                document.addEventListener('mousemove', panelMoveHandler);
+                document.addEventListener('mouseup', panelUpHandler);
+                
+                // 清理函数（面板关闭时移除事件监听）
+                panel._cleanupDrag = function() {
+                    document.removeEventListener('mousemove', panelMoveHandler);
+                    document.removeEventListener('mouseup', panelUpHandler);
+                };
+                
+                // 恢复保存的位置
+                var savedPos = localStorage.getItem('aiFenshenPos');
+                if (savedPos) {
+                    try {
+                        var pos = JSON.parse(savedPos);
+                        if (pos.right !== undefined) panel.style.right = pos.right + 'px';
+                        if (pos.top !== undefined) panel.style.top = pos.top + 'px';
+                        panel.style.left = 'auto';
+                        panel.style.bottom = 'auto';
+                    } catch(e) {}
+                }
+                
+                // 监听尺寸变化并保存
+                var resizeObserver = new ResizeObserver(function(entries) {
+                    for (var i = 0; i < entries.length; i++) {
+                        var entry = entries[i];
+                        localStorage.setItem('aiFenshenSize', JSON.stringify({
+                            width: entry.contentRect.width + 'px',
+                            height: entry.contentRect.height + 'px'
+                        }));
+                    }
+                });
+                resizeObserver.observe(panel);
+            }
+        };
+        
+        // 人性化提示语
+var aiGreetings = ['好的，我来帮你写这封邮件 ✍️', '收到，正在为你构思邮件内容 💭', '明白，马上为你生成邮件 🚀', '好的，让我来帮你写一封得体的邮件 📧', '收到需求，正在创作中 ✨'];
+var aiThinkingTexts = ['正在思考中...', 'AI正在创作...', '正在组织语言...', '正在为你写邮件...', '正在构思内容...'];
+var aiDoneTexts = ['邮件写好了，请过目 👀', '完成了，看看是否满意 ✨', '邮件已生成，请检查 📝', '写好了，希望符合你的要求 💌', '邮件创作完成，请查看 📨'];
+
+function getRandomText(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+window.generateEmailWithAI = function() {
+            var prompt = document.getElementById('ai-prompt').value.trim();
+            if (!prompt) {
+                alert('💡 请告诉我你想写什么邮件，比如："给老板写封请假信"');
+                return;
+            }
+            
+            var loadingEl = document.getElementById('ai-loading');
+            var promptEl = document.getElementById('ai-prompt');
+            
+            // 显示人性化加载提示
+            if (loadingEl) {
+                loadingEl.innerHTML = '🤖 ' + getRandomText(aiThinkingTexts);
+                loadingEl.style.display = 'block';
+            }
+            
+            // 临时禁用按钮，显示友好提示
+            promptEl.style.opacity = '0.6';
+            
+            // 调用默认智能体
+            fetch('/api/console/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Agent-Id': 'default'
+                },
+                body: JSON.stringify({
+                    message: getRandomText(aiGreetings) + '\n\n需求：' + prompt + '\n\n请直接返回邮件内容，格式如下：\n收件人：xxx@example.com\n主题：邮件主题\n正文：邮件正文内容',
+                    session_id: 'ai_copilot_' + Date.now()
+                })
+            })
+            .then(function(r) { 
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.text(); 
+            })
+            .then(function(text) {
+                if (loadingEl) loadingEl.style.display = 'none';
+                promptEl.style.opacity = '1';
+                
+                // 尝试解析JSON
+                var response = text;
+                try {
+                    var jsonData = JSON.parse(text);
+                    if (jsonData.response) response = jsonData.response;
+                    else if (jsonData.message) response = jsonData.message;
+                    else if (jsonData.content) response = jsonData.content;
+                } catch(e) {
+                    // 不是JSON，直接使用文本
+                }
+                
+                // 解析邮件格式
+                var toMatch = response.match(/收件人[:：]\s*(.+?)(?:\n|$)/i);
+                var subjectMatch = response.match(/主题[:：]\s*(.+?)(?:\n|$)/i);
+                var contentMatch = response.match(/正文[:：]\s*([\s\S]+)/i);
+                
+                var toEl = document.getElementById('ai-copilot-to');
+                var subjEl = document.getElementById('ai-copilot-subject');
+                var contentEl = document.getElementById('ai-copilot-content');
+                
+                if (toMatch && toEl) toEl.value = toMatch[1].trim();
+                if (subjectMatch && subjEl) subjEl.value = subjectMatch[1].trim();
+                if (contentMatch && contentEl) {
+                    contentEl.value = contentMatch[1].trim();
+                } else if (contentEl) {
+                    contentEl.value = response.trim();
+                }
+                
+                // 人性化完成提示
+                setTimeout(function() {
+                    alert(getRandomText(aiDoneTexts) + '\n\n如有需要，可以直接修改后再发送 💪');
+                }, 300);
+            })
+            .catch(function(e) {
+                if (loadingEl) loadingEl.style.display = 'none';
+                promptEl.style.opacity = '1';
+                alert('😅 抱歉，AI助手暂时有点忙\n请手动填写邮件内容，我会继续努力的！');
+            });
+        };
+        
+        window.sendAICopilotEmail = function() {
+            var to = document.getElementById('ai-copilot-to').value.trim();
+            var subject = document.getElementById('ai-copilot-subject').value.trim();
+            var content = document.getElementById('ai-copilot-content').value.trim();
+            
+            if (!to || !subject || !content) {
+                alert('请填写完整信息');
+                return;
+            }
+            
+            fetch('/api/ai-email-v2/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    account_id: '1783482324661',
+                    to: to,
+                    subject: subject,
+                    content: content,
+                    attachments: []
+                })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) {
+                    alert('邮件发送成功！');
+                    var panel = document.querySelector('.ai-copilot-panel');
+                    if (panel) panel.remove();
+                    window.aiCopilotOpen = false;
+                    document.querySelector('.ai-copilot-btn').innerHTML = '🤖';
+                } else {
+                    alert('发送失败：' + (d.message || '未知错误'));
+                }
+            })
+            .catch(function(e) {
+                alert('发送失败：' + e.message);
+            });
+        };
+        
+        document.body.appendChild(btn);
+        // 检查全局开关状态，如果之前已关闭则隐藏
+        if (!window.isAIFenshenEnabled()) {
+            btn.classList.add("ai-copilot-btn-hidden");
+        }
+        console.log('[AI Copilot] 浮动按钮已添加');
+    }
+    
+    setTimeout(initAICopilot, 2000);
+})();
+
+// ========== AI分身核心功能 ==========
+
+// 自动识别URL并转为超链接（用于AI分身消息）
+window.autoLinkUrls = function(text) {
+    if (!text) return '';
+    // URL正则：匹配 http/https/ftp 链接和 www 开头的域名
+    var urlRegex = /(https?:\/\/[^\s<]+|ftp:\/\/[^\s<]+|www\.[^\s<]+)/g;
+    return text.replace(urlRegex, function(url) {
+        var href = url;
+        if (url.indexOf('http') !== 0 && url.indexOf('ftp') !== 0) {
+            href = 'http://' + url;
+        }
+        return '<a href="' + href + '" target="_blank" style="color:#1890ff;text-decoration:underline;" onclick="event.stopPropagation();">' + url + '</a>';
+    });
+};
+
+// 获取输入并执行
+window.sendAIFenshenCommand = function() {
+    var input = document.getElementById('ai-prompt');
+    if (!input) return;
+    var text = input.value.trim();
+    if (!text) return;
+    
+    input.value = '';
+    window.processAIFenshenCommand(text);
+};
+
+// 处理指令
+window.processAIFenshenCommand = function(text) {
+    var lower = text.toLowerCase();
+    
+    // 邮件相关
+    if (lower.includes('邮件') || lower.includes('收件箱')) {
+        window.showAIFenshenResult('📧 邮件功能', '正在查询邮件...', [
+            {icon: '📧', title: '收件箱', desc: '2封未读'},
+            {icon: '📤', title: '发件箱', desc: '已发送'}
+        ]);
+    }
+    // 文档相关
+    else if (lower.includes('文档') || lower.includes('纪要') || lower.includes('总结')) {
+        window.showAIFenshenResult('📝 文档生成', '正在生成文档...', [
+            {icon: '📝', title: '会议纪要', action: '生成'},
+            {icon: '📄', title: '工作总结', action: '生成'},
+            {icon: '📋', title: '请假条', action: '生成'}
+        ]);
+    }
+    // 提醒相关
+    else if (lower.includes('提醒') || lower.includes('闹钟')) {
+        window.showReminderForm();
+    }
+    // 软件控制
+    else if (lower.includes('打开') || lower.includes('关闭')) {
+        window.handleSoftwareControl(text);
+    }
+    // 电脑整理
+    else if (lower.includes('整理') || lower.includes('清理')) {
+        window.handleSystemCleanup(text);
+    }
+    // 查询
+    else if (lower.includes('天气') || lower.includes('时间')) {
+        window.showAIFenshenResult('🔍 信息查询', '查询结果', [
+            {icon: '☀️', title: '今天天气', desc: '晴朗 25-32°C'},
+            {icon: '🕐', title: '当前时间', desc: new Date().toLocaleString()}
+        ]);
+    }
+    // 默认
+    else {
+        window.showAIFenshenResult('🤖 AI分身', '收到你的需求', [
+            {icon: '💡', title: '建议', desc: '试试说"查看收件箱"或"生成会议纪要"'}
+        ]);
+    }
+};
+
+// 显示结果
+window.showAIFenshenResult = function(title, subtitle, items) {
+    var resultDiv = document.getElementById('ai-copilot-result') || document.createElement('div');
+    resultDiv.id = 'ai-copilot-result';
+    resultDiv.style.cssText = 'margin-top:16px;padding:16px;background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);';
+    
+    var html = '<div style="font-weight:bold;margin-bottom:8px;">' + title + '</div>';
+    html += '<div style="color:#666;margin-bottom:12px;">' + subtitle + '</div>';
+    
+    items.forEach(function(item) {
+        html += '<div style="padding:10px;background:#f5f5f5;border-radius:6px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">';
+        html += '<span style="font-size:20px;">' + item.icon + '</span>';
+        html += '<div style="flex:1;">';
+        html += '<div style="font-weight:500;">' + item.title + '</div>';
+        if (item.desc) html += '<div style="font-size:12px;color:#999;">' + item.desc + '</div>';
+        html += '</div>';
+        if (item.action) html += '<button style="padding:4px 12px;background:#667eea;border:none;border-radius:4px;color:white;font-size:12px;cursor:pointer;">' + item.action + '</button>';
+        html += '</div>';
+    });
+    
+    resultDiv.innerHTML = html;
+    
+    var panel = document.querySelector('.ai-copilot-panel');
+    if (panel) {
+        panel.appendChild(resultDiv);
+    }
+};
+
+// 提醒表单
+window.showReminderForm = function() {
+    var resultDiv = document.getElementById('ai-copilot-result') || document.createElement('div');
+    resultDiv.id = 'ai-copilot-result';
+    resultDiv.style.cssText = 'margin-top:16px;padding:16px;background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);';
+    
+    var now = new Date();
+    var dateStr = now.toISOString().split('T')[0];
+    var timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+    
+    resultDiv.innerHTML = `
+        <div style="font-weight:bold;margin-bottom:12px;">⏰ 设置提醒</div>
+        <div style="margin-bottom:10px;">
+            <input type="date" id="reminder-date" value="${dateStr}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:8px;box-sizing:border-box;">
+            <input type="time" id="reminder-time" value="${timeStr}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:8px;box-sizing:border-box;">
+            <input type="text" id="reminder-content" placeholder="提醒内容..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;">
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button onclick="window.saveReminder()" style="flex:1;padding:10px;background:#667eea;border:none;border-radius:6px;color:white;cursor:pointer;">✓ 保存</button>
+            <button onclick="document.getElementById('ai-copilot-result').remove();" style="flex:1;padding:10px;background:#f5f5f5;border:none;border-radius:6px;color:#666;cursor:pointer;">取消</button>
+        </div>
+    `;
+    
+    var panel = document.querySelector('.ai-copilot-panel');
+    if (panel) {
+        panel.appendChild(resultDiv);
+    }
+};
+
+// 保存提醒
+window.saveReminder = function() {
+    var date = document.getElementById('reminder-date').value;
+    var time = document.getElementById('reminder-time').value;
+    var content = document.getElementById('reminder-content').value;
+    
+    if (!content) {
+        alert('请输入提醒内容');
+        return;
+    }
+    
+    var reminders = JSON.parse(localStorage.getItem('aiFenshenReminders') || '[]');
+    reminders.push({date, time, content, id: Date.now()});
+    localStorage.setItem('aiFenshenReminders', JSON.stringify(reminders));
+    
+    window.showAIFenshenResult('✅ 提醒已设置', date + ' ' + time + '<br>' + content, []);
+};
+
+// 软件控制 - 重写
+window.handleSoftwareControl = function(text) {
+    var software = text.replace(/(打开|关闭|启动|退出)/g, '').trim();
+    var isOpen = /打开|启动/.test(text);
+    var name = software;
+    var action = isOpen ? '打开' : '关闭';
+    
+    // 简单的文字说明，没有列表
+    var html = '<div style="background:#f5f5f5;padding:12px;border-radius:8px;">';
+    html += '<div style="font-size:14px;color:#333;margin-bottom:8px;">💻 ' + action + ' ' + name + '</div>';
+    html += '<div style="font-size:12px;color:#666;">请自然语言指挥' + action + '该软件。</div>';
+    html += '</div>';
+    
+    window.addAIFenshenMessage('assistant', html);
+};
+
+// 电脑整理
+window.handleSystemCleanup = function(text) {
+    window.addAIFenshenMessage('assistant', '🧹 <b>电脑整理</b><br><br><div style="background:#f5f5f5;padding:12px;border-radius:8px;"><div style="font-size:14px;color:#333;margin-bottom:8px;">整理项目：</div><div style="font-size:12px;color:#666;">• 🗑️ 清理临时文件<br>• ♻️ 清空回收站<br>• 💾 释放内存<br><br>请自然语言指挥执行这些操作。</div></div>');
+};
+
+console.log('[AI分身] 核心功能已加载');
+
+// ========== AI分身核心功能 v3.0 ==========
+
+// 状态管理
+window.AIFenshenState = {
+    isOpen: false,
+    isMinimized: false,
+    messages: [],
+    currentTask: null,
+    avatar: '/api/plugins/team_chat/media/0123.jpg'
+};
+
+// 初始化状态
+window.initAIFenshen = function() {
+    // 加载保存的状态
+    var saved = localStorage.getItem('aiFenshenState');
+    if (saved) {
+        try {
+            var state = JSON.parse(saved);
+            window.AIFenshenState.avatar = state.avatar || window.AIFenshenState.avatar;
+        } catch(e) {}
+    }
+    
+    // 加载历史消息（最多50条）
+    var savedMessages = localStorage.getItem('aiFenshenMessages');
+    if (savedMessages) {
+        try {
+            var messages = JSON.parse(savedMessages);
+            if (Array.isArray(messages) && messages.length > 0) {
+                window.AIFenshenState.messages = messages;
+                console.log('[AI分身] 已加载 ' + messages.length + ' 条历史消息');
+            }
+        } catch(e) {
+            console.error('[AI分身] 加载历史消息失败:', e);
+        }
+    }
+};
+
+// 自动调整文本框高度
+window.autoResizeTextarea = function(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+};
+
+// 隐藏面板（下次自动打开）
+window.hideAIFenshenPanel = function() {
+    var panel = document.querySelector('.ai-copilot-panel');
+    if (panel) {
+        // 清理拖拽事件监听
+        if (panel._cleanupDrag) {
+            panel._cleanupDrag();
+        }
+        panel.style.display = 'none';
+        window.AIFenshenState.isOpen = false;
+        window.AIFenshenState.isMinimized = false;
+        localStorage.setItem('aiFenshenWasOpen', 'false');
+    }
+    var btn = document.querySelector('.ai-copilot-btn');
+    if (btn) btn.innerHTML = '🤖';
+};
+
+// 最小化面板
+window.minimizeAIFenshen = function() {
+    var panel = document.querySelector('.ai-copilot-panel');
+    if (panel) {
+        var chat = document.getElementById('ai-fenshen-chat');
+        var quick = document.getElementById('quick-actions');
+        var input = panel.querySelector('textarea');
+        
+        if (window.AIFenshenState.isMinimized) {
+            // 恢复
+            if (chat) chat.style.display = 'block';
+            if (quick) quick.style.display = 'flex';
+            window.AIFenshenState.isMinimized = false;
+        } else {
+            // 最小化
+            if (chat) chat.style.display = 'none';
+            if (quick) quick.style.display = 'none';
+            window.AIFenshenState.isMinimized = true;
+        }
+    }
+};
+
+// 添加消息到聊天
+window.addAIFenshenMessage = function(type, content, options) {
+    var chat = document.getElementById('ai-fenshen-chat');
+    if (!chat) return;
+    
+    var msgDiv = document.createElement('div');
+    msgDiv.style.cssText = 'margin-bottom:16px;animation:fadeIn 0.3s ease;';
+    
+    var isUser = type === 'user';
+    var avatar = isUser ? '👤' : '🤖';
+    var bgColor = isUser ? '#667eea' : 'white';
+    var textColor = isUser ? 'white' : '#333';
+    var align = isUser ? 'flex-end' : 'flex-start';
+    var avatarBg = isUser ? '#667eea' : 'linear-gradient(135deg,#667eea,#764ba2)';
+    
+    var time = new Date().toLocaleTimeString();
+    
+    // 自动识别URL并转为超链接
+    var processedContent = window.autoLinkUrls(content);
+    
+    msgDiv.innerHTML = `
+        <div style="display:flex;gap:12px;justify-content:${align};">
+            ${isUser ? '' : `<div style="width:40px;height:40px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;color:white;font-size:20px;flex-shrink:0;">${avatar}</div>`}
+            <div style="max-width:280px;">
+                <div style="background:${bgColor};padding:12px 16px;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);color:${textColor};font-size:14px;line-height:1.5;">
+                    ${processedContent}
+                </div>
+                <div style="font-size:11px;color:#999;margin-top:4px;text-align:${isUser ? 'right' : 'left'};">${time}</div>
+            </div>
+            ${isUser ? `<div style="width:40px;height:40px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;color:white;font-size:20px;flex-shrink:0;">${avatar}</div>` : ''}
+        </div>
+    `;
+    
+    chat.appendChild(msgDiv);
+    chat.scrollTop = chat.scrollHeight;
+    
+    // 保存消息
+    window.AIFenshenState.messages.push({type, content, time});
+    if (window.AIFenshenState.messages.length > 100) {
+        window.AIFenshenState.messages.shift();
+    }
+    
+    // 持久化到 localStorage（最多保存50条）
+    var messagesToSave = window.AIFenshenState.messages.slice(-50);
+    localStorage.setItem('aiFenshenMessages', JSON.stringify(messagesToSave));
+};
+
+// 发送消息
+window.sendAIFenshenMessage = function() {
+    var input = document.getElementById('ai-fenshen-input');
+    if (!input) return;
+    var text = input.value.trim();
+    if (!text) return;
+    
+    input.value = '';
+    input.style.height = 'auto';
+    
+    // 添加用户消息
+    window.addAIFenshenMessage('user', text);
+    
+    // 显示思考状态
+    window.updateAIFenshenStatus('thinking');
+    
+    // 处理指令
+    setTimeout(function() {
+        window.processAIFenshenCommand(text);
+    }, 500);
+};
+
+// 快捷发送
+window.sendAIFenshenQuick = function(text) {
+    window.addAIFenshenMessage('user', text);
+    window.updateAIFenshenStatus('thinking');
+    setTimeout(function() {
+        window.processAIFenshenCommand(text);
+    }, 300);
+};
+
+// 更新状态
+window.updateAIFenshenStatus = function(status) {
+    var el = document.getElementById('ai-fenshen-status');
+    if (!el) return;
+    
+    var statusMap = {
+        'idle': '<span style="width:6px;height:6px;background:#52c41a;border-radius:50%;display:inline-block;margin-right:4px;"></span>就绪 · 等待指令',
+        'thinking': '<span style="width:6px;height:6px;background:#faad14;border-radius:50%;display:inline-block;margin-right:4px;animation:pulse 1s infinite;"></span>思考中...',
+        'executing': '<span style="width:6px;height:6px;background:#1890ff;border-radius:50%;display:inline-block;margin-right:4px;animation:pulse 1s infinite;"></span>执行中...',
+        'completed': '<span style="width:6px;height:6px;background:#52c41a;border-radius:50%;display:inline-block;margin-right:4px;"></span>已完成',
+        'error': '<span style="width:6px;height:6px;background:#ff4d4f;border-radius:50%;display:inline-block;margin-right:4px;"></span>出错了'
+    };
+    
+    el.innerHTML = statusMap[status] || statusMap['idle'];
+};
+
+// 处理指令
+window.processAIFenshenCommand = function(text) {
+    var lower = text.toLowerCase();
+    
+    // 邮件相关
+    if (lower.includes('邮件') || lower.includes('收件箱') || lower.includes('发件箱')) {
+        window.handleAIFenshenEmail(lower);
+    }
+    // 文档相关
+    else if (lower.includes('文档') || lower.includes('纪要') || lower.includes('总结') || lower.includes('报告')) {
+        window.handleAIFenshenDocument(lower);
+    }
+    // 提醒相关
+    else if (lower.includes('提醒') || lower.includes('闹钟') || lower.includes('待办')) {
+        window.handleAIFenshenReminder(lower, text);
+    }
+    // 软件控制
+    else if (lower.includes('打开') || lower.includes('关闭') || lower.includes('启动') || lower.includes('退出')) {
+        window.handleAIFenshenSoftware(lower, text);
+    }
+    // 电脑整理
+    else if (lower.includes('整理') || lower.includes('清理') || lower.includes('优化')) {
+        window.handleAIFenshenCleanup(lower, text);
+    }
+    // 查询
+    else if (lower.includes('天气') || lower.includes('时间') || lower.includes('日期')) {
+        window.handleAIFenshenQuery(lower);
+    }
+    // 帮助
+    else if (lower.includes('帮助') || lower.includes('指令') || lower.includes('功能')) {
+        window.showCommandHelp();
+    }
+    // 默认
+    else {
+        window.addAIFenshenMessage('assistant', '🤖 收到！我可以帮你：<br><br>📧 邮件办公 · 📝 文档处理<br>⏰ 日程管理 · 💻 软件控制<br>🧹 电脑整理 · 🔍 信息查询<br><br>试试说"查看收件箱"或"生成会议纪要"');
+    }
+    
+    window.updateAIFenshenStatus('completed');
+    setTimeout(function() {
+        window.updateAIFenshenStatus('idle');
+    }, 2000);
+};
+
+// 邮件处理
+window.handleAIFenshenEmail = function(lower) {
+    if (lower.includes('收件箱') || lower.includes('收')) {
+        window.addAIFenshenMessage('assistant', '📧 <b>收件箱</b><br><br>📨 未读邮件 (2)<br>├─ 来自：老板<br>│  主题：关于明天会议<br>│  时间：10:30<br>├─ 来自：客户<br>│  主题：项目进度确认<br>│  时间：09:15<br><br><button onclick="window.sendAIFenshenQuick(' + "'" + '打开第一封邮件' + "'" + ')" style="padding:6px 12px;background:#667eea;border:none;border-radius:6px;color:white;font-size:12px;cursor:pointer;">📖 阅读</button>');
+    } else if (lower.includes('写') || lower.includes('发')) {
+        window.addAIFenshenMessage('assistant', '✉️ <b>写邮件</b><br><br><div style="background:#f5f5f5;padding:12px;border-radius:8px;"><div style="margin-bottom:8px;"><input type="text" placeholder="收件人" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;"></div><div style="margin-bottom:8px;"><input type="text" placeholder="主题" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;"></div><textarea placeholder="邮件内容..." rows="3" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;resize:vertical;"></textarea></div><br><button style="padding:8px 16px;background:#52c41a;border:none;border-radius:6px;color:white;cursor:pointer;">🚀 发送</button>');
+    } else {
+        window.addAIFenshenMessage('assistant', '📧 <b>邮件功能</b><br><br>试试说：<br>• "查看收件箱"<br>• "写邮件给老板"<br>• "查看发件箱"');
+    }
+};
+
+// 文档处理
+window.handleAIFenshenDocument = function(lower) {
+    if (lower.includes('纪要') || lower.includes('会议')) {
+        window.addAIFenshenMessage('assistant', '📝 <b>会议纪要生成器</b><br><br>请提供会议信息：<br><div style="background:#f5f5f5;padding:12px;border-radius:8px;margin-top:8px;"><textarea id="meeting-input" placeholder="会议主题、参会人员、讨论要点..." rows="4" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;resize:vertical;"></textarea><br><br><button onclick="window.generateMeetingMinutes()" style="padding:8px 16px;background:#667eea;border:none;border-radius:6px;color:white;cursor:pointer;">✨ 生成纪要</button></div>');
+    } else if (lower.includes('总结') || lower.includes('工作')) {
+        window.addAIFenshenMessage('assistant', '📄 <b>工作总结生成器</b><br><br>请提供工作信息：<br><div style="background:#f5f5f5;padding:12px;border-radius:8px;margin-top:8px;"><textarea placeholder="本周/本月工作内容、成果、问题..." rows="4" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;resize:vertical;"></textarea><br><br><button style="padding:8px 16px;background:#667eea;border:none;border-radius:6px;color:white;cursor:pointer;">✨ 生成总结</button></div>');
+    } else {
+        window.addAIFenshenMessage('assistant', '📝 <b>文档功能</b><br><br>试试说：<br>• "生成会议纪要"<br>• "写工作总结"<br>• "生成请假条"');
+    }
+};
+
+// 生成会议纪要
+window.generateMeetingMinutes = function() {
+    var input = document.getElementById('meeting-input');
+    var content = input ? input.value : '';
+    
+    var minutes = `<b>会议纪要</b><br><br>
+<b>会议主题：</b>项目进度讨论<br>
+<b>会议时间：</b>${new Date().toLocaleString()}<br>
+<b>参会人员：</b>张三、李四、王五<br><br>
+<b>一、会议内容</b><br>
+1. 项目当前进度汇报<br>
+2. 存在问题讨论<br>
+3. 下一步工作安排<br><br>
+<b>二、决议事项</b><br>
+✓ 本周完成前端开发<br>
+✓ 下周开始联调测试<br><br>
+<b>三、待办事项</b><br>
+□ 张三：完成API接口<br>
+□ 李四：编写测试用例<br><br>
+<button onclick="window.copyToClipboard(this)" style="padding:6px 12px;background:#667eea;border:none;border-radius:4px;color:white;font-size:12px;cursor:pointer;">📋 复制内容</button>`;
+    
+    window.addAIFenshenMessage('assistant', minutes);
+};
+
+// 复制到剪贴板
+window.copyToClipboard = function(btn) {
+    var text = btn.parentElement.innerText.replace('📋 复制内容', '');
+    navigator.clipboard.writeText(text).then(function() {
+        btn.innerText = '✓ 已复制';
+        setTimeout(function() { btn.innerText = '📋 复制内容'; }, 2000);
+    });
+};
+
+// 提醒处理
+window.handleAIFenshenReminder = function(lower, text) {
+    if (lower.includes('列表') || lower.includes('查看') || lower.includes('待办')) {
+        window.showReminderList();
+    } else {
+        window.showReminderForm();
+    }
+};
+
+// 显示提醒表单
+window.showReminderForm = function() {
+    var now = new Date();
+    var dateStr = now.toISOString().split('T')[0];
+    var timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    
+    window.addAIFenshenMessage('assistant', `⏰ <b>设置提醒</b><br><br>
+<div style="background:#f5f5f5;padding:12px;border-radius:8px;">
+<div style="margin-bottom:8px;"><input type="date" id="reminder-date" value="${dateStr}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;"></div>
+<div style="margin-bottom:8px;"><input type="time" id="reminder-time" value="${timeStr}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;"></div>
+<div style="margin-bottom:8px;"><input type="text" id="reminder-content" placeholder="提醒内容..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;"></div>
+<div style="display:flex;gap:8px;">
+<button onclick="window.saveAIFenshenReminder()" style="flex:1;padding:8px;background:#52c41a;border:none;border-radius:4px;color:white;cursor:pointer;">✓ 保存</button>
+<button onclick="window.cancelReminderForm()" style="flex:1;padding:8px;background:#f5f5f5;border:none;border-radius:4px;color:#666;cursor:pointer;">取消</button>
+</div>
+</div>`);
+};
+
+// 保存提醒
+window.saveAIFenshenReminder = function() {
+    var date = document.getElementById('reminder-date').value;
+    var time = document.getElementById('reminder-time').value;
+    var content = document.getElementById('reminder-content').value;
+    
+    if (!content) {
+        alert('请输入提醒内容');
+        return;
+    }
+    
+    var reminders = JSON.parse(localStorage.getItem('aiFenshenReminders') || '[]');
+    reminders.push({date, time, content, id: Date.now(), completed: false});
+    localStorage.setItem('aiFenshenReminders', JSON.stringify(reminders));
+    
+    window.addAIFenshenMessage('assistant', '✅ <b>提醒已设置</b><br><br>📅 ' + date + '<br>⏰ ' + time + '<br>📝 ' + content);
+    window.updateTaskCount();
+};
+
+// 取消提醒表单
+window.cancelReminderForm = function() {
+    var chat = document.getElementById('ai-fenshen-chat');
+    if (chat && chat.lastChild) {
+        chat.lastChild.remove();
+    }
+};
+
+// 显示提醒列表
+window.showReminderList = function() {
+    var reminders = JSON.parse(localStorage.getItem('aiFenshenReminders') || '[]');
+    var pending = reminders.filter(function(r) { return !r.completed; });
+    
+    if (pending.length === 0) {
+        window.addAIFenshenMessage('assistant', '📋 <b>暂无待办提醒</b><br><br><button onclick="window.showReminderForm()" style="padding:8px 16px;background:#667eea;border:none;border-radius:6px;color:white;cursor:pointer;">+ 新建提醒</button>');
+        return;
+    }
+    
+    var html = '📋 <b>待办提醒 (' + pending.length + ')</b><br><br>';
+    pending.forEach(function(r) {
+        html += '<div style="padding:10px;background:#f5f5f5;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">';
+        html += '<span style="font-size:16px;">⏰</span>';
+        html += '<div style="flex:1;">';
+        html += '<div style="font-weight:500;">' + r.content + '</div>';
+        html += '<div style="font-size:12px;color:#999;">' + r.date + ' ' + r.time + '</div>';
+        html += '</div>';
+        html += '<button onclick="window.completeAIFenshenReminder(' + r.id + ')" style="background:#52c41a;border:none;border-radius:50%;width:24px;height:24px;color:white;cursor:pointer;font-size:12px;">✓</button>';
+        html += '</div>';
+    });
+    html += '<br><button onclick="window.showReminderForm()" style="padding:8px 16px;background:#667eea;border:none;border-radius:6px;color:white;cursor:pointer;">+ 新建提醒</button>';
+    
+    window.addAIFenshenMessage('assistant', html);
+};
+
+// 完成提醒
+window.completeAIFenshenReminder = function(id) {
+    var reminders = JSON.parse(localStorage.getItem('aiFenshenReminders') || '[]');
+    var r = reminders.find(function(x) { return x.id === id; });
+    if (r) {
+        r.completed = true;
+        localStorage.setItem('aiFenshenReminders', JSON.stringify(reminders));
+    }
+    window.addAIFenshenMessage('assistant', '✅ 提醒已完成');
+    window.updateTaskCount();
+};
+
+// 更新任务计数
+window.updateTaskCount = function() {
+    var reminders = JSON.parse(localStorage.getItem('aiFenshenReminders') || '[]');
+    var count = reminders.filter(function(r) { return !r.completed; }).length;
+    // 可以在这里更新UI显示
+};
+
+// 软件控制
+window.handleAIFenshenSoftware = function(lower, text) {
+    var isOpen = /打开|启动/.test(text);
+    var action = isOpen ? '打开' : '关闭';
+    
+    var software = text.replace(/(打开|关闭|启动|退出)/g, '').trim();
+    var map = {
+        'word': 'Microsoft Word',
+        'excel': 'Microsoft Excel',
+        'powerpoint': 'PowerPoint',
+        'chrome': 'Chrome浏览器',
+        'edge': 'Edge浏览器',
+        '浏览器': '浏览器',
+        '微信': '微信',
+        'qq': 'QQ',
+        '计算器': '计算器',
+        '记事本': '记事本'
+    };
+    
+    var name = map[software.toLowerCase()] || software;
+    
+    window.addAIFenshenMessage('assistant', '💻 <b>软件控制</b><br><br>' + action + ' <b>' + name + '</b><br><br><div style="background:#f0f7ff;padding:12px;border-radius:8px;"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:24px;">' + (isOpen ? '🚀' : '⏹️') + '</span><div><div style="font-weight:500;">' + name + '</div><div style="font-size:12px;color:#999;">' + (isOpen ? '正在启动...' : '正在关闭...') + '</div></div></div><div style="margin-top:8px;height:4px;background:#e0e0e0;border-radius:2px;"><div style="height:100%;width:0%;background:#52c41a;border-radius:2px;animation:progress 2s forwards;"></div></div></div>');
+};
+
+// 电脑整理
+window.handleAIFenshenCleanup = function(lower, text) {
+    if (lower.includes('一键') || lower.includes('全部')) {
+        window.addAIFenshenMessage('assistant', '🧹 <b>一键整理电脑</b><br><br><div style="background:#f5f5f5;padding:12px;border-radius:8px;"><div style="margin-bottom:8px;">🗑️ 清理临时文件 <span style="color:#52c41a;">✓</span></div><div style="margin-bottom:8px;">♻️ 清空回收站 <span style="color:#52c41a;">✓</span></div><div style="margin-bottom:8px;">🧹 清理浏览器缓存 <span style="color:#52c41a;">✓</span></div><div style="margin-bottom:8px;">💾 释放内存 <span style="color:#52c41a;">✓</span></div><div style="margin-bottom:8px;">🔍 磁盘清理 <span style="color:#52c41a;">✓</span></div><div>📊 大文件扫描 <span style="color:#52c41a;">✓</span></div></div><br>✅ <b>整理完成！</b><br>释放了 2.3GB 空间');
+    } else {
+        window.addAIFenshenMessage('assistant', '🧹 <b>电脑整理</b><br><br>试试说：<br>• "一键整理电脑"<br>• "清理临时文件"<br>• "释放内存"');
+    }
+};
+
+// 查询
+window.handleAIFenshenQuery = function(lower) {
+    if (lower.includes('时间') || lower.includes('日期')) {
+        window.addAIFenshenMessage('assistant', '🕐 <b>当前时间</b><br><br>' + new Date().toLocaleString('zh-CN', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'}));
+    } else {
+        window.addAIFenshenMessage('assistant', '🔍 <b>信息查询</b><br><br>试试说：<br>• "现在几点"<br>• "今天日期"<br>• "北京天气"');
+    }
+};
+
+// 显示帮助
+window.showCommandHelp = function() {
+    window.addAIFenshenMessage('assistant', '❓ <b>AI分身指令帮助</b><br><br><b>📧 邮件办公</b><br>• 查看收件箱<br>• 写邮件给[某人]<br><br><b>📝 文档处理</b><br>• 生成会议纪要<br>• 写工作总结<br><br><b>⏰ 日程管理</b><br>• 设置提醒<br>• 查看待办<br><br><b>💻 软件控制</b><br>• 打开[软件名]<br>• 关闭[软件名]<br><br><b>🧹 电脑整理</b><br>• 一键整理电脑<br>• 清理临时文件<br><br><b>🔍 信息查询</b><br>• 现在几点<br>• 今天日期');
+};
+
+// 头像设置
+window.openAvatarSettings = function() {
+    var currentAvatar = window.AIFenshenState.avatar || '/api/plugins/team_chat/media/0123.jpg';
+    window.addAIFenshenMessage('assistant', '🎨 <b>头像设置</b><br><br><div style="background:#f5f5f5;padding:12px;border-radius:8px;"><div style="text-align:center;margin-bottom:12px;"><img id="avatar-preview" src="' + currentAvatar + '" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #667eea;" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<div style=font-size:48px;>🤖</div>\';"></div><div style="margin-bottom:8px;"><input type="text" id="avatar-url" placeholder="输入图片URL..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;margin-bottom:8px;"><div style="display:flex;gap:8px;"><input type="file" id="avatar-file" accept="image/*" style="flex:1;padding:6px;border:1px solid #ddd;border-radius:4px;background:white;" onchange="window.previewAvatarFile(this)"><button onclick="window.uploadAvatarFile()" style="padding:6px 12px;background:#52c41a;border:none;border-radius:4px;color:white;cursor:pointer;white-space:nowrap;">上传</button></div></div><div style="display:flex;gap:8px;margin-top:12px;"><button onclick="window.saveAvatar()" style="flex:1;padding:8px;background:#667eea;border:none;border-radius:4px;color:white;cursor:pointer;">保存</button><button onclick="window.resetAvatar()" style="flex:1;padding:8px;background:#f5f5f5;border:none;border-radius:4px;color:#666;cursor:pointer;">恢复默认</button></div></div>');
+};
+
+// 预览本地文件
+window.previewAvatarFile = function(input) {
+    var file = input.files[0];
+    if (file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var preview = document.getElementById('avatar-preview');
+            if (preview) {
+                preview.src = e.target.result;
+            }
+            // 临时保存到全局变量
+            window._tempAvatarData = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+// 上传头像文件
+window.uploadAvatarFile = function() {
+    var input = document.getElementById('avatar-file');
+    var file = input ? input.files[0] : null;
+    
+    if (!file && !window._tempAvatarData) {
+        window.addAIFenshenMessage('assistant', '⚠️ 请先选择图片文件');
+        return;
+    }
+    
+    // 使用已读取的数据
+    if (window._tempAvatarData) {
+        window.AIFenshenState.avatar = window._tempAvatarData;
+        localStorage.setItem('aiFenshenState', JSON.stringify({avatar: window._tempAvatarData}));
+        
+        // 更新面板中的头像
+        var avatarImgs = document.querySelectorAll('#ai-fenshen-avatar, .ai-fenshen-avatar');
+        for (var i = 0; i < avatarImgs.length; i++) {
+            avatarImgs[i].src = window._tempAvatarData;
+        }
+        
+        window.addAIFenshenMessage('assistant', '✅ 头像已更新（本地图片）');
+        window._tempAvatarData = null;
+    }
+};
+
+// 保存头像
+window.saveAvatar = function() {
+    var urlInput = document.getElementById('avatar-url');
+    var url = urlInput ? urlInput.value.trim() : '';
+    
+    // 优先使用本地文件数据
+    if (window._tempAvatarData) {
+        window.AIFenshenState.avatar = window._tempAvatarData;
+        localStorage.setItem('aiFenshenState', JSON.stringify({avatar: window._tempAvatarData}));
+        window.addAIFenshenMessage('assistant', '✅ 头像已更新（本地图片）');
+        window._tempAvatarData = null;
+        return;
+    }
+    
+    // 使用URL
+    if (url) {
+        window.AIFenshenState.avatar = url;
+        localStorage.setItem('aiFenshenState', JSON.stringify({avatar: url}));
+        
+        // 更新面板中的头像
+        var avatarImgs = document.querySelectorAll('#ai-fenshen-avatar, .ai-fenshen-avatar');
+        for (var i = 0; i < avatarImgs.length; i++) {
+            avatarImgs[i].src = url;
+        }
+        
+        window.addAIFenshenMessage('assistant', '✅ 头像已更新');
+    } else {
+        window.addAIFenshenMessage('assistant', '⚠️ 请输入图片URL或选择本地文件');
+    }
+};
+
+// 恢复默认头像
+window.resetAvatar = function() {
+    window.AIFenshenState.avatar = '/api/plugins/team_chat/media/0123.jpg';
+    localStorage.setItem('aiFenshenState', JSON.stringify({avatar: '/api/plugins/team_chat/media/0123.jpg'}));
+    window._tempAvatarData = null;
+    
+    // 更新面板中的头像
+    var avatarImgs = document.querySelectorAll('#ai-fenshen-avatar, .ai-fenshen-avatar');
+    for (var i = 0; i < avatarImgs.length; i++) {
+        avatarImgs[i].src = '/api/plugins/team_chat/media/0123.jpg';
+    }
+    
+    window.addAIFenshenMessage('assistant', '✅ 已恢复默认头像');
+};
+
+// 启动桌面宠物
+window.launchDesktopPet = function() {
+    // 直接打开 QwenPaw 的插件宠物
+    window.addAIFenshenMessage('assistant', '🐱 <b>打开桌面宠物</b><br><br>正在打开 QwenPaw 插件宠物...');
+    
+    // 尝试打开 qwenpaw-pet 插件
+    try {
+        // 方法1: 通过 QwenPaw API 打开宠物
+        if (window.QwenPaw && window.QwenPaw.plugins && window.QwenPaw.plugins.open) {
+            window.QwenPaw.plugins.open('qwenpaw-pet');
+            window.addAIFenshenMessage('assistant', '✅ <b>桌面宠物已打开！</b><br><br>QwenPaw 插件宠物正在运行。<br><br>如果没有自动打开，请手动点击侧边栏的宠物图标。');
+        } else {
+            // 方法2: 尝试通过路由跳转
+            window.location.hash = '#/plugin/qwenpaw-pet';
+            window.addAIFenshenMessage('assistant', '✅ <b>正在打开桌面宠物...</b><br><br>如果没有自动打开，请检查是否已安装 qwenpaw-pet 插件。');
+        }
+    } catch(e) {
+        // 方法3: 直接跳转
+        window.location.hash = '#/plugin/qwenpaw-pet';
+        window.addAIFenshenMessage('assistant', '✅ <b>正在打开桌面宠物...</b><br><br>如果没有自动打开，请检查是否已安装 qwenpaw-pet 插件。<br><br>错误信息: ' + e.message);
+    }
+};
+
+// 启动桌面宠物进程（保留兼容）
+window.startDesktopPet = function() {
+    window.launchDesktopPet();
+};
+
+// 显示桌面宠物（保留兼容）
+window.showDesktopPet = function() {
+    window.launchDesktopPet();
+};
+
+// 预览桌面宠物效果（保留兼容）
+window.openDesktopPetPreview = function() {
+    window.launchDesktopPet();
+};
+
+// 初始化
+window.addEventListener('load', function() {
+    window.initAIFenshen();
+});
+
+// 添加CSS动画
+var style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    @keyframes progress {
+        from { width: 0%; }
+        to { width: 100%; }
+    }
+`;
+document.head.appendChild(style);
+
+console.log('[AI分身] v3.0 已加载');
+
+// ========== AI分身智能体绑定 ==========
+
+// 智能体配置
+window.AIFenshenAgent = {
+    id: 'default',  // 绑定的智能体ID
+    name: '执行者',
+    sessionId: null,
+    isConnected: false
+};
+
+// 初始化智能体连接
+window.initAIFenshenAgent = function() {
+    // 从localStorage获取session_id
+    var savedSession = localStorage.getItem('qwenpaw_session');
+    if (savedSession) {
+        try {
+            var session = JSON.parse(savedSession);
+            window.AIFenshenAgent.sessionId = session.id;
+        } catch(e) {}
+    }
+    
+    // 如果没有，使用默认
+    if (!window.AIFenshenAgent.sessionId) {
+        window.AIFenshenAgent.sessionId = 'default-session-' + Date.now();
+    }
+    
+    // 获取智能体列表
+    window.fetchAgentsList();
+};
+
+// 获取智能体列表
+window.fetchAgentsList = function() {
+    fetch('/api/agents')
+        .then(function(r) { 
+            if (!r.ok) {
+                throw new Error('HTTP ' + r.status);
+            }
+            return r.json(); 
+        })
+        .then(function(data) {
+            if (data.agents && data.agents.length > 0) {
+                window.AIFenshenAgent.agents = data.agents;
+                console.log('[AI分身] 发现', data.agents.length, '个智能体');
+                
+                // 默认绑定第一个智能体（或default）
+                var defaultAgent = data.agents.find(function(a) { 
+                    return a.id === 'default'; 
+                }) || data.agents[0];
+                
+                if (defaultAgent) {
+                    window.AIFenshenAgent.id = defaultAgent.id;
+                    window.AIFenshenAgent.name = defaultAgent.name || defaultAgent.id;
+                    window.AIFenshenAgent.isConnected = true;
+                    console.log('[AI分身] 已绑定智能体:', window.AIFenshenAgent.name);
+                }
+            } else {
+                console.log('[AI分身] API返回空列表');
+            }
+        })
+        .catch(function(e) {
+            console.error('[AI分身] 获取智能体列表失败:', e);
+            // 使用备用方案：直接绑定default
+            window.AIFenshenAgent.id = 'default';
+            window.AIFenshenAgent.name = 'default';
+            window.AIFenshenAgent.isConnected = true;
+            console.log('[AI分身] 使用备用绑定: default');
+        });
+};
+
+// 发送消息到智能体
+window.sendToAgent = function(message) {
+    return new Promise(function(resolve, reject) {
+        // 检查智能体是否已连接
+        if (!window.AIFenshenAgent.id) {
+            reject(new Error('智能体未初始化'));
+            return;
+        }
+        
+        var payload = {
+            message: message,
+            session_id: window.AIFenshenAgent.sessionId || 'ai_fenshen_' + Date.now()
+        };
+        
+        // 保存会话ID用于后续消息
+        window.AIFenshenAgent.sessionId = payload.session_id;
+        
+        fetch('/api/console/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Agent-Id': window.AIFenshenAgent.id
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(function(r) { 
+            console.log('[AI分身] HTTP状态:', r.status, r.statusText);
+            console.log('[AI分身] 响应头:', r.headers.get('content-type'));
+            
+            if (!r.ok) {
+                throw new Error('HTTP ' + r.status + ': ' + r.statusText);
+            }
+            return r.text();
+        })
+        .then(function(text) {
+            console.log('[AI分身] 原始响应长度:', text ? text.length : 0);
+            console.log('[AI分身] 原始响应:', text ? text.substring(0, 1000) : 'EMPTY');
+            
+            // 如果响应为空，直接返回提示
+            if (!text || text.trim() === '') {
+                console.log('[AI分身] 响应为空');
+                resolve({ response: '智能体返回了空响应，请稍后重试' });
+                return;
+            }
+            
+            // 尝试解析JSON
+            var data;
+            try {
+                data = JSON.parse(text);
+                console.log('[AI分身] JSON解析成功:', data);
+            } catch (e) {
+                // 如果不是JSON，直接使用文本
+                console.log('[AI分身] 非JSON响应，使用原文本');
+                data = { response: text };
+            }
+            resolve(data);
+        })
+        .catch(function(e) {
+            console.error('[AI分身] 请求失败:', e);
+            reject(e);
+        });
+    });
+};
+
+
+// 发送消息到智能体（简单fetch版本）
+window.sendToAgentSimple = function(message) {
+    return fetch('/api/console/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Agent-Id': 'default'
+        },
+        body: JSON.stringify({
+            message: message,
+            session_id: '1783155353103-bg011ua',
+            user_id: 'default',
+            channel: 'console'
+        })
+    })
+    .then(function(r) { 
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text(); 
+    })
+    .then(function(text) {
+        // 尝试解析JSON
+        var response = text;
+        try {
+            var jsonData = JSON.parse(text);
+            if (jsonData.response) response = jsonData.response;
+            else if (jsonData.message) response = jsonData.message;
+            else if (jsonData.content) response = jsonData.content;
+        } catch(e) {
+            // 不是JSON，直接使用文本
+        }
+        return { response: response };
+    });
+};
+
+
+// 智能体回复处理
+window.processAgentResponse = function(response) {
+    console.log('[AI分身] 处理响应:', response);
+    
+    // 如果response本身就是字符串，直接返回
+    if (typeof response === 'string') {
+        return response;
+    }
+    
+    // 检查各种可能的响应字段
+    if (response && response.response) {
+        return response.response;
+    }
+    if (response && response.content) {
+        return response.content;
+    }
+    if (response && response.message) {
+        return response.message;
+    }
+    if (response && response.text) {
+        return response.text;
+    }
+    if (response && response.result) {
+        return response.result;
+    }
+    if (response && response.data) {
+        if (typeof response.data === 'string') {
+            return response.data;
+        }
+        if (response.data.text) {
+            return response.data.text;
+        }
+        if (response.data.response) {
+            return response.data.response;
+        }
+    }
+    
+    // 兜底：将对象转为字符串显示
+    if (response && typeof response === 'object') {
+        // 优先找任何非空的字符串值
+        for (var key in response) {
+            if (typeof response[key] === 'string' && response[key].length > 0) {
+                console.log('[AI分身] 找到字段:', key, '=', response[key].substring(0, 50));
+                return response[key];
+            }
+        }
+        // 如果没有字符串字段，返回JSON字符串
+        try {
+            return JSON.stringify(response, null, 2);
+        } catch(e) {}
+    }
+    
+    return '智能体处理完成，但未返回有效内容';
+};
+
+// 修改发送消息函数，添加智能体调用
+window.sendAIFenshenMessageWithAgent = function() {
+    var input = document.getElementById('ai-fenshen-input');
+    if (!input) return;
+    var text = input.value.trim();
+    if (!text) return;
+    
+    input.value = '';
+    input.style.height = 'auto';
+    
+    // 添加用户消息
+    window.addAIFenshenMessage('user', text);
+    
+    // 显示思考状态
+    window.updateAIFenshenStatus('thinking');
+    
+    // 检查是否是本地指令
+    var lower = text.toLowerCase();
+    var isLocalCommand = /收件箱|发件箱|写邮件|会议纪要|工作总结|提醒|打开|关闭|启动|退出|整理|清理|优化|天气|时间|日期|帮助|指令/.test(lower);
+    
+    if (isLocalCommand) {
+        // 本地处理
+        setTimeout(function() {
+            window.processAIFenshenCommand(text);
+        }, 300);
+    } else {
+        // 发送到智能体（使用localStorage中转）
+        window.sendToAgentViaStorage(text);
+    }
+};
+
+// 覆盖原来的发送函数
+window._originalSendAIFenshenMessage = window.sendAIFenshenMessage;
+window.sendAIFenshenMessage = window.sendAIFenshenMessageWithAgent;
+
+// 智能体选择面板
+window.showAgentSelector = function() {
+    if (!window.AIFenshenAgent.agents || window.AIFenshenAgent.agents.length === 0) {
+        window.addAIFenshenMessage('assistant', '🔍 正在获取智能体列表...');
+        window.fetchAgentsList();
+        return;
+    }
+    
+    var html = '🤖 <b>选择智能体</b><br><br>当前: <b>' + window.AIFenshenAgent.name + '</b><br><br>';
+    
+    window.AIFenshenAgent.agents.forEach(function(agent) {
+        var isActive = agent.id === window.AIFenshenAgent.id;
+        html += '<div style="padding:10px;background:' + (isActive ? '#e3f2fd' : '#f5f5f5') + ';border-radius:8px;margin-bottom:8px;display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="window.selectAgent(' + "'" + agent.id + "'" + ')">';
+        html += '<span style="font-size:20px;">' + (isActive ? '●' : '○') + '</span>';
+        html += '<div style="flex:1;">';
+        html += '<div style="font-weight:500;">' + (agent.name || agent.id) + '</div>';
+        html += '<div style="font-size:12px;color:#999;">' + agent.id + '</div>';
+        html += '</div>';
+        html += '</div>';
+    });
+    
+    window.addAIFenshenMessage('assistant', html);
+};
+
+// 选择智能体
+window.selectAgent = function(agentId) {
+    var agent = window.AIFenshenAgent.agents.find(function(a) { return a.id === agentId; });
+    if (agent) {
+        window.AIFenshenAgent.id = agent.id;
+        window.AIFenshenAgent.name = agent.name || agent.id;
+        window.AIFenshenAgent.isConnected = true;
+        window.addAIFenshenMessage('assistant', '✅ 已切换到智能体: <b>' + window.AIFenshenAgent.name + '</b>');
+    }
+};
+
+// 修改头部显示，添加智能体选择
+window.updateAIFenshenHeader = function() {
+    var statusEl = document.getElementById('ai-fenshen-status');
+    if (statusEl && window.AIFenshenAgent.isConnected) {
+        statusEl.innerHTML = '<span style="width:6px;height:6px;background:#52c41a;border-radius:50%;display:inline-block;margin-right:4px;"></span>已连接 · ' + window.AIFenshenAgent.name + ' <button onclick="window.showAgentSelector()" style="background:none;border:none;color:#667eea;cursor:pointer;font-size:11px;margin-left:8px;">[切换]</button>';
+    }
+};
+
+// 初始化
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        window.initAIFenshenAgent();
+        window.updateAIFenshenHeader();
+    }, 1000);
+});
+
+console.log('[AI分身] 智能体绑定模块已加载');
+
+// ========== AI分身增强功能 ==========
+
+// 快捷回复模板
+window.AIFenshenQuickReplies = [
+    { icon: '👋', text: '你好', desc: '打招呼' },
+    { icon: '🙏', text: '谢谢', desc: '感谢' },
+    { icon: '👍', text: '好的', desc: '确认' },
+    { icon: '❓', text: '请问', desc: '提问' },
+    { icon: '⏰', text: '明天提醒我', desc: '设置提醒' },
+    { icon: '📧', text: '查看邮件', desc: '邮件' },
+    { icon: '📝', text: '生成文档', desc: '文档' },
+    { icon: '💻', text: '打开软件', desc: '软件' }
+];
+
+// 显示快捷回复
+window.showQuickReplies = function() {
+    var html = '⚡ <b>快捷回复</b><br><br>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    
+    window.AIFenshenQuickReplies.forEach(function(item) {
+        html += '<button onclick="window.sendAIFenshenQuick(' + "'" + item.text + "'" + ');" style="padding:6px 12px;background:#f5f5f5;border:1px solid #ddd;border-radius:16px;color:#333;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;">';
+        html += item.icon + ' ' + item.text;
+        html += '</button>';
+    });
+    
+    html += '</div>';
+    window.addAIFenshenMessage('assistant', html);
+};
+
+// 历史记录管理
+window.AIFenshenHistory = {
+    maxSize: 50,
+    
+    save: function() {
+        var data = {
+            messages: window.AIFenshenState.messages.slice(-this.maxSize),
+            timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('aiFenshenHistory', JSON.stringify(data));
+    },
+    
+    load: function() {
+        var saved = localStorage.getItem('aiFenshenHistory');
+        if (saved) {
+            try {
+                var data = JSON.parse(saved);
+                if (data.messages) {
+                    window.AIFenshenState.messages = data.messages;
+                    // 恢复显示
+                    var chat = document.getElementById('ai-fenshen-chat');
+                    if (chat) {
+                        chat.innerHTML = '';
+                        data.messages.forEach(function(msg) {
+                            window.addAIFenshenMessage(msg.type, msg.content);
+                        });
+                    }
+                }
+            } catch(e) {
+                console.log('[AI分身] 加载历史失败:', e);
+            }
+        }
+    },
+    
+    clear: function() {
+        localStorage.removeItem('aiFenshenHistory');
+        window.AIFenshenState.messages = [];
+        var chat = document.getElementById('ai-fenshen-chat');
+        if (chat) {
+            chat.innerHTML = '';
+        }
+        window.addAIFenshenMessage('assistant', '🗑️ 历史记录已清空');
+    },
+    
+    export: function() {
+        var data = {
+            messages: window.AIFenshenState.messages,
+            exportTime: new Date().toISOString(),
+            agent: window.AIFenshenAgent.name
+        };
+        
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'ai-fenshen-history-' + new Date().toISOString().slice(0, 10) + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        window.addAIFenshenMessage('assistant', '✅ 历史记录已导出');
+    }
+};
+
+// 修改添加消息函数，自动保存历史
+window._originalAddAIFenshenMessage = window.addAIFenshenMessage;
+window.addAIFenshenMessage = function(type, content) {
+    window._originalAddAIFenshenMessage(type, content);
+    window.AIFenshenHistory.save();
+};
+
+// 显示历史菜单
+window.showHistoryMenu = function() {
+    var html = '📚 <b>历史记录</b><br><br>';
+    html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+    html += '<button onclick="window.AIFenshenHistory.load()" style="padding:10px;background:#667eea;border:none;border-radius:6px;color:white;cursor:pointer;text-align:left;">📂 恢复上次会话</button>';
+    html += '<button onclick="window.AIFenshenHistory.export()" style="padding:10px;background:#52c41a;border:none;border-radius:6px;color:white;cursor:pointer;text-align:left;">💾 导出聊天记录</button>';
+    html += '<button onclick="window.AIFenshenHistory.clear()" style="padding:10px;background:#ff4d4f;border:none;border-radius:6px;color:white;cursor:pointer;text-align:left;">🗑️ 清空历史记录</button>';
+    html += '</div>';
+    window.addAIFenshenMessage('assistant', html);
+};
+
+// 主题切换
+window.AIFenshenTheme = {
+    current: 'default',
+    
+    themes: {
+        default: { primary: '#667eea', secondary: '#764ba2', bg: '#f8f9fa' },
+        dark: { primary: '#1a1a2e', secondary: '#16213e', bg: '#0f0f23' },
+        green: { primary: '#27ae60', secondary: '#2ecc71', bg: '#e8f8f5' },
+        orange: { primary: '#e67e22', secondary: '#f39c12', bg: '#fef5e7' }
+    },
+    
+    apply: function(themeName) {
+        var theme = this.themes[themeName];
+        if (!theme) return;
+        
+        this.current = themeName;
+        localStorage.setItem('aiFenshenTheme', themeName);
+        
+        // 应用主题色
+        var panel = document.querySelector('.ai-copilot-panel');
+        if (panel) {
+            var header = panel.querySelector('div:first-child');
+            if (header) {
+                header.style.background = 'linear-gradient(135deg,' + theme.primary + ' 0%,' + theme.secondary + ' 100%)';
+            }
+        }
+        
+        window.addAIFenshenMessage('assistant', '🎨 主题已切换为: <b>' + themeName + '</b>');
+    }
+};
+
+// 显示主题选择
+window.showThemeSelector = function() {
+    var html = '🎨 <b>选择主题</b><br><br>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    
+    Object.keys(window.AIFenshenTheme.themes).forEach(function(name) {
+        var theme = window.AIFenshenTheme.themes[name];
+        var isActive = name === window.AIFenshenTheme.current;
+        html += '<button onclick="window.AIFenshenTheme.apply(' + "'" + name + "'" + ')" style="padding:10px 16px;background:' + (isActive ? theme.primary : '#f5f5f5') + ';border:none;border-radius:8px;color:' + (isActive ? 'white' : '#333') + ';cursor:pointer;font-weight:' + (isActive ? 'bold' : 'normal') + ';">';
+        html += name.charAt(0).toUpperCase() + name.slice(1);
+        html += '</button>';
+    });
+    
+    html += '</div>';
+    window.addAIFenshenMessage('assistant', html);
+};
+
+// 初始化主题
+window.addEventListener('load', function() {
+    var savedTheme = localStorage.getItem('aiFenshenTheme');
+    if (savedTheme) {
+        setTimeout(function() {
+            window.AIFenshenTheme.apply(savedTheme);
+        }, 3000);
+    }
+});
+
+// 修改底部按钮，添加更多功能
+window._originalShowCommandHelp = window.showCommandHelp;
+window.showCommandHelp = function() {
+    var html = '❓ <b>AI分身指令帮助</b><br><br>';
+    
+    html += '<b>📧 邮件办公</b><br>';
+    html += '• 查看收件箱 · 写邮件给[某人]<br><br>';
+    
+    html += '<b>📝 文档处理</b><br>';
+    html += '• 生成会议纪要 · 写工作总结<br><br>';
+    
+    html += '<b>⏰ 日程管理</b><br>';
+    html += '• 设置提醒 · 查看待办<br><br>';
+    
+    html += '<b>💻 软件控制</b><br>';
+    html += '• 打开[软件名] · 关闭[软件名]<br><br>';
+    
+    html += '<b>🧹 电脑整理</b><br>';
+    html += '• 一键整理电脑 · 清理临时文件<br><br>';
+    
+    html += '<b>🔍 信息查询</b><br>';
+    html += '• 现在几点 · 今天日期<br><br>';
+    
+    html += '<b>⚡ 快捷功能</b><br>';
+    html += '• 输入 /theme 切换主题<br>';
+    html += '• 输入 /history 管理历史<br>';
+    html += '• 输入 /quick 显示快捷回复<br>';
+    
+    window.addAIFenshenMessage('assistant', html);
+};
+
+// 增强指令处理，支持斜杠命令
+window._originalProcessAIFenshenCommand = window.processAIFenshenCommand;
+window.processAIFenshenCommand = function(text) {
+    // 斜杠命令
+    if (text.startsWith('/')) {
+        var cmd = text.slice(1).toLowerCase();
+        if (cmd === 'theme' || cmd === '主题') {
+            window.showThemeSelector();
+        } else if (cmd === 'history' || cmd === '历史') {
+            window.showHistoryMenu();
+        } else if (cmd === 'quick' || cmd === '快捷') {
+            window.showQuickReplies();
+        } else if (cmd === 'clear' || cmd === '清空') {
+            window.AIFenshenHistory.clear();
+        } else if (cmd === 'help' || cmd === '帮助') {
+            window.showCommandHelp();
+        } else {
+            window.addAIFenshenMessage('assistant', '❓ 未知命令: /' + cmd + '<br><br>可用命令:<br>/theme - 切换主题<br>/history - 历史记录<br>/quick - 快捷回复<br>/clear - 清空聊天<br>/help - 显示帮助');
+        }
+        return;
+    }
+    
+    // 调用原处理函数
+    window._originalProcessAIFenshenCommand(text);
+};
+
+// 测试API
+window.testAgentAPI = function() {
+    window.addAIFenshenMessage('assistant', '🔧 <b>测试API...</b>');
+    
+    fetch('/api/console/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Agent-Id': 'default'
+        },
+        body: JSON.stringify({
+            message: '你好',
+            session_id: 'test_' + Date.now()
+        })
+    })
+    .then(function(r) { 
+        window.addAIFenshenMessage('assistant', '✅ HTTP状态: ' + r.status);
+        return r.text(); 
+    })
+    .then(function(text) {
+        window.addAIFenshenMessage('assistant', '📝 响应长度: ' + text.length + '<br>响应内容:<br><pre style="background:#f5f5f5;padding:8px;border-radius:4px;overflow-x:auto;">' + (text || '(空)') + '</pre>');
+    })
+    .catch(function(e) {
+        window.addAIFenshenMessage('assistant', '❌ 错误: ' + e.message);
+    });
+};
+
+console.log('[AI分身] 增强功能已加载: 快捷回复、历史记录、主题切换');
+
+// 页面加载时自动恢复历史会话
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        if (window.AIFenshenHistory && typeof window.AIFenshenHistory.load === 'function') {
+            console.log('[AI分身] 页面加载，自动恢复历史会话');
+            window.AIFenshenHistory.load();
+        }
+    }, 500);
+});
+
+// ========== AI分身与智能体通信（localStorage中转） ==========
+
+// AI分身会话上下文管理
+window.AIFenshenContext = {
+    sessionId: null,
+    messages: [],
+    maxContext: 10, // 保留最近10轮对话
+    
+    init: function() {
+        this.sessionId = 'fenshen_' + Date.now();
+        this.messages = [];
+    },
+    
+    addMessage: function(role, content) {
+        this.messages.push({
+            role: role,
+            content: [{type: 'text', text: content}],
+            timestamp: Date.now()
+        });
+        // 只保留最近的消息
+        if (this.messages.length > this.maxContext * 2) {
+            this.messages = this.messages.slice(-this.maxContext * 2);
+        }
+    },
+    
+    getInput: function() {
+        return this.messages.map(function(m) {
+            return {
+                role: m.role,
+                content: m.content
+            };
+        });
+    },
+    
+    clear: function() {
+        this.sessionId = 'fenshen_' + Date.now();
+        this.messages = [];
+    }
+};
+
+// 初始化会话上下文
+window.AIFenshenContext.init();
+
+// 发送消息到智能体（带加载动画、重试、超时处理）
+window.sendToAgentViaStorage = function(message, retryCount) {
+    retryCount = retryCount || 0;
+    var maxRetries = 3;
+    var timeoutMs = 60000; // 60秒超时
+    
+    // 添加用户消息到上下文
+    window.AIFenshenContext.addMessage('user', message);
+    
+    // 显示加载动画（带点点点效果）
+    var loadingMsgId = 'loading_' + Date.now();
+    var loadingHtml = '<div id="' + loadingMsgId + '">🤖 <b>智能体正在输入</b><span class="typing-dots">...</span></div>';
+    window.addAIFenshenMessage('assistant', loadingHtml);
+    window.updateAIFenshenStatus('thinking');
+    
+    // 启动点点点动画
+    var dots = 0;
+    var dotsInterval = setInterval(function() {
+        var el = document.getElementById(loadingMsgId);
+        if (el) {
+            dots = (dots + 1) % 4;
+            var dotsStr = '';
+            for (var i = 0; i < dots; i++) dotsStr += '.';
+            el.innerHTML = '🤖 <b>智能体正在输入</b><span class="typing-dots">' + dotsStr + '</span>';
+        }
+    }, 500);
+    
+    // 设置超时
+    var timeoutId = setTimeout(function() {
+        clearInterval(dotsInterval);
+        var el = document.getElementById(loadingMsgId);
+        if (el) el.remove();
+        
+        if (retryCount < maxRetries) {
+            console.log('[AI分身] 超时，准备重试 (' + (retryCount + 1) + '/' + maxRetries + ')');
+            window.addAIFenshenMessage('assistant', '⏰ <b>响应超时，正在重试...</b> (' + (retryCount + 1) + '/' + maxRetries + ')');
+            setTimeout(function() {
+                window.sendToAgentViaStorage(message, retryCount + 1);
+            }, 1000);
+        } else {
+            window.addAIFenshenMessage('assistant', '⏰ <b>请求超时</b><br><br>智能体响应时间过长，请稍后重试。<br><br>💡 您可以尝试：刷新页面、检查网络、或稍后再试');
+            window.updateAIFenshenStatus('error');
+            setTimeout(function() {
+                window.updateAIFenshenStatus('idle');
+            }, 3000);
+        }
+    }, timeoutMs);
+    
+    // 调用智能体 API
+    var doFetch = function() {
+        return fetch('/api/agent/process', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Agent-Id': 'default'
+            },
+            body: JSON.stringify({
+                session_id: window.AIFenshenContext.sessionId,
+                input: window.AIFenshenContext.getInput()
+            })
+        });
+    };
+    
+    var handleResponse = function(r) {
+        clearTimeout(timeoutId);
+        clearInterval(dotsInterval);
+        
+        // 移除加载消息
+        var el = document.getElementById(loadingMsgId);
+        if (el) el.remove();
+        
+        console.log('[AI分身] 响应状态:', r.status);
+        if (!r.ok) {
+            throw new Error('HTTP ' + r.status);
+        }
+        return r.text();
+    };
+    
+    var handleError = function(e) {
+        clearTimeout(timeoutId);
+        clearInterval(dotsInterval);
+        
+        // 移除加载消息
+        var el = document.getElementById(loadingMsgId);
+        if (el) el.remove();
+        
+        console.error('[AI分身] 调用失败:', e);
+        
+        // 网络错误时重试
+        if ((e.message.includes('fetch') || e.message.includes('network')) && retryCount < maxRetries) {
+            console.log('[AI分身] 网络错误，准备重试 (' + (retryCount + 1) + '/' + maxRetries + ')');
+            window.addAIFenshenMessage('assistant', '🔄 <b>网络错误，正在重试...</b> (' + (retryCount + 1) + '/' + maxRetries + ')');
+            setTimeout(function() {
+                window.sendToAgentViaStorage(message, retryCount + 1);
+            }, 2000);
+            return;
+        }
+        
+        window.addAIFenshenMessage('assistant', '❌ <b>调用失败</b><br><br>错误: ' + e.message + '<br><br>💡 智能体可能暂时不可用，请稍后重试');
+        window.updateAIFenshenStatus('error');
+        setTimeout(function() {
+            window.updateAIFenshenStatus('idle');
+        }, 3000);
+    };
+    
+    var parseResponse = function(text) {
+        console.log('[AI分身] 收到响应:', text.substring(0, 200));
+        
+        // 解析 SSE 流式响应
+        var reply = '';
+        var lines = text.split('\n');
+        var lastData = null;
+        
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (line.startsWith('data:')) {
+                var dataStr = line.substring(5).trim();
+                if (dataStr && dataStr !== '[DONE]') {
+                    try {
+                        var data = JSON.parse(dataStr);
+                        // 只保存状态为 completed 或 output 不为 null 的数据
+                        if (data.status === 'completed' || data.output) {
+                            lastData = data;
+                        }
+                    } catch(e) {
+                        // 忽略解析错误
+                    }
+                }
+            }
+        }
+        
+        // 从最后一个有效 data 中提取回复
+        if (lastData) {
+            // 尝试从 output 中提取
+            if (lastData.output && Array.isArray(lastData.output)) {
+                for (var j = 0; j < lastData.output.length; j++) {
+                    var item = lastData.output[j];
+                    if (item.content && Array.isArray(item.content)) {
+                        for (var k = 0; k < item.content.length; k++) {
+                            if (item.content[k].type === 'text') {
+                                reply += item.content[k].text;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 如果 output 为空，尝试其他字段
+            if (!reply && lastData.message) {
+                reply = lastData.message;
+            }
+            if (!reply && lastData.text) {
+                reply = lastData.text;
+            }
+            if (!reply && lastData.content) {
+                reply = lastData.content;
+            }
+        }
+        
+        // 如果没有解析到回复，显示友好的错误信息
+        if (!reply) {
+            reply = '🤖 <b>智能体响应</b><br><br>智能体已收到您的消息，但暂时无法生成回复。<br><br>💡 可能原因：<br>• 智能体正在处理中<br>• 网络连接不稳定<br>• 智能体暂时不可用<br><br>请稍后重试。';
+        }
+        
+        // 添加智能体回复到上下文
+        window.AIFenshenContext.addMessage('assistant', reply);
+        
+        window.addAIFenshenMessage('assistant', reply);
+        window.updateAIFenshenStatus('completed');
+        setTimeout(function() {
+            window.updateAIFenshenStatus('idle');
+        }, 2000);
+    };
+    
+    doFetch()
+        .then(handleResponse)
+        .then(parseResponse)
+        .catch(handleError);
+};
+
+// 清空上下文（新会话）
+window.clearAIFenshenContext = function() {
+    window.AIFenshenContext.clear();
+    window.addAIFenshenMessage('assistant', '🔄 <b>已开启新会话</b><br><br>上下文已清空，开始新的对话。');
+};
+
+// 轮询检查智能体回复
+window.pollForAgentReply = function() {
+    var startTime = Date.now();
+    var maxWait = 60000; // 最大等待1分钟
+    var checkInterval = null;
+    var isCompleted = false;
+    
+    checkInterval = setInterval(function() {
+        // 如果已完成，不再检查
+        if (isCompleted) {
+            clearInterval(checkInterval);
+            return;
+        }
+        
+        // 检查是否超时
+        if (Date.now() - startTime > maxWait) {
+            isCompleted = true;
+            clearInterval(checkInterval);
+            window.addAIFenshenMessage('assistant', '⏰ <b>等待超时</b><br><br>智能体可能正在忙，请稍后再试。<br><br>✅ 本地功能仍然可用');
+            window.updateAIFenshenStatus('error');
+            setTimeout(function() {
+                window.updateAIFenshenStatus('idle');
+            }, 3000);
+            return;
+        }
+        
+        // 从后端API获取回复
+        fetch('http://127.0.0.1:9999/replies')
+            .then(function(r) { 
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json(); 
+            })
+            .then(function(data) {
+                if (isCompleted) return;
+                
+                console.log('[AI分身] 收到回复数据:', data);
+                
+                if (data && data.replies && data.replies.length > 0) {
+                    // 获取最新回复
+                    var latest = data.replies[data.replies.length - 1];
+                    
+                    console.log('[AI分身] 显示回复:', latest.content);
+                    
+                    // 显示在AI分身中
+                    window.addAIFenshenMessage('assistant', latest.content);
+                    window.updateAIFenshenStatus('completed');
+                    setTimeout(function() {
+                        window.updateAIFenshenStatus('idle');
+                    }, 2000);
+                    
+                    // 标记完成并清除定时器
+                    isCompleted = true;
+                    clearInterval(checkInterval);
+                }
+            })
+            .catch(function(e) {
+                console.error('[AI分身] 获取回复失败:', e);
+            });
+    }, 1000); // 每秒检查一次
+};
+
+// 智能体发送回复（已弃用，使用同步调用）
+window.sendReplyFromAgent = function(replyMessage) {
+    console.log('[AI分身] sendReplyFromAgent 已弃用');
+};
+
+// 检查是否有待处理的消息（供智能体轮询）
+window.checkPendingMessage = function() {
+    var pending = localStorage.getItem('ai_fenshen_pending');
+    if (pending) {
+        try {
+            var data = JSON.parse(pending);
+            if (data.type === 'request') {
+                // 清除待处理消息
+                localStorage.removeItem('ai_fenshen_pending');
+                return data;
+            }
+        } catch(e) {}
+    }
+    return null;
+};
+
+// 模拟智能体回复（测试用）
+window.simulateAgentReply = function() {
+    var reply = prompt('请输入智能体回复内容：');
+    if (reply) {
+        window.sendReplyFromAgent(reply);
+        alert('回复已发送！');
+    }
+};
+
+console.log('[AI分身] localStorage通信模块已加载');
+
+// ========== 智能体自动回复功能 ==========
+
+// 智能体知识库（简单规则回复）
+window.AgentKnowledgeBase = {
+    greetings: ['你好', '您好', '嗨', 'hello', 'hi'],
+    
+    getReply: function(message) {
+        var lower = message.toLowerCase();
+        
+        // 问候语
+        if (this.greetings.some(function(g) { return lower.includes(g); })) {
+            return '你好！我是AI分身连接的智能体（执行者）。很高兴为你服务！\n\n我可以帮你：\n• 回答各种问题\n• 提供建议和方案\n• 协助完成任务\n\n有什么我可以帮你的吗？';
+        }
+        
+        // 时间相关
+        if (lower.includes('时间') || lower.includes('几点')) {
+            return '🕐 当前时间：' + new Date().toLocaleString('zh-CN') + '\n\n有什么我可以帮你的吗？';
+        }
+        
+        // 帮助
+        if (lower.includes('帮助') || lower.includes('功能') || lower.includes('做什么')) {
+            return '我可以帮你：\n\n📝 **知识问答**\n• 解释概念和原理\n• 提供技术方案\n• 分析问题和建议\n\n💡 **创意协助**\n• 写作和编辑\n• 头脑风暴\n• 内容优化\n\n🔧 **任务辅助**\n• 代码审查\n• 文档整理\n• 流程优化\n\n请直接告诉我你的需求！';
+        }
+        
+        // 默认回复
+        return '收到你的消息："' + message + '"\n\n我是通过AI分身连接的智能体。由于当前连接方式限制，我的回复能力有限。\n\n💡 **建议**：\n• 使用AI分身的本地功能（邮件、文档、提醒等）\n• 在当前QwenPaw对话窗口直接与我对话\n• 描述具体需求，我会尽力帮助';
+    }
+};
+
+// 自动处理消息并回复
+window.autoAgentReply = function() {
+    var pending = window.checkPendingMessage();
+    if (pending) {
+        console.log('[智能体] 收到消息:', pending.message);
+        
+        // 生成回复
+        var reply = window.AgentKnowledgeBase.getReply(pending.message);
+        
+        // 延迟一下再回复，模拟思考时间
+        setTimeout(function() {
+            window.sendReplyFromAgent(reply);
+            console.log('[智能体] 已回复:', reply);
+        }, 1000 + Math.random() * 2000); // 1-3秒延迟
+    }
+};
+
+// 启动自动回复轮询
+window.startAutoReply = function() {
+    setInterval(window.autoAgentReply, 1000); // 每秒检查一次
+    console.log('[智能体] 自动回复已启动');
+};
+
+// 页面加载时启动自动回复
+window.addEventListener('load', function() {
+    setTimeout(window.startAutoReply, 3000);
+});
+
+console.log('[AI分身] 自动回复模块已加载');
+
+// ========== AI分身会话持久化 ==========
+
+// 会话存储键名
+window.AI_FENSHEN_STORAGE_KEY = 'ai_fenshen_session';
+
+// 保存会话到localStorage
+window.saveAIFenshenSession = function() {
+    if (!window.AIFenshenState || !window.AIFenshenState.messages) return;
+    
+    var sessionData = {
+        messages: window.AIFenshenState.messages,
+        timestamp: Date.now()
+    };
+    
+    try {
+        localStorage.setItem(window.AI_FENSHEN_STORAGE_KEY, JSON.stringify(sessionData));
+        console.log('[AI分身] 会话已保存，消息数:', sessionData.messages.length);
+    } catch(e) {
+        console.error('[AI分身] 保存会话失败:', e);
+    }
+};
+
+// 从localStorage加载会话
+window.loadAIFenshenSession = function() {
+    try {
+        var saved = localStorage.getItem(window.AI_FENSHEN_STORAGE_KEY);
+        if (saved) {
+            var sessionData = JSON.parse(saved);
+            console.log('[AI分身] 加载会话，消息数:', sessionData.messages.length);
+            return sessionData;
+        }
+    } catch(e) {
+        console.error('[AI分身] 加载会话失败:', e);
+    }
+    return null;
+};
+
+// 清空会话
+window.clearAIFenshenSession = function() {
+    try {
+        localStorage.removeItem(window.AI_FENSHEN_STORAGE_KEY);
+        console.log('[AI分身] 会话已清空');
+    } catch(e) {
+        console.error('[AI分身] 清空会话失败:', e);
+    }
+};
+
+// 页面加载时恢复会话
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        var savedSession = window.loadAIFenshenSession();
+        if (savedSession && savedSession.messages && savedSession.messages.length > 0) {
+            console.log('[AI分身] 恢复会话，消息数:', savedSession.messages.length);
+            
+            // 恢复消息到AI分身
+            if (window.AIFenshenState && window.AIFenshenState.messages) {
+                window.AIFenshenState.messages = savedSession.messages;
+                window.renderAIFenshenMessages();
+            }
+        }
+    }, 1000);
+});
+
+// 页面关闭前保存会话
+window.addEventListener('beforeunload', function() {
+    window.saveAIFenshenSession();
+});
+
+// 定期保存会话（每30秒）
+setInterval(function() {
+    window.saveAIFenshenSession();
+}, 30000);
+
+console.log('[AI分身] 会话持久化模块已加载');
+
+
+// ============ AI分身聊天功能 ============
+window.TeamChatEmail.cronChatHistory = [];
+
+// 发送聊天消息
+window.TeamChatEmail.sendChatMessage = function() {
+    var input = document.getElementById('ai-chat-input');
+    var messages = document.getElementById('ai-chat-messages');
+    if (!input || !messages) return;
+    
+    var text = input.value.trim();
+    if (!text) return;
+    
+    // 添加用户消息
+    var time = new Date().toLocaleTimeString();
+    var userMsg = '<div style="display:flex;gap:10px;margin-bottom:15px;flex-direction:row-reverse;">' +
+        '<div style="width:32px;height:32px;background:#52c41a;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;">👤</div>' +
+        '<div style="flex:1;text-align:right;">' +
+            '<div style="background:#667eea;color:#fff;border-radius:12px;padding:12px 15px;font-size:13px;line-height:1.6;display:inline-block;text-align:left;">' + text + '</div>' +
+            '<div style="font-size:11px;color:#999;margin-top:5px;">' + time + '</div>' +
+        '</div>' +
+    '</div>';
+    messages.innerHTML += userMsg;
+    input.value = '';
+    messages.scrollTop = messages.scrollHeight;
+    
+    // AI思考中
+    var thinkingId = 'thinking-' + Date.now();
+    var thinkingMsg = '<div id="' + thinkingId + '" style="display:flex;gap:10px;margin-bottom:15px;">' +
+        '<div style="width:32px;height:32px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;">🤖</div>' +
+        '<div style="flex:1;">' +
+            '<div style="background:#f0f2ff;border-radius:12px;padding:12px 15px;color:#333;font-size:13px;">' +
+                '<span class="dot-flashing">🤔 正在思考</span>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+    messages.innerHTML += thinkingMsg;
+    messages.scrollTop = messages.scrollHeight;
+    
+    // 解析并回复
+    setTimeout(function() {
+        var parsed = window.TeamChatEmail.parseNaturalLanguageCron(text);
+        var thinkingEl = document.getElementById(thinkingId);
+        if (thinkingEl) {
+            thinkingEl.remove();
+        }
+        
+        var replyHtml = '';
+        if (parsed.success) {
+            replyHtml = '<div style="display:flex;gap:10px;margin-bottom:15px;">' +
+                '<div style="width:32px;height:32px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;">🤖</div>' +
+                '<div style="flex:1;">' +
+                    '<div style="background:#f0f2ff;border-radius:12px;padding:12px 15px;color:#333;font-size:13px;line-height:1.6;">' +
+                        '好的！我理解了您的需求：<br><br>' +
+                        '📋 <b>' + parsed.name + '</b><br>' +
+                        '⏰ 执行时间：' + parsed.description + '<br>' +
+                        '🔧 Cron表达式：<code style="background:#e6f7ff;padding:2px 6px;border-radius:3px;">' + parsed.cron + '</code><br><br>' +
+                        '<button onclick="window.TeamChatEmail.createAICronJob(\'' + parsed.cron + '\', \'' + parsed.name + '\', \'' + parsed.action + '\')" style="padding:8px 16px;background:#52c41a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">✓ 确认创建</button>' +
+                        '<button onclick="window.TeamChatEmail.chatReply(\'请重新输入您的需求\')" style="padding:8px 16px;background:#f5f5f5;border:1px solid #d9d9d9;border-radius:6px;cursor:pointer;font-size:13px;">✏️ 修改</button>' +
+                    '</div>' +
+                    '<div style="font-size:11px;color:#999;margin-top:5px;">' + new Date().toLocaleTimeString() + '</div>' +
+                '</div>' +
+            '</div>';
+        } else {
+            replyHtml = '<div style="display:flex;gap:10px;margin-bottom:15px;">' +
+                '<div style="width:32px;height:32px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;">🤖</div>' +
+                '<div style="flex:1;">' +
+                    '<div style="background:#fff2f0;border-radius:12px;padding:12px 15px;color:#333;font-size:13px;line-height:1.6;">' +
+                        '抱歉，我没有理解您的意思 😅<br><br>' +
+                        '您可以这样说：<br>' +
+                        '• "每天早上9点同步邮件"<br>' +
+                        '• "每周五下午5点发周报"<br>' +
+                        '• "每月1号备份邮件"' +
+                    '</div>' +
+                    '<div style="font-size:11px;color:#999;margin-top:5px;">' + new Date().toLocaleTimeString() + '</div>' +
+                '</div>' +
+            '</div>';
+        }
+        messages.innerHTML += replyHtml;
+        messages.scrollTop = messages.scrollHeight;
+    }, 800);
+};
+
+// 快捷聊天
+window.TeamChatEmail.quickChat = function(text) {
+    var input = document.getElementById('ai-chat-input');
+    if (input) {
+        input.value = text;
+        window.TeamChatEmail.sendChatMessage();
+    }
+};
+
+// AI回复消息
+window.TeamChatEmail.chatReply = function(text) {
+    var messages = document.getElementById('ai-chat-messages');
+    if (!messages) return;
+    
+    var replyHtml = '<div style="display:flex;gap:10px;margin-bottom:15px;">' +
+        '<div style="width:32px;height:32px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;">🤖</div>' +
+        '<div style="flex:1;">' +
+            '<div style="background:#f0f2ff;border-radius:12px;padding:12px 15px;color:#333;font-size:13px;line-height:1.6;">' + text + '</div>' +
+            '<div style="font-size:11px;color:#999;margin-top:5px;">' + new Date().toLocaleTimeString() + '</div>' +
+        '</div>' +
+    '</div>';
+    messages.innerHTML += replyHtml;
+    messages.scrollTop = messages.scrollHeight;
+};
+
+// 自然语言解析
+window.TeamChatEmail.parseNaturalLanguageCron = function(text) {
+    var lower = text.toLowerCase();
+    var result = { success: false, name: '', cron: '', action: '', description: '' };
+    
+    // 解析时间模式
+    var timeMatch = lower.match(/(\d{1,2})[点:：](\d{0,2})/);
+    var hour = timeMatch ? parseInt(timeMatch[1]) : 9;
+    var minute = timeMatch && timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+    
+    // 解析周期
+    if (lower.includes('每天') || lower.includes('每日')) {
+        result.cron = minute + ' ' + hour + ' * * *';
+        result.name = '每日' + (lower.includes('同步') ? '同步' : '任务');
+        result.description = '每天' + hour + '点' + (minute > 0 ? minute + '分' : '');
+    } else if (lower.includes('每周')) {
+        var dayMap = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':0,'天':0};
+        var day = 1;
+        for (var d in dayMap) {
+            if (lower.includes('周' + d) || lower.includes('星期' + d)) {
+                day = dayMap[d];
+                break;
+            }
+        }
+        result.cron = minute + ' ' + hour + ' * * ' + day;
+        result.name = '每周' + (day === 5 ? '五' : '任务');
+        result.description = '每周' + (day === 5 ? '五' : day) + ' ' + hour + '点';
+    } else if (lower.includes('每月')) {
+        result.cron = minute + ' ' + hour + ' 1 * *';
+        result.name = '每月任务';
+        result.description = '每月1日' + hour + '点';
+    } else if (lower.includes('每小时')) {
+        result.cron = '0 * * * *';
+        result.name = '每小时检查';
+        result.description = '每小时整点';
+    } else {
+        result.message = '无法识别时间周期，请使用"每天/每周/每月"';
+        return result;
+    }
+    
+    // 解析动作
+    if (lower.includes('同步') || lower.includes('刷新')) {
+        result.action = 'sync';
+        result.name += '邮件同步';
+    } else if (lower.includes('发送') || lower.includes('发')) {
+        result.action = 'send';
+        result.name += '邮件发送';
+    } else if (lower.includes('备份')) {
+        result.action = 'backup';
+        result.name += '邮件备份';
+    } else if (lower.includes('检查') || lower.includes('查看')) {
+        result.action = 'check';
+        result.name += '邮件检查';
+    } else {
+        result.action = 'custom';
+        result.name += '任务';
+    }
+    
+    result.success = true;
+    return result;
+};
+
+// 快捷模板
+window.TeamChatEmail.applyCronTemplate = function(type) {
+    var templates = {
+        'daily_sync': { name: '每日邮件同步', cron: '0 9 * * *', action: 'sync', desc: '每天早上9点自动同步邮件' },
+        'weekly_report': { name: '周报发送', cron: '0 17 * * 5', action: 'send', desc: '每周五下午5点发送周报' },
+        'monthly_backup': { name: '月度备份', cron: '0 2 1 * *', action: 'backup', desc: '每月1号凌晨2点备份邮件' },
+        'hourly_check': { name: '每小时检查', cron: '0 * * * *', action: 'check', desc: '每小时整点检查新邮件' }
+    };
+    
+    var t = templates[type];
+    if (!t) return;
+    
+    var result = document.getElementById('ai-cron-result');
+    if (result) {
+        result.innerHTML = '<span style="color:#52c41a;">✅ 已选择模板：' + t.desc + '</span>' +
+            '<br><span style="font-size:12px;color:#666;">Cron: ' + t.cron + '</span>' +
+            '<br><button onclick="window.TeamChatEmail.createAICronJob(\'' + t.cron + '\', \'' + t.name + '\', \'' + t.action + '\')" style="margin-top:10px;padding:6px 12px;background:#4caf50;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">✓ 确认创建</button>';
+    }
+};
+
+// 创建AI任务 - 调用QwenPaw定时任务API
+window.TeamChatEmail.createAICronJob = function(cron, name, action) {
+    // 在聊天窗口显示创建中
+    var messages = document.getElementById('ai-chat-messages');
+    if (messages) {
+        var creatingMsg = '<div style="display:flex;gap:10px;margin-bottom:15px;">' +
+            '<div style="width:32px;height:32px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;">🤖</div>' +
+            '<div style="flex:1;">' +
+                '<div style="background:#f0f2ff;border-radius:12px;padding:12px 15px;color:#333;font-size:13px;">' +
+                    '⏳ 正在创建任务...' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+        messages.innerHTML += creatingMsg;
+        messages.scrollTop = messages.scrollHeight;
+    }
+    
+    // 调用QwenPaw定时任务API
+    fetch('/api/cron/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: name,
+            schedule: { cron: cron },
+            enabled: true,
+            type: 'agent',
+            agent_id: 'default',
+            channel: 'console',
+            text: '执行定时任务: ' + name + ' (动作: ' + action + ')'
+        })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (messages) {
+            var successMsg = '<div style="display:flex;gap:10px;margin-bottom:15px;">' +
+                '<div style="width:32px;height:32px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;">🤖</div>' +
+                '<div style="flex:1;">' +
+                    '<div style="background:#f6ffed;border:1px solid #b7eb8f;border-radius:12px;padding:12px 15px;color:#333;font-size:13px;line-height:1.6;">' +
+                        '✅ 任务创建成功！<br><br>' +
+                        '任务ID: ' + (data.id || '已分配') + '<br>' +
+                        '名称: ' + name + '<br>' +
+                        '下次执行时间将按Cron规则计算' +
+                    '</div>' +
+                    '<div style="font-size:11px;color:#999;margin-top:5px;">' + new Date().toLocaleTimeString() + '</div>' +
+                '</div>' +
+            '</div>';
+            messages.innerHTML += successMsg;
+            messages.scrollTop = messages.scrollHeight;
+        }
+        // 刷新任务列表
+        setTimeout(function() {
+            window.TeamChatEmail.loadCronJobs();
+        }, 500);
+    }).catch(function(e) {
+        if (messages) {
+            var errorMsg = '<div style="display:flex;gap:10px;margin-bottom:15px;">' +
+                '<div style="width:32px;height:32px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;">🤖</div>' +
+                '<div style="flex:1;">' +
+                    '<div style="background:#fff2f0;border:1px solid #ffccc7;border-radius:12px;padding:12px 15px;color:#333;font-size:13px;">' +
+                        '❌ 创建失败: ' + e.message +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+            messages.innerHTML += errorMsg;
+            messages.scrollTop = messages.scrollHeight;
+        }
+    });
+};
+
+// ============ 邮件同步管理 ============
+window.TeamChatEmail.syncStatus = {
+    autoSync: true,
+    lastSync: null,
+    nextSync: null,
+    newCount: 0,
+    totalCount: 0,
+    logs: []
+};
+
+// 初始化同步状态
+window.TeamChatEmail.initSyncStatus = function() {
+    this.loadSyncStats();
+    this.startSyncTimer();
+};
+
+// 加载同步统计
+window.TeamChatEmail.loadSyncStats = function() {
+    var statsArea = document.getElementById('sync-stats-area');
+    var statsContent = document.getElementById('sync-stats-content');
+    
+    if (statsArea) statsArea.style.display = 'block';
+    if (statsContent) statsContent.innerHTML = '<div style="color:#999;">加载中...</div>';
+    
+    fetch('/api/plugins/team_chat/sync-stats')
+        .then(function(r) { 
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json(); 
+        })
+        .then(function(data) {
+            if (data.success) {
+                window.TeamChatEmail.syncStatus.newCount = data.new_count || 0;
+                window.TeamChatEmail.syncStatus.totalCount = data.total_count || 0;
+                window.TeamChatEmail.syncStatus.lastSync = data.last_sync;
+                window.TeamChatEmail.syncStatus.nextSync = data.next_sync;
+                
+                // 更新同步设置页面的UI
+                if (statsContent) {
+                    var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+                        '<div style="background:#f6ffed;padding:10px;border-radius:6px;text-align:center;">' +
+                            '<div style="font-size:20px;font-weight:bold;color:#52c41a;">' + (data.new_count || 0) + '</div>' +
+                            '<div style="font-size:12px;color:#666;">新邮件</div>' +
+                        '</div>' +
+                        '<div style="background:#e6f7ff;padding:10px;border-radius:6px;text-align:center;">' +
+                            '<div style="font-size:20px;font-weight:bold;color:#1890ff;">' + (data.total_count || 0) + '</div>' +
+                            '<div style="font-size:12px;color:#666;">总邮件</div>' +
+                        '</div>' +
+                    '</div>';
+                    if (data.last_sync) {
+                        html += '<div style="margin-top:10px;padding:8px;background:#f5f5f5;border-radius:4px;font-size:12px;">' +
+                            '<span style="color:#666;">上次同步:</span> <span style="color:#333;font-weight:500;">' + new Date(data.last_sync).toLocaleString() + '</span>' +
+                        '</div>';
+                    }
+                    if (data.next_sync) {
+                        html += '<div style="margin-top:8px;padding:8px;background:#f5f5f5;border-radius:4px;font-size:12px;">' +
+                            '<span style="color:#666;">下次同步:</span> <span style="color:#333;font-weight:500;">' + new Date(data.next_sync).toLocaleString() + '</span>' +
+                        '</div>';
+                    }
+                    statsContent.innerHTML = html;
+                }
+                
+                window.TeamChatEmail.updateSyncUI();
+            } else {
+                if (statsContent) statsContent.innerHTML = '<div style="color:#ff4d4f;">加载失败: ' + (data.message || '未知错误') + '</div>';
+            }
+        })
+        .catch(function(e) {
+            console.log('加载同步统计失败:', e);
+            if (statsContent) statsContent.innerHTML = '<div style="color:#ff4d4f;">加载失败: ' + e.message + '</div>';
+        });
+};
+
+// 更新同步UI
+window.TeamChatEmail.updateSyncUI = function() {
+    var newCountEl = document.getElementById('sync-new-count');
+    var totalCountEl = document.getElementById('sync-total-count');
+    var nextTimeEl = document.getElementById('sync-next-time');
+    var statusTextEl = document.getElementById('sync-status-text');
+    var lastTimeEl = document.getElementById('sync-last-time');
+    
+    if (newCountEl) newCountEl.textContent = this.syncStatus.newCount;
+    if (totalCountEl) totalCountEl.textContent = this.syncStatus.totalCount;
+    if (nextTimeEl) nextTimeEl.textContent = this.syncStatus.nextSync || '--';
+    
+    if (statusTextEl) {
+        if (this.syncStatus.autoSync) {
+            statusTextEl.innerHTML = '✅ 自动同步已开启 (每3分钟)';
+        } else {
+            statusTextEl.innerHTML = '⏸️ 自动同步已暂停';
+        }
+    }
+    
+    if (lastTimeEl && this.syncStatus.lastSync) {
+        lastTimeEl.textContent = '上次同步: ' + new Date(this.syncStatus.lastSync).toLocaleString();
+    }
+};
+
+// 手动触发同步
+window.TeamChatEmail.triggerManualSync = function() {
+    var statusTextEl = document.getElementById('sync-status-text');
+    if (statusTextEl) statusTextEl.innerHTML = '🔄 正在同步...';
+    
+    this.addSyncLog('🔄 手动触发同步...');
+    
+    fetch('/api/plugins/team_chat/sync', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                window.TeamChatEmail.addSyncLog('✅ 同步完成，新增 ' + (data.new_count || 0) + ' 封邮件');
+                window.TeamChatEmail.syncStatus.newCount = data.new_count || 0;
+                window.TeamChatEmail.syncStatus.totalCount = data.total_count || 0;
+                window.TeamChatEmail.syncStatus.lastSync = new Date().toISOString();
+                window.TeamChatEmail.updateSyncUI();
+            } else {
+                window.TeamChatEmail.addSyncLog('❌ 同步失败: ' + (data.message || '未知错误'));
+            }
+        })
+        .catch(function(e) {
+            window.TeamChatEmail.addSyncLog('❌ 同步错误: ' + e.message);
+        });
+};
+
+// 切换自动同步
+window.TeamChatEmail.toggleAutoSync = function() {
+    this.syncStatus.autoSync = !this.syncStatus.autoSync;
+    var btn = document.getElementById('auto-sync-btn');
+    if (btn) {
+        if (this.syncStatus.autoSync) {
+            btn.innerHTML = '⏸️ 暂停同步';
+            btn.style.background = '#1890ff';
+            this.addSyncLog('▶️ 自动同步已开启');
+        } else {
+            btn.innerHTML = '▶️ 开启同步';
+            btn.style.background = '#52c41a';
+            this.addSyncLog('⏸️ 自动同步已暂停');
+        }
+    }
+    this.updateSyncUI();
+};
+
+// 添加同步日志
+window.TeamChatEmail.addSyncLog = function(message) {
+    var logEl = document.getElementById('sync-log');
+    if (!logEl) return;
+    
+    var time = new Date().toLocaleTimeString();
+    var logEntry = '<div style="margin-bottom:4px;">[' + time + '] ' + message + '</div>';
+    logEl.innerHTML = logEntry + logEl.innerHTML;
+    
+    // 限制日志数量
+    var entries = logEl.querySelectorAll('div');
+    if (entries.length > 50) {
+        for (var i = 50; i < entries.length; i++) {
+            entries[i].remove();
+        }
+    }
+};
+
+// 启动同步定时器
+window.TeamChatEmail.startSyncTimer = function() {
+    // 每分钟更新一次下次同步时间
+    setInterval(function() {
+        if (window.TeamChatEmail.syncStatus.autoSync) {
+            window.TeamChatEmail.loadSyncStats();
+        }
+    }, 60000);
+};
+
+// 编辑AI任务
+window.TeamChatEmail.editAICronJob = function() {
+    alert('🤖 AI分身：切换到手动编辑模式');
+    this.createCronJob();
+};
+

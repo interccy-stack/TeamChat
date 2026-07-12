@@ -1,11 +1,11 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "4.1.0",
-    "description": "TeamChat v4.1.0 — 串串频道重构 + 原创作者 AI + 筑巢动画 + 主界面动画",
+    "version": "5.0.15",
+    "description": "TeamChat v5.0.15 — 新会谈，融合AI分身、巢邮箱系统",
     "author": "0+1+2≠3 Team 115886",
     "entry": {
-        "backend": "main.py",
+        "backend": "team_chat_main.py",
         "frontend": "frontend/dist/index.js"
     },
     "menu": {

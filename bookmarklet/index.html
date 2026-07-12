@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamChat AI 书签工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        .section {
+            margin-bottom: 24px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .bookmark-area {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .bookmark-code {
+            background: #1a1a2e;
+            color: #00ff88;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin-bottom: 16px;
+            min-height: 60px;
+        }
+        .bookmark-link {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #52c41a;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: move;
+        }
+        .bookmark-link:hover {
+            background: #389e0d;
+        }
+        .instructions {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+        .instructions h3 {
+            color: #1890ff;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .instructions ol {
+            padding-left: 20px;
+            color: #333;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        .token-display {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            display: none;
+        }
+        .token-display.show {
+            display: block;
+        }
+        .token-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .token-value {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            word-break: break-all;
+            user-select: all;
+        }
+        .copy-btn {
+            margin-top: 10px;
+            background: #52c41a;
+        }
+        .copy-btn:hover {
+            background: #389e0d;
+        }
+        .steps {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 16px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .step:hover {
+            background: #e8e8e8;
+        }
+        .step.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .step-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .step-label {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🤖</div>
+            <div class="title">TeamChat AI 书签工具</div>
+            <div class="subtitle">在任何网页使用AI分身</div>
+        </div>
+
+        <div class="steps">
+            <div class="step active" onclick="showStep(1)">
+                <div class="step-number">1</div>
+                <div class="step-label">获取Token</div>
+            </div>
+            <div class="step" onclick="showStep(2)">
+                <div class="step-number">2</div>
+                <div class="step-label">生成书签</div>
+            </div>
+            <div class="step" onclick="showStep(3)">
+                <div class="step-number">3</div>
+                <div class="step-label">使用方法</div>
+            </div>
+        </div>
+
+        <!-- Step 1: 获取Token -->
+        <div id="step1" class="section">
+            <div class="section-title">🔑 输入您的访问Token</div>
+            <div class="input-group">
+                <input type="text" id="tokenInput" placeholder="粘贴您的Token..." maxlength="64">
+                <button onclick="generateBookmark()">生成书签</button>
+            </div>
+            <div class="token-display" id="tokenDisplay">
+                <div class="token-label">您的Token：</div>
+                <div class="token-value" id="tokenValue"></div>
+                <button class="copy-btn" onclick="copyToken()">📋 复制Token</button>
+            </div>
+        </div>
+
+        <!-- Step 2: 生成书签 -->
+        <div id="step2" class="section" style="display:none;">
+            <div class="section-title">📎 拖拽到书签栏</div>
+            <div class="bookmark-area">
+                <div class="bookmark-code" id="bookmarkCode">// 先生成Token</div>
+                <div style="text-align:center;">
+                    <a href="#" class="bookmark-link" id="bookmarkLink">🤖 TeamChat AI</a>
+                </div>
+                <p style="text-align:center;color:#666;font-size:12px;margin-top:12px;">
+                    👆 拖拽上方按钮到浏览器书签栏
+                </p>
+            </div>
+            <button onclick="copyBookmarkCode()" style="width:100%;margin-top:12px;">
+                📋 复制书签代码
+            </button>
+        </div>
+
+        <!-- Step 3: 使用方法 -->
+        <div id="step3" class="section" style="display:none;">
+            <div class="instructions">
+                <h3>📖 使用说明</h3>
+                <ol>
+                    <li>在任意网页点击书签栏的"🤖 TeamChat AI"</li>
+                    <li>页面右上角会出现AI分身浮动按钮</li>
+                    <li>点击按钮展开AI聊天面板</li>
+                    <li>输入消息即可与AI对话</li>
+                    <li>Token会自动保存，下次无需重新登录</li>
+                </ol>
+            </div>
+            <div class="instructions" style="background:#fff7e6;border-color:#ffd591;">
+                <h3 style="color:#d46b08;">⚠️ 注意事项</h3>
+                <ol>
+                    <li>确保本地服务已启动（localhost:8088）</li>
+                    <li>某些网站可能因安全策略无法加载</li>
+                    <li>如遇问题请刷新页面重试</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = '';
+        let bookmarkCode = '';
+
+        function showStep(n) {
+            document.querySelectorAll('.step').forEach((el, i) => {
+                el.classList.toggle('active', i === n - 1);
+            });
+            document.getElementById('step1').style.display = n === 1 ? 'block' : 'none';
+            document.getElementById('step2').style.display = n === 2 ? 'block' : 'none';
+            document.getElementById('step3').style.display = n === 3 ? 'block' : 'none';
+        }
+
+        function generateBookmark() {
+            const token = document.getElementById('tokenInput').value.trim();
+            if (!token) {
+                alert('请输入Token');
+                return;
+            }
+            
+            currentToken = token;
+            
+            // 显示Token
+            document.getElementById('tokenValue').textContent = token;
+            document.getElementById('tokenDisplay').classList.add('show');
+            
+            // 生成书签代码
+            bookmarkCode = `javascript:(function(){var s=document.createElement('script');s.src='http://localhost:8088/static/teamchat-ai.js?token=${encodeURIComponent(token)}';document.head.appendChild(s);})();`;
+            
+            document.getElementById('bookmarkCode').textContent = bookmarkCode;
+            document.getElementById('bookmarkLink').href = bookmarkCode;
+            
+            // 自动切换到第2步
+            showStep(2);
+        }
+
+        function copyToken() {
+            navigator.clipboard.writeText(currentToken).then(() => {
+                alert('Token已复制到剪贴板');
+            });
+        }
+
+        function copyBookmarkCode() {
+            navigator.clipboard.writeText(bookmarkCode).then(() => {
+                alert('书签代码已复制到剪贴板');
+            });
+        }
+
+        // 监听Enter键
+        document.getElementById('tokenInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateBookmark();
+            }
+        });
+    </script>
+</body>
+</html>

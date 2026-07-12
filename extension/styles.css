@@ -1,0 +1,893 @@
+/* TeamChat AI分身 Pro - Chrome扩展样式 */
+
+/* ==================== 动画定义 ==================== */
+@keyframes tc-ai-pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+    }
+    50% {
+        transform: scale(1.15);
+        box-shadow: 0 0 40px rgba(102, 126, 234, 1), 0 0 60px rgba(118, 75, 162, 0.8);
+    }
+}
+
+@keyframes tc-ai-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes tc-ai-slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes tc-ai-typing {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+
+/* 侧边栏推挤页面 */
+body {
+    transition: margin-right 0.3s ease !important;
+}
+
+@keyframes tc-ai-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* ==================== 浮动按钮 ==================== */
+#tc-ai-float-btn {
+    position: fixed !important;
+    width: 50px !important;
+    height: 50px !important;
+    border-radius: 50% !important;
+    background-color: #667eea !important;
+    border: 3px solid rgba(255,255,255,0.8) !important;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+    color: white !important;
+    font-size: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    z-index: 99999 !important;
+    user-select: none !important;
+    overflow: hidden !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    animation: tc-ai-breath 2.5s ease-in-out infinite !important;
+}
+
+#tc-ai-float-btn:hover {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+
+@keyframes tc-ai-breath {
+    0%, 100% { box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+    50% { box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4), 0 0 30px rgba(102, 126, 234, 0.6), 0 0 50px rgba(118, 75, 162, 0.3); }
+}
+
+@keyframes tc-ai-blink {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+    }
+    50% {
+        transform: scale(1.15);
+        box-shadow: 0 0 40px rgba(102, 126, 234, 1), 0 0 60px rgba(118, 75, 162, 0.8);
+    }
+}
+
+#tc-ai-float-btn:hover {
+    animation: tc-ai-blink 0.6s ease-in-out infinite !important;
+}
+
+#tc-ai-panel {
+    position: fixed !important;
+    right: 20px;
+    top: 80px;
+    z-index: 999999 !important;
+    min-width: 380px !important;  /* 60px会话列表 + 320px主区域 */
+    min-height: 300px !important;
+    background: white !important;
+    border-radius: 16px !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35) !important;
+    display: flex !important;
+    flex-direction: row !important;  /* 改为横向布局 */
+    overflow: hidden !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    animation: tc-ai-fade-in 0.3s ease-out !important;
+    /* 模式切换动画（不含!important，拖拽时可覆盖） */
+    transition: right 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease, 
+                border-radius 0.3s ease, box-shadow 0.3s ease,
+                transform 0.2s, box-shadow 0.2s;
+}
+
+/* 缩小状态：只显示头部 */
+#tc-ai-panel.tc-collapsed {
+    height: 52px !important;
+    min-height: 52px !important;
+    overflow: hidden !important;
+}
+#tc-ai-panel.tc-collapsed #tc-ai-chat,
+#tc-ai-panel.tc-collapsed #tc-quick-toolbar,
+#tc-ai-panel.tc-collapsed #tc-command-hints,
+#tc-ai-panel.tc-collapsed #tc-ai-input-area,
+#tc-ai-panel.tc-collapsed #tc-resize-handle {
+    display: none !important;
+}
+
+#tc-ai-panel:hover {
+    box-shadow: 0 16px 50px rgba(0,0,0,0.4) !important;
+}
+
+#tc-ai-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    padding: 12px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+}
+
+/* Agent选择器 */
+#tc-agent-selector {
+    flex-shrink: 0 !important;
+}
+#tc-agent-selector select {
+    background: rgba(255,255,255,0.2) !important;
+    border: 1px solid rgba(255,255,255,0.4) !important;
+    color: white !important;
+    font-size: 12px !important;
+    padding: 3px 6px !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    outline: none !important;
+    max-width: 120px !important;
+    appearance: auto !important;
+}
+#tc-agent-selector select option {
+    background: #667eea !important;
+    color: white !important;
+}
+
+#tc-ai-close {
+    background: rgba(255,255,255,0.3) !important;
+    border: 2px solid rgba(255,255,255,0.5) !important;
+    color: white !important;
+    font-size: 18px !important;
+    cursor: pointer !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    line-height: 1 !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 100000 !important;
+    position: relative !important;
+    pointer-events: auto !important;
+}
+
+#tc-ai-close:hover {
+    background: rgba(255,255,255,0.5) !important;
+    border-color: rgba(255,255,255,0.8) !important;
+}
+
+/* ==================== 聊天区域（增强） ==================== */
+#tc-ai-chat {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 16px !important;
+    background: linear-gradient(180deg, #f8f9fa 0%, #f0f2f5 100%) !important;
+    scroll-behavior: smooth !important;
+}
+
+/* 快捷指令提示 */
+#tc-command-hints {
+    position: absolute !important;
+    bottom: 70px !important;
+    left: 16px !important;
+    right: 16px !important;
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    z-index: 100 !important;
+    max-height: 150px !important;
+    overflow-y: auto !important;
+    animation: tc-ai-fade-in 0.2s ease-out !important;
+}
+
+.tc-command-hint {
+    padding: 10px 14px !important;
+    cursor: pointer !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    font-size: 13px !important;
+    color: #333 !important;
+    transition: background 0.2s !important;
+}
+
+.tc-command-hint:last-child {
+    border-bottom: none !important;
+}
+
+.tc-command-hint:hover {
+    background: #f0f7ff !important;
+}
+
+.tc-command-hint strong {
+    color: #667eea !important;
+    font-weight: 600 !important;
+}
+
+/* 快捷工具栏 */
+#tc-quick-toolbar {
+    padding: 8px 12px !important;
+    background: white !important;
+    border-top: 1px solid #e8e8e8 !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    font-size: 12px !important;
+}
+
+.tc-quick-section {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.tc-quick-label {
+    color: #666 !important;
+    font-weight: 500 !important;
+}
+
+.tc-quick-btn {
+    padding: 4px 10px !important;
+    border: 1px solid #d9d9d9 !important;
+    border-radius: 4px !important;
+    background: white !important;
+    color: #333 !important;
+    font-size: 12px !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+}
+
+.tc-quick-btn:hover {
+    background: #f0f7ff !important;
+    border-color: #667eea !important;
+    color: #667eea !important;
+}
+
+/* 语音按钮 */
+#tc-ai-voice-btn {
+    transition: all 0.2s !important;
+}
+
+#tc-ai-voice-btn:hover {
+    transform: scale(1.1) !important;
+}
+
+/* 输入框区域增强 */
+#tc-ai-input-area {
+    position: relative !important;
+}
+
+#tc-ai-input-area {
+    padding: 12px !important;
+    border-top: 1px solid #e0e0e0 !important;
+    background: white !important;
+    display: flex !important;
+    gap: 8px !important;
+}
+
+#tc-ai-input {
+    flex: 1 !important;
+    padding: 8px 12px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 20px !important;
+    outline: none !important;
+    font-size: 14px !important;
+}
+
+#tc-ai-send {
+    padding: 8px 16px !important;
+    background: #667eea !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 20px !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+}
+
+#tc-ai-send:hover {
+    background: #764ba2 !important;
+}
+
+/* 消息样式 */
+.tc-msg {
+    margin-bottom: 12px !important;
+    display: flex !important;
+}
+
+.tc-msg-user {
+    justify-content: flex-end !important;
+}
+
+.tc-msg-assistant {
+    justify-content: flex-start !important;
+}
+
+.tc-msg-system {
+    justify-content: center !important;
+}
+
+.tc-bubble {
+    max-width: 80% !important;
+    padding: 10px 14px !important;
+    border-radius: 16px !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+}
+
+.tc-msg-user .tc-bubble {
+    background: #667eea !important;
+    color: white !important;
+    border-bottom-right-radius: 4px !important;
+}
+
+.tc-msg-assistant .tc-bubble {
+    background: white !important;
+    color: #333 !important;
+    border-bottom-left-radius: 4px !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+}
+
+.tc-msg-system .tc-bubble {
+    background: #e8e8e8 !important;
+    color: #666 !important;
+    text-align: center !important;
+}
+
+/* 加载动画 */
+.tc-loading {
+    background: #f0f2f5 !important;
+    color: #999 !important;
+    padding: 8px 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+    min-height: 24px !important;
+}
+
+.tc-dot {
+    display: inline-block !important;
+    font-size: 24px !important;
+    line-height: 1 !important;
+    color: #667eea !important;
+    animation: tc-ai-typing 1.2s ease-in-out infinite !important;
+}
+
+.tc-dot:nth-child(2) {
+    animation-delay: 0.2s !important;
+}
+
+.tc-dot:nth-child(3) {
+    animation-delay: 0.4s !important;
+}
+
+/* 登录引导页（增强版） */
+#tc-login-box {
+    text-align: center !important;
+    padding: 20px !important;
+    color: #333 !important;
+    animation: tc-ai-fade-in 0.4s ease-out !important;
+}
+
+#tc-login-icon-wrap {
+    margin-bottom: 8px !important;
+    line-height: 1 !important;
+}
+
+#tc-login-icon {
+    display: block;
+    margin: 0 auto;
+}
+
+#tc-login-title {
+    font-size: 22px !important;
+    font-weight: bold !important;
+    color: #333 !important;
+    margin-bottom: 4px !important;
+}
+
+#tc-login-subtitle {
+    font-size: 13px !important;
+    color: #999 !important;
+    margin-bottom: 16px !important;
+}
+
+/* 功能列表 */
+#tc-login-features {
+    text-align: left !important;
+    margin: 16px 0 !important;
+    padding: 0 !important;
+}
+
+.tc-feature-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 8px 12px !important;
+    margin-bottom: 6px !important;
+    background: #f8f9ff !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    color: #555 !important;
+    transition: background 0.2s !important;
+}
+
+.tc-feature-item:hover {
+    background: #eef0ff !important;
+}
+
+.tc-feature-item span {
+    font-size: 18px !important;
+}
+
+.tc-login-divider {
+    height: 1px !important;
+    background: #eee !important;
+    margin: 16px 0 !important;
+}
+
+/* 输入组 */
+#tc-login-input-group {
+    display: flex !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+}
+
+/* 无Token引导页 */
+#tc-login-setup-hint {
+    text-align: left !important;
+    background: #f8f9fa !important;
+    border-radius: 10px !important;
+    padding: 14px 16px !important;
+    margin: 12px 0 !important;
+}
+
+.tc-setup-step {
+    font-size: 13px !important;
+    color: #555 !important;
+    padding: 6px 0 !important;
+    line-height: 1.5 !important;
+}
+
+.tc-setup-step strong {
+    color: #667eea !important;
+}
+
+.tc-gotit-btn {
+    width: 100% !important;
+    padding: 11px 0 !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    margin-top: 12px !important;
+    transition: transform 0.15s, box-shadow 0.15s !important;
+}
+
+.tc-gotit-btn:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(102,126,234,0.4) !important;
+}
+
+.tc-gotit-btn:active {
+    transform: translateY(0) !important;
+}
+
+/* 语音切换按钮 */
+#tc-btn-voice {
+    font-size: 16px !important;
+}
+
+/* 附件上传按钮 & 语音性别切换按钮 */
+#tc-ai-attach-btn,
+#tc-ai-voice-gender {
+    background: transparent !important;
+    border: none !important;
+    color: #666 !important;
+    font-size: 18px !important;
+    cursor: pointer !important;
+    padding: 6px 10px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+#tc-ai-attach-btn:hover,
+#tc-ai-voice-gender:hover {
+    background: rgba(0,0,0,0.06) !important;
+    color: #333 !important;
+}
+
+/* 缩放拖柄 */
+#tc-resize-handle {
+    position: absolute !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 20px !important;
+    height: 20px !important;
+    cursor: nwse-resize !important;
+    z-index: 100001 !important;
+    background: linear-gradient(135deg, transparent 50%, rgba(102,126,234,0.4) 50%) !important;
+    border-radius: 0 0 16px 0 !important;
+    pointer-events: auto !important;
+}
+#tc-resize-handle:hover {
+    background: linear-gradient(135deg, transparent 50%, rgba(102,126,234,0.7) 50%) !important;
+}
+
+/* 工具栏 */
+#tc-quick-toolbar {
+    display: flex !important;
+    justify-content: space-around !important;
+    padding: 8px 4px !important;
+    background: #f8f9fa !important;
+    border-bottom: 1px solid #e9ecef !important;
+}
+.tc-tool-btn {
+    background: white !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 8px !important;
+    padding: 6px 8px !important;
+    font-size: 16px !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    min-width: 36px !important;
+    text-align: center !important;
+}
+.tc-tool-btn:hover {
+    background: #e9ecef !important;
+    transform: translateY(-1px) !important;
+}
+.tc-tool-btn:active {
+    transform: translateY(0) !important;
+}
+
+/* 暗黑模式 */
+#tc-ai-panel.tc-dark {
+    background: #1a1a2e !important;
+}
+#tc-ai-panel.tc-dark #tc-ai-header {
+    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%) !important;
+}
+#tc-ai-panel.tc-dark #tc-ai-chat {
+    background: #1a1a2e !important;
+}
+#tc-ai-panel.tc-dark .tc-ai-message {
+    color: #e9ecef !important;
+}
+#tc-ai-panel.tc-dark .tc-ai-user {
+    background: #0f3460 !important;
+}
+#tc-ai-panel.tc-dark .tc-ai-assistant {
+    background: #16213e !important;
+}
+#tc-ai-panel.tc-dark #tc-quick-toolbar {
+    background: #16213e !important;
+    border-bottom-color: #0f3460 !important;
+}
+#tc-ai-panel.tc-dark .tc-tool-btn {
+    background: #0f3460 !important;
+    border-color: #1a1a2e !important;
+    color: #e9ecef !important;
+}
+#tc-ai-panel.tc-dark #tc-ai-input-area {
+    background: #16213e !important;
+    border-top-color: #0f3460 !important;
+}
+#tc-ai-panel.tc-dark #tc-ai-input {
+    background: #0f3460 !important;
+    border-color: #1a1a2e !important;
+    color: #e9ecef !important;
+}
+
+/* 模式切换按钮 */
+#tc-btn-mode {
+    background: rgba(255,255,255,0.3) !important;
+    border: 2px solid rgba(255,255,255,0.5) !important;
+    color: white !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    line-height: 1 !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+#tc-btn-mode:hover {
+    background: rgba(255,255,255,0.5) !important;
+}
+
+/* 侧边栏模式 */
+#tc-ai-panel.tc-sidebar {
+    border-radius: 0 !important;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.15) !important;
+    right: 0 !important;
+    top: 0 !important;
+    width: 440px;  /* 380px + 60px 会话列表 */
+    height: 100vh !important;
+    max-height: none !important;
+}
+#tc-ai-panel.tc-sidebar #tc-resize-handle {
+    display: none !important;
+}
+#tc-ai-panel.tc-sidebar #tc-ai-chat {
+    max-height: none !important;
+}
+
+/* 浮动模式（right/top/height不用!important，支持拖拽/折叠覆盖） */
+#tc-ai-panel.tc-float {
+    right: 20px;
+    top: 80px;
+    width: 440px;  /* 380px + 60px 会话列表 */
+    height: 500px;
+    border-radius: 16px !important;
+    max-height: 90vh !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35) !important;
+}
+
+/* 浮动模式下折叠，确保高度被覆盖 */
+#tc-ai-panel.tc-float.tc-collapsed {
+    height: 52px !important;
+}
+
+/* 缩小状态下关闭过渡动画，避免卡顿 */
+#tc-ai-panel.tc-collapsed {
+    transition: none !important;
+}
+
+/* 流式打字效果 */
+.tc-typing::after {
+    content: '|';
+    animation: tc-blink 1s infinite;
+    color: #667eea;
+    font-weight: bold;
+}
+@keyframes tc-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* 语音按钮 */
+.tc-voice-btn {
+    background: transparent !important;
+    border: none !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    padding: 4px !important;
+    margin-left: 4px !important;
+    opacity: 0.6 !important;
+    transition: opacity 0.2s !important;
+}
+.tc-voice-btn:hover {
+    opacity: 1 !important;
+}
+
+/* === 强制隐藏面板 === */
+.tc-force-hide {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* ==================== 会话列表侧边栏（简化版） ==================== */
+#tc-ai-panel {
+    display: flex !important;
+    flex-direction: row !important;
+}
+
+#tc-session-sidebar {
+    width: 60px;  /* 极简宽度，只显示圆点 */
+    height: 100%;
+    background: #f8f9fa;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 0.3s ease;
+}
+
+#tc-session-sidebar.tc-session-collapsed {
+    width: 0;
+    border-right: none;
+}
+
+#tc-session-header {
+    padding: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#tc-btn-new-session {
+    background: rgba(255,255,255,0.3);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+#tc-btn-new-session:hover {
+    background: rgba(255,255,255,0.5);
+}
+
+#tc-session-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+    min-height: 50px;
+}
+
+.tc-session-item {
+    padding: 8px;
+    margin-bottom: 4px;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tc-session-item:hover {
+    background: #e8eaf6;
+    border-color: #c5cae9;
+}
+
+.tc-session-item.tc-session-active {
+    background: #e3f2fd;
+    border-color: #667eea;
+}
+
+/* 彩色时间圆点 */
+.tc-session-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.tc-session-title {
+    display: none;  /* 60px宽度不显示标题 */
+}
+
+.tc-session-actions {
+    display: none;
+    gap: 2px;
+}
+
+.tc-session-item:hover .tc-session-actions {
+    display: flex;
+}
+
+.tc-session-rename, .tc-session-delete {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.tc-session-rename:hover, .tc-session-delete:hover {
+    opacity: 1;
+}
+
+#tc-session-toggle {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 60px;
+    background: #667eea;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 0 8px 8px 0;
+    font-size: 14px;
+    z-index: 10;
+    transition: left 0.3s ease;
+}
+
+#tc-session-sidebar.tc-session-collapsed + #tc-session-toggle {
+    left: 0;
+}
+
+#tc-main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* 暗黑模式下的会话列表 */
+#tc-ai-panel.tc-dark #tc-session-sidebar {
+    background: #1a1a2e;
+    border-right-color: #333;
+}
+
+#tc-ai-panel.tc-dark #tc-session-header {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+}
+
+#tc-ai-panel.tc-dark .tc-session-item {
+    background: #2d3748;
+}
+
+#tc-ai-panel.tc-dark .tc-session-item:hover {
+    background: #4a5568;
+}
+
+#tc-ai-panel.tc-dark .tc-session-item.tc-session-active {
+    background: #3d5a80;
+    border-color: #667eea;
+}
+
+#tc-ai-panel.tc-dark .tc-session-title {
+    color: #e2e8f0;
+}
+
+#tc-ai-panel.tc-dark .tc-session-meta {
+    color: #a0aec0;
+}

@@ -1,19 +1,17 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "4.1.0",
-    "description": "TeamChat v4.1.0 — 重大更新：新增微信频道管理(独立页面,工作原理动画,智能体可自定义),轻音乐音量控制,config路径修复,稻盛和夫经营哲学.",
-    "author": " 0+1+2≠3 Team 115886",
+    "version": "5.0.15",
+    "description": "TeamChat v5.0.15 — 新会谈，融合AI分身、巢邮箱系统。包含AI主持人团队会谈、多标签页管理、轻音乐控制、微信频道管理、传统邮箱（收件/发件/草稿/联系人/回收站/设置）、蜂巢邮箱（工业智能消息互通）、AI分身（智能对话/邮件处理）、轻量安全提示。",
+    "author": "0+1+2≠3 Team 115886",
     "type": "general",
+    "qwenpaw_version": {
+        "min": "1.1.11",
+        "max": "2.1.0"
+    },
     "entry": {
-        "backend": "main.py",
+        "backend": "team_chat_main.py",
         "frontend": "frontend/dist/index.js"
     },
-    "dependencies": ["playwright>=1.40.0"],
-    "min_version": "1.1.11",
-    "menu": {
-        "label": "新会谈",
-        "icon": "团",
-        "description": "以 AI 为主持人，开启人类与智能体之间的团队会谈,沟通团队成员,协调任务,解决冲突."
-    }
+    "dependencies": ["playwright>=1.40.0"]
 }
