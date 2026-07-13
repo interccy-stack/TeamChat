@@ -1,0 +1,47 @@
+{
+  "session_id": "5e740db9-2aa4-493b-9ac4-0a0e625d55a2",
+  "host_id": "cloud-orchestrator",
+  "host_name": "CloudPaw-Master",
+  "agent_ids": [
+    "default"
+  ],
+  "history": [
+    {
+      "role": "human",
+      "sender": "human",
+      "sender_name": "人类用户",
+      "content": "今天星期几？",
+      "timestamp": 1783914217.426934
+    },
+    {
+      "role": "agent",
+      "sender": "default",
+      "sender_name": "Default Agent",
+      "content": "今天是 **星期一（Monday）**，2026年7月13日。开工大吉！💪",
+      "timestamp": 1783914226.246016
+    },
+    {
+      "role": "host",
+      "sender": "cloud-orchestrator",
+      "sender_name": "CloudPaw-Master",
+      "content": "[错误] cloud-orchestrator: {'code': 'MODEL_UNAUTHORIZED_ACCESS', 'message': 'Unauthorized access to model: kimi-k2.5. Reason: invalid access token or token expired\\n(Details:  C:\\\\Users\\\\lenovo\\\\AppData\\\\Local\\\\Temp\\\\1\\\\qwenpaw_query_error_m0otmphs.json)'}",
+      "timestamp": 1783914230.3944964
+    }
+  ],
+  "host_steps": [
+    {
+      "id": "cloud-orchestrator",
+      "content": "你是团队主持人。以下是多智能体讨论的内容：\n\n[用户] 今天星期几？\n[Default Agent] 今天是 **星期一（Monday）**，2026年7月13日。开工大吉！💪\n\n请做一个简洁的总结（200字以内），指出各智能体的观点异同，并给出你的建议。",
+      "response": "[错误] cloud-orchestrator: {'code': 'MODEL_UNAUTHORIZED_ACCESS', 'message': 'Unauthorized access to model: kimi-k2.5. Reason: invalid access token or token expired\\n(Details:  C:\\\\Users\\\\lenovo\\\\AppData\\\\Local\\\\Temp\\\\1\\\\qwenpaw_query_error_m0otmphs.json)'}",
+      "time": 1783914230.3944964,
+      "action": "主持人 CloudPaw-Master 汇总回复",
+      "detail": "[错误] cloud-orchestrator: {'code': 'MODEL_UNAUTHORIZED_ACCESS', 'message': 'Unauthorized access to model: kimi-k2.5. Reas"
+    }
+  ],
+  "brainstorm": false,
+  "discussion_done": false,
+  "created_at": 1783914217.426934,
+  "updated_at": 1783914217.426934,
+  "tag": "",
+  "pinned": ""
+}

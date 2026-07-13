@@ -450,7 +450,7 @@ class EmailDB:
 
     @staticmethod
     def get_inbox_with_count(limit: int = 50, offset: int = 0, folder: str = 'INBOX', account_email: str = '') -> Dict[str, Any]:
-        """获取收件箱邮件（带总数）"""
+        """获取收件箱邮件（带总数），按日期降序排列"""
         with get_db() as conn:
             cursor = conn.cursor()
             if account_email:
@@ -472,12 +472,19 @@ class EmailDB:
                     LIMIT ? OFFSET ?
                 """, (folder, limit, offset))
             rows = cursor.fetchall()
+            logger.info(f"[EmailDB] get_inbox_with_count: folder={folder}, account={account_email}, total={total}, returned={len(rows)}")
             return {"emails": [dict(row) for row in rows], "total": total}
 
     @staticmethod
     def add_inbox_email(email: Dict[str, Any]) -> bool:
         """添加收件箱邮件"""
         try:
+            uid = email.get('uid') or email.get('id')
+            subject = email.get('subject', '(无主题)')
+            from_addr = email.get('from_addr', '')
+            account = email.get('account_email', '')
+            logger.info(f"[EmailDB] Adding inbox email: uid={uid}, subject={subject[:30]}, from={from_addr}, account={account}")
+            
             with get_db() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
@@ -486,10 +493,10 @@ class EmailDB:
                         sent_date, received_date, attachments, folder, size, flags, account_email
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
-                    email.get('uid') or email.get('id'),
-                    email.get('from_addr'),
+                    uid,
+                    from_addr,
                     email.get('from_name'),
-                    email.get('subject'),
+                    subject,
                     email.get('body'),
                     email.get('html_body'),
                     email.get('sent_date'),
@@ -498,8 +505,9 @@ class EmailDB:
                     email.get('folder', 'INBOX'),
                     email.get('size', 0),
                     json.dumps(email.get('flags', [])),
-                    email.get('account_email', '')
+                    account
                 ))
+                logger.info(f"[EmailDB] Successfully added email: uid={uid}")
             return True
         except Exception as e:
             logger.error(f"[EmailDB] Failed to add inbox email: {e}")

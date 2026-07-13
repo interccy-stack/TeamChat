@@ -18,7 +18,7 @@ if os.path.exists(email_data):
     shutil.rmtree(email_data)
 
 # Create zip
-zip_path = r'C:\Users\Administrator\.qwenpaw\plugins\teamchat-clean-v5.0.16'
+zip_path = r'C:\Users\Administrator\.qwenpaw\plugins\teamchat-clean-v5.0.18'
 shutil.make_archive(zip_path, 'zip', dst)
 print('Zip created:', zip_path + '.zip')
 

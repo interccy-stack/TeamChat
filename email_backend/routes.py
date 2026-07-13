@@ -21,6 +21,7 @@ from datetime import datetime
 import re
 import os
 import uuid
+import base64
 
 try:
     from .database import EmailDB, _decrypt, _ATTACHMENT_DIR
@@ -81,6 +82,11 @@ class EmailClient:
                 server.starttls()
             
             server.login(self.username, self.password)
+            logger.info(f"[EmailClient] SMTP login successful")
+            
+            # 计算邮件总大小
+            msg_size = len(msg.as_string())
+            logger.info(f"[EmailClient] Message size: {msg_size} bytes")
             
             # 发送邮件
             recipients = [to_addr]
@@ -90,6 +96,7 @@ class EmailClient:
                 recipients.extend(bcc.split(","))
             
             server.sendmail(self.email, recipients, msg.as_string())
+            logger.info(f"[EmailClient] Email sent successfully to {to_addr}")
             server.quit()
             
             return {"success": True, "message": "邮件发送成功"}
@@ -142,6 +149,11 @@ class EmailClient:
                 server.starttls()
             
             server.login(self.username, self.password)
+            logger.info(f"[EmailClient] SMTP login successful")
+            
+            # 计算邮件总大小
+            msg_size = len(msg.as_string())
+            logger.info(f"[EmailClient] Message size: {msg_size} bytes")
             
             # 发送邮件
             recipients = [to_addr]
@@ -151,6 +163,104 @@ class EmailClient:
                 recipients.extend(bcc.split(","))
             
             server.sendmail(self.email, recipients, msg.as_string())
+            logger.info(f"[EmailClient] Email sent successfully to {to_addr}")
+            server.quit()
+            
+            return {"success": True, "message": "邮件发送成功"}
+            
+        except Exception as e:
+            logger.error(f"发送邮件失败: {str(e)}")
+            return {"success": False, "message": f"发送失败: {str(e)}"}
+    
+    def send_email_with_inline_images(self, to_addr: str, subject: str, body: str,
+                                       html_body: str = None, cc: str = None, bcc: str = None,
+                                       inline_images: List[dict] = None,
+                                       attachments: List[dict] = None) -> dict:
+        """发送邮件（支持内嵌图片和普通附件）"""
+        try:
+            from email.mime.image import MIMEImage
+            
+            logger.info(f"[EmailClient] Sending email to {to_addr}, subject: {subject[:30]}")
+            logger.info(f"[EmailClient] Inline images: {len(inline_images) if inline_images else 0}")
+            logger.info(f"[EmailClient] Attachments: {len(attachments) if attachments else 0}")
+            
+            # 创建邮件
+            msg = MIMEMultipart("mixed")
+            msg["From"] = self.email
+            msg["To"] = to_addr
+            msg["Subject"] = subject
+            msg["Date"] = datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0800")
+            
+            if cc:
+                msg["Cc"] = cc
+            if bcc:
+                msg["Bcc"] = bcc
+            
+            # 创建正文部分（包含内嵌图片）
+            body_part = MIMEMultipart("related")
+            
+            # 添加HTML正文
+            if html_body:
+                html_part = MIMEText(html_body, "html", "utf-8")
+                body_part.attach(html_part)
+            else:
+                text_part = MIMEText(body, "plain", "utf-8")
+                body_part.attach(text_part)
+            
+            # 添加内嵌图片
+            if inline_images:
+                for img in inline_images:
+                    mime_type = img.get("content_type", "image/png")
+                    main_type, sub_type = mime_type.split("/") if "/" in mime_type else ("image", "png")
+                    
+                    image_part = MIMEImage(img["content"], _subtype=sub_type)
+                    image_part.add_header("Content-ID", f"<{img['cid']}>")
+                    image_part.add_header("Content-Disposition", "inline", filename=img["filename"])
+                    body_part.attach(image_part)
+            
+            msg.attach(body_part)
+            
+            # 添加普通附件
+            if attachments:
+                logger.info(f"[EmailClient] Attaching {len(attachments)} files")
+                for attach in attachments:
+                    try:
+                        part = MIMEBase("application", "octet-stream")
+                        part.set_payload(attach["content"])
+                        encoders.encode_base64(part)
+                        part.add_header(
+                            "Content-Disposition",
+                            f"attachment; filename=\"{attach['filename']}\""
+                        )
+                        msg.attach(part)
+                        logger.info(f"[EmailClient] Attached: {attach['filename']}, size: {len(attach['content'])} bytes")
+                    except Exception as e:
+                        logger.error(f"[EmailClient] Failed to attach {attach['filename']}: {e}")
+                        raise
+            
+            # 连接SMTP服务器
+            if self.smtp_ssl and self.smtp_port == 465:
+                server = smtplib.SMTP_SSL(self.smtp_host, self.smtp_port, timeout=30)
+            else:
+                server = smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=30)
+                server.starttls()
+            
+            server.login(self.username, self.password)
+            logger.info(f"[EmailClient] SMTP login successful")
+            
+            # 计算邮件总大小
+            msg_size = len(msg.as_string())
+            logger.info(f"[EmailClient] Message size: {msg_size} bytes")
+            
+            # 发送邮件
+            recipients = [to_addr]
+            if cc:
+                recipients.extend(cc.split(","))
+            if bcc:
+                recipients.extend(bcc.split(","))
+            
+            server.sendmail(self.email, recipients, msg.as_string())
+            logger.info(f"[EmailClient] Email sent successfully to {to_addr}")
             server.quit()
             
             return {"success": True, "message": "邮件发送成功"}
@@ -210,6 +320,8 @@ class EmailClient:
         """增量获取邮件（只获取新邮件）"""
         mail = None
         try:
+            logger.info(f"[IMAP] 开始增量同步: folder={folder}, last_uid={last_uid}, limit={limit}")
+            
             # 连接IMAP服务器
             if self.imap_ssl:
                 mail = imaplib.IMAP4_SSL(self.imap_host, self.imap_port)
@@ -223,8 +335,14 @@ class EmailClient:
             _, search_data = mail.search(None, "ALL")
             email_ids = search_data[0].split()
             
+            logger.info(f"[IMAP] 服务器上共有 {len(email_ids)} 封邮件")
+            
             if not email_ids:
+                logger.info("[IMAP] 没有邮件")
                 return []
+            
+            # 显示部分邮件ID用于调试
+            logger.info(f"[IMAP] 邮件ID列表: {len(email_ids)} 封, 前5个: {[e.decode() for e in email_ids[:5]]}")
             
             # 如果没有上次同步的UID，获取最新的limit封
             if not last_uid:
@@ -232,15 +350,31 @@ class EmailClient:
             else:
                 # 找到上次同步的位置，获取之后的邮件
                 try:
-                    last_uid_bytes = last_uid.encode() if isinstance(last_uid, str) else last_uid
-                    last_index = email_ids.index(last_uid_bytes)
-                    # 获取last_uid之后的邮件
-                    target_ids = email_ids[last_index + 1:]
-                    # 限制数量
-                    if len(target_ids) > limit:
-                        target_ids = target_ids[-limit:]
-                except ValueError:
-                    # 如果找不到last_uid，获取最新的limit封
+                    # 将 last_uid 转换为字符串进行比较
+                    last_uid_str = str(last_uid)
+                    logger.info(f"[IMAP] 查找 last_uid: {last_uid_str}")
+                    last_index = -1
+                    for i, uid_bytes in enumerate(email_ids):
+                        uid_decoded = uid_bytes.decode()
+                        if uid_decoded == last_uid_str:
+                            last_index = i
+                            logger.info(f"[IMAP] 找到 last_uid {last_uid_str} 在位置 {i}")
+                            break
+                    
+                    if last_index >= 0:
+                        # 获取last_uid之后的邮件
+                        target_ids = email_ids[last_index + 1:]
+                        logger.info(f"[IMAP] last_uid 之后有 {len(target_ids)} 封新邮件")
+                        # 限制数量
+                        if len(target_ids) > limit:
+                            target_ids = target_ids[-limit:]
+                    else:
+                        logger.warning(f"[IMAP] 找不到 last_uid {last_uid_str}，将获取最新 {limit} 封")
+                        # 如果找不到last_uid，获取最新的limit封
+                        target_ids = email_ids[-limit:]
+                except Exception as e:
+                    logger.warning(f"[IMAP] 查找last_uid失败: {e}")
+                    # 如果出错，获取最新的limit封
                     target_ids = email_ids[-limit:]
             
             # 获取邮件
@@ -302,8 +436,20 @@ class EmailClient:
                 from_name = match.group(1).strip()
                 from_addr = match.group(2).strip()
         
-        # 解析日期
+        # 解析日期并标准化
         date_str = msg.get("Date", "")
+        try:
+            # 使用 email.utils 解析日期
+            from email.utils import parsedate_to_datetime
+            if date_str:
+                parsed_date = parsedate_to_datetime(date_str)
+                # 转换为 ISO 格式字符串
+                date_str = parsed_date.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        except Exception as e:
+            logger.warning(f"解析日期失败: {date_str}, 错误: {e}")
+            date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # 解析正文 & 附件
         body = ""
@@ -824,8 +970,10 @@ async def send_email(
     cc: Optional[str] = Form(None),
     bcc: Optional[str] = Form(None),
     account: Optional[str] = Form(None),
+    attachments: List[UploadFile] = File(default=[]),
+    inline_images: Optional[str] = Form(None),
 ):
-    """发送邮件（FormData格式）"""
+    """发送邮件（FormData格式，支持附件和内嵌图片）"""
     try:
         # 获取邮箱配置
         config = None
@@ -844,30 +992,76 @@ async def send_email(
         if not config:
             return {"success": False, "message": "请先配置邮箱"}
         
+        # 处理内嵌图片
+        inline_image_list = []
+        if inline_images:
+            try:
+                inline_data = json.loads(inline_images)
+                for img in inline_data:
+                    inline_image_list.append({
+                        "cid": img.get("cid"),
+                        "filename": img.get("filename"),
+                        "content": base64.b64decode(img.get("content", "")),
+                        "content_type": img.get("content_type", "image/png")
+                    })
+            except Exception as e:
+                logger.warning(f"解析内嵌图片失败: {e}")
+        
+        # 处理普通附件
+        attachment_list = []
+        total_attach_size = 0
+        if attachments:
+            logger.info(f"[Send Email] Processing {len(attachments)} attachments")
+            for attach in attachments:
+                try:
+                    content = await attach.read()
+                    size = len(content)
+                    total_attach_size += size
+                    logger.info(f"[Send Email] Attachment: {attach.filename}, size: {size} bytes")
+                    attachment_list.append({
+                        "filename": attach.filename,
+                        "content": content,
+                        "content_type": attach.content_type or "application/octet-stream"
+                    })
+                except Exception as e:
+                    logger.error(f"[Send Email] Failed to read attachment {attach.filename}: {e}")
+                    return {"success": False, "message": f"读取附件失败: {attach.filename}"}
+            
+            logger.info(f"[Send Email] Total attachment size: {total_attach_size} bytes")
+            
+            # 检查附件总大小（限制 25MB）
+            if total_attach_size > 25 * 1024 * 1024:
+                return {"success": False, "message": "附件总大小超过 25MB 限制"}
+        
         # 创建邮件客户端
         client = EmailClient(config)
         
-        # 发送邮件
-        result = client.send_email(
+        # 发送邮件（带内嵌图片和附件）
+        result = client.send_email_with_inline_images(
             to_addr=to_addr,
             subject=subject,
             body=body,
             cc=cc,
             bcc=bcc,
-            html_body=html_body or ""
+            html_body=html_body or "",
+            inline_images=inline_image_list,
+            attachments=attachment_list
         )
         
         if not result.get("success"):
             return {"success": False, "message": result.get("message", "发送失败")}
         
         # 保存到发件箱
+        all_attachments = [a["filename"] for a in attachment_list]
+        all_attachments.extend([i["filename"] for i in inline_image_list])
+        
         sent_email = {
             "to_addr": to_addr,
             "to_name": to_name or to_addr.split("@")[0],
             "subject": subject,
             "body": body,
             "html_body": html_body,
-            "attachments": [],
+            "attachments": all_attachments,
             "sent_at": datetime.now().isoformat()
         }
         EmailDB.add_sent_email(sent_email)
@@ -920,7 +1114,9 @@ async def do_sync_emails(config_id: Optional[int] = None):
                 # 首次同步获取100封，后续增量同步获取50封
                 initial_sync = last_uid is None
                 sync_limit = 100 if initial_sync else 50
+                logger.info(f"[{account_email}] 开始同步: initial={initial_sync}, limit={sync_limit}")
                 inbox_emails = client.fetch_emails_incremental(folder="INBOX", last_uid=last_uid, limit=sync_limit)
+                logger.info(f"[{account_email}] 获取到 {len(inbox_emails)} 封邮件")
 
                 # 保存到数据库 & 附件落地
                 synced_count = 0

@@ -1,6 +1,6 @@
 /**
  * ===================================================================
- *  TeamChat Frontend v5.0.15 — 重大更新
+ *  TeamChat Frontend v5.0.18 — 重大更新
  *  【串串频道 v2.0】ChuanChuanPage: 4-Tab统一页面
  *    📡频道 | 📂历史 | ✍️原创作者AI | 📤导出
  *  【轻音乐增强】音量 Slider + 内部停止按钮 + ▶ 正在播放指示
@@ -306,8 +306,8 @@ function _hiveFallback(addr){
 }
 
 (function () {
-  // TeamChat v5.0.15 - 安全提示优化版
-  console.log('[TeamChat] v5.0.15 安全提示版 加载时间:', new Date().toLocaleString());
+  // TeamChat v5.0.18 - 安全提示优化版
+  console.log('[TeamChat] v5.0.18 安全提示版 加载时间:', new Date().toLocaleString());
   
   var s = document.createElement("style");
   s.textContent =
@@ -3316,6 +3316,9 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
   }
 
   function openComposeDOM(title, to, cc, subject, body) {
+    // 初始化附件数组
+    window.composeAttachments = [];
+    console.log('[TeamChat] Opening compose modal, attachments reset');
     var old = document.getElementById('compose-modal-overlay');
     if (old) old.remove();
     var overlay = document.createElement('div');
@@ -3331,6 +3334,7 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
       '<div><label style="font-size:14px;margin-bottom:4px;display:block">密送 (BCC)</label><input id="cm-bcc" type="text" placeholder="密送给其他人" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;background:#fff;box-sizing:border-box"></div>'+
       '<div><label style="font-size:14px;margin-bottom:4px;display:block">主题 *</label><input id="cm-subject" type="text" value="'+subject.replace(/"/g,'&quot;')+'" placeholder="邮件主题" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;background:#fff;box-sizing:border-box"></div>'+
       '<div><label style="font-size:14px;margin-bottom:4px;display:block">正文</label><textarea id="cm-body" placeholder="在此输入邮件内容..." style="width:100%;min-height:150px;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;resize:vertical;box-sizing:border-box">'+body.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea></div>'+
+      '<div><label style="font-size:14px;margin-bottom:4px;display:block">附件 <span style="color:#999;font-size:12px">- 支持任意格式，文件夹请打包成zip</span></label><div id="cm-attachment-zone" style="border:2px dashed #ccc;border-radius:6px;padding:15px;text-align:center;cursor:pointer;transition:all 0.3s" onclick="document.getElementById(&apos;cm-attachments&apos;).click()"><div style="font-size:24px;margin-bottom:5px">📎</div><div style="font-size:13px;color:#666">点击选择文件或拖拽文件到此处</div><input type="file" id="cm-attachments" multiple style="display:none"></div><div id="cm-attachment-list" style="margin-top:10px;display:none"></div></div>'+
       '<div style="display:flex;gap:10px;margin-top:16px">'+
       '<button onclick="document.getElementById(&apos;compose-modal-overlay&apos;).remove()" style="flex:1;padding:12px;border:1px solid #ccc;border-radius:6px;cursor:pointer;font-size:14px;background:linear-gradient(180deg,#f5f5f5,#e8e8e8);color:#555;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.1)">取消</button>'+
       '<button id="cm-draft-btn" style="flex:1;padding:12px;border:none;border-radius:6px;cursor:pointer;font-size:14px;background:linear-gradient(135deg,#11998e,#38ef7d);color:white;box-shadow:0 4px 15px rgba(17,153,142,0.4);font-weight:bold;letter-spacing:1px">📥 暂存</button>'+
@@ -3387,6 +3391,12 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
       fd.append('subject', subjectVal); fd.append('body', bodyVal);
       if (ccVal) fd.append('cc', ccVal);
       if (bccVal) fd.append('bcc', bccVal);
+      // 添加附件
+      if (window.composeAttachments && window.composeAttachments.length > 0) {
+        for (var i = 0; i < window.composeAttachments.length; i++) {
+          fd.append('attachments', window.composeAttachments[i]);
+        }
+      }
       fetch('/api/plugins/team_chat/email/send', { method: 'POST', body: fd })
       .then(function(r){ return r.json(); })
       .then(function(d){
@@ -3457,20 +3467,14 @@ var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
     };
     window.loadContactListForCompose();
 
+    // 附件功能由补丁代码处理 (Attachment Patch v3)
     };
   }
 
   // ---- 🐝 蜂巢邮箱操作函数 ----
   function editDraft(email) {
-    setComposeTitle("编辑草稿");
-    setComposeMode("draft");
-    setComposeData({
-      to: email.to_addr || "",
-      subject: email.subject || "",
-      body: email.body || ""
-    });
-    setComposeOpen(true);
-    openComposeDOM("编辑草稿", email.to_addr || "", "", email.subject || "", email.body || "");
+    // 只使用 DOM 版本的弹窗
+    openComposeDOM("编辑草稿", email.to_addr || "", email.cc || "", email.subject || "", email.body || "");
   }
 
 
@@ -9766,3 +9770,116 @@ window.TeamChatEmail.editAICronJob = function() {
 
   // 创建动画遮罩层
   var overlay = document.createElement('div');
+
+// ========== 附件上传修复补丁 v4 ==========
+(function() {
+  console.log('[Attachment Patch v4] Loading...');
+  window.composeAttachments = [];
+
+  // 格式化文件大小
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    var k = 1024;
+    var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    var i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  // 获取文件图标
+  function getFileIcon(file) {
+    if (file.type && file.type.startsWith('image/')) return '🖼️';
+    var name = file.name.toLowerCase();
+    if (name.endsWith('.pdf')) return '📕';
+    if (name.endsWith('.doc') || name.endsWith('.docx')) return '📘';
+    if (name.endsWith('.xls') || name.endsWith('.xlsx')) return '📗';
+    if (name.endsWith('.ppt') || name.endsWith('.pptx')) return '📙';
+    if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z')) return '📦';
+    if (name.endsWith('.mp3') || name.endsWith('.wav')) return '🎵';
+    if (name.endsWith('.mp4') || name.endsWith('.avi')) return '🎬';
+    return '📄';
+  }
+
+  window.handleComposeAttachments = function(files) {
+    console.log('[Attachment Patch] Files selected:', files ? files.length : 0);
+    if (!files || files.length === 0) return;
+    for (var i = 0; i < files.length; i++) {
+      window.composeAttachments.push(files[i]);
+      console.log('[Attachment Patch] Added:', files[i].name);
+    }
+    window.renderAttachmentList();
+  };
+
+  window.renderAttachmentList = function() {
+    var container = document.getElementById('cm-attachment-list');
+    if (!container) {
+      console.log('[Attachment Patch] Container not found');
+      return;
+    }
+    if (window.composeAttachments.length === 0) {
+      container.style.display = 'none';
+      container.innerHTML = '';
+      return;
+    }
+
+    var totalSize = 0;
+    var html = '<div style="border:1px solid #e8e8e8;border-radius:6px;padding:10px;background:#fafafa">';
+    html += '<div style="font-size:13px;color:#666;margin-bottom:8px;font-weight:500">已选择的附件 (' + window.composeAttachments.length + ' 个)</div>';
+
+    window.composeAttachments.forEach(function(f, i) {
+      totalSize += f.size;
+      var sizeStr = formatFileSize(f.size);
+      var icon = getFileIcon(f);
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;margin:4px 0;background:white;border-radius:4px;border:1px solid #e8e8e8">';
+      html += '<div style="display:flex;align-items:center;gap:8px;flex:1;overflow:hidden">';
+      html += '<span style="font-size:16px">' + icon + '</span>';
+      html += '<span style="font-size:13px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + f.name + '</span>';
+      html += '<span style="font-size:12px;color:#999;flex-shrink:0">(' + sizeStr + ')</span>';
+      html += '</div>';
+      html += '<button onclick="window.removeComposeAttachment(' + i + ')" style="background:#ff4d4f;color:white;border:none;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer;flex-shrink:0">删除</button>';
+      html += '</div>';
+    });
+
+    html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e8e8e8;font-size:12px;color:#666;text-align:right">总大小: ' + formatFileSize(totalSize) + '</div>';
+    html += '</div>';
+    container.innerHTML = html;
+    container.style.display = 'block';
+    console.log('[Attachment Patch] List rendered with', window.composeAttachments.length, 'files');
+  };
+
+  window.removeComposeAttachment = function(index) {
+    window.composeAttachments.splice(index, 1);
+    window.renderAttachmentList();
+  };
+
+  // 监听弹窗
+  var observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      m.addedNodes.forEach(function(node) {
+        if (node.id === 'compose-modal-overlay') {
+          console.log('[Attachment Patch] Modal opened');
+          window.composeAttachments = [];
+          setTimeout(function() {
+            var input = document.getElementById('cm-attachments');
+            if (input) {
+              input.onchange = function(e) {
+                window.handleComposeAttachments(e.target.files);
+                e.target.value = '';
+              };
+            }
+            var zone = document.getElementById('cm-attachment-zone');
+            if (zone) {
+              zone.ondragover = function(e) { e.preventDefault(); this.style.borderColor = '#667eea'; };
+              zone.ondragleave = function(e) { e.preventDefault(); this.style.borderColor = '#ccc'; };
+              zone.ondrop = function(e) { e.preventDefault(); this.style.borderColor = '#ccc'; window.handleComposeAttachments(e.dataTransfer.files); };
+            }
+          }, 50);
+        }
+      });
+    });
+  });
+
+  if (document.body) observer.observe(document.body, { childList: true, subtree: true });
+  else document.addEventListener('DOMContentLoaded', function() { observer.observe(document.body, { childList: true, subtree: true }); });
+
+  console.log('[Attachment Patch v4] Loaded');
+})();

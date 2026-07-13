@@ -1,0 +1,47 @@
+{
+  "session_id": "b2d1279f-c1e6-45a7-9795-f9dfbcd5774d",
+  "host_id": "cloud-orchestrator",
+  "host_name": "CloudPaw-Master",
+  "agent_ids": [
+    "default"
+  ],
+  "history": [
+    {
+      "role": "human",
+      "sender": "human",
+      "sender_name": "人类用户",
+      "content": "今天是星期二吗？",
+      "timestamp": 1783896523.9745083
+    },
+    {
+      "role": "agent",
+      "sender": "default",
+      "sender_name": "Default",
+      "content": "今天是 **星期日**，不是星期二。",
+      "timestamp": 1783896533.4468007
+    },
+    {
+      "role": "host",
+      "sender": "cloud-orchestrator",
+      "sender_name": "CloudPaw-Master",
+      "content": "[错误] cloud-orchestrator: {'code': 'MODEL_EXECUTION_ERROR', 'message': \"Model 'unknown' execution failed. Reason: model `glm-5.2` is not supported. [dump: /tmp/qwenpaw_query_error_6us_mk0l.json]\"}",
+      "timestamp": 1783896548.0988986
+    }
+  ],
+  "host_steps": [
+    {
+      "id": "cloud-orchestrator",
+      "content": "你是团队主持人。以下是多智能体讨论的内容：\n\n[用户] 今天是星期二吗？\n[Default] 今天是 **星期日**，不是星期二。\n\n请做一个简洁的总结（200字以内），指出各智能体的观点异同，并给出你的建议。",
+      "response": "[错误] cloud-orchestrator: {'code': 'MODEL_EXECUTION_ERROR', 'message': \"Model 'unknown' execution failed. Reason: model `glm-5.2` is not supported. [dump: /tmp/qwenpaw_query_error_6us_mk0l.json]\"}",
+      "time": 1783896548.0988941,
+      "action": "主持人 CloudPaw-Master 汇总回复",
+      "detail": "[错误] cloud-orchestrator: {'code': 'MODEL_EXECUTION_ERROR', 'message': \"Model 'unknown' execution failed. Reason: model `"
+    }
+  ],
+  "brainstorm": false,
+  "discussion_done": false,
+  "created_at": 1783896523.9745083,
+  "updated_at": 1783896523.9745083,
+  "tag": "",
+  "pinned": ""
+}

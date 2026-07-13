@@ -447,25 +447,49 @@ async def _call_agent_async(agent_id: str, prompt: str, timeout: float = 120.0) 
         async with httpx.AsyncClient(timeout=timeout, trust_env=False) as c:
             async with c.stream("POST", f"{base}/api/console/chat", json=payload, headers=headers) as r:
                 r.raise_for_status()
-                last_data = None
+
+                # 累积所有文本输出
+                all_text_parts = []
+                current_role = None
+
                 async for line in r.aiter_lines():
                     line = line.strip()
                     if line.startswith("data: "):
                         try:
-                            last_data = json.loads(line[6:])
+                            data = json.loads(line[6:])
+
+                            # 处理错误
+                            if data.get("error"):
+                                return f"[错误] {agent_id}: {data['error']}"
+
+                            # 累积输出内容
+                            output = data.get("output", [])
+                            if output:
+                                last_msg = output[-1]
+                                content = last_msg.get("content", [])
+                                role = last_msg.get("role", "")
+
+                                # 只收集 assistant 角色的文本
+                                if role == "assistant":
+                                    for block in content:
+                                        if isinstance(block, dict) and block.get("type") == "text":
+                                            text = block.get("text", "")
+                                            if text:
+                                                all_text_parts.append(text)
+
                         except json.JSONDecodeError:
                             continue
-                if last_data is None:
+                        except Exception as e:
+                            logger.warning(f"解析 SSE 数据失败: {e}")
+                            continue
+
+                # 合并所有文本
+                if all_text_parts:
+                    full_text = "".join(all_text_parts).strip()
+                    return full_text or f"[空回复] {agent_id}"
+                else:
                     return f"[无回复] {agent_id}"
-                output = last_data.get("output", [])
-                if not output:
-                    return f"[空输出] {agent_id}"
-                parts = []
-                for block in output[-1].get("content", []):
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        parts.append(block.get("text", ""))
-                text = "\n".join(parts).strip()
-                return text or f"[空回复] {agent_id}"
+
     except httpx.TimeoutException:
         return f"[超时] {agent_id}"
     except Exception as e:
