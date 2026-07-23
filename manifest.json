@@ -1,8 +1,8 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "5.0.16",
-    "description": "TeamChat v5.0.18 — 新会谈，融合AI分身、巢邮箱系统。",
+    "version": "5.0.19",
+    "description": "TeamChat v5.0.19 — 新会谈，融合AI分身、巢邮箱系统。新增AI群聊入口、6步新手引导。",
     "author": "0+1+2≠3 Team 115886",
     "entry": {
         "backend": "team_chat_main.py",
@@ -11,7 +11,7 @@
     "menu": {
         "label": "新会谈",
         "icon": "团",
-        "description": "以 AI 为主持人，开启人类与智能体之间的新会谈"
+        "description": "以 AI 为主持人，开启人类与智能体之间的新会谈。新增AI群聊、新手引导。"
     },
     "permissions": [
         "agent.list",

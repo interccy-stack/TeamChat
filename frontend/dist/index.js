@@ -1,6 +1,8 @@
 /**
  * ===================================================================
- *  TeamChat Frontend v5.0.18 — 重大更新
+ *  TeamChat Frontend v5.0.19 — 重大更新
+ *  【AI群聊】右侧栏新增Tailchat群组入口
+ *  【新手引导】6步交互式引导系统，详细说明右边功能区
  *  【串串频道 v2.0】ChuanChuanPage: 4-Tab统一页面
  *    📡频道 | 📂历史 | ✍️原创作者AI | 📤导出
  *  【轻音乐增强】音量 Slider + 内部停止按钮 + ▶ 正在播放指示
@@ -9,7 +11,7 @@
  *  【AI防卫】轻量安全提示（移除ClamAV）
  *  【Chrome扩展】AI分身Pro + 智能感知
  * ===================================================================
- *  CACHE_BUST: 20250711_2250
+ *  CACHE_BUST: 20250723_1430
  */
 // 全局兜底：确保 getApiUrl 在任何时候都可用
 if(typeof window.getApiUrl==='undefined'&&window.QwenPaw&&window.QwenPaw.host&&window.QwenPaw.host.getApiUrl){window.getApiUrl=window.QwenPaw.host.getApiUrl;}
@@ -306,8 +308,8 @@ function _hiveFallback(addr){
 }
 
 (function () {
-  // TeamChat v5.0.18 - 安全提示优化版
-  console.log('[TeamChat] v5.0.18 安全提示版 加载时间:', new Date().toLocaleString());
+  // TeamChat v5.0.19 - AI群聊+新手引导版
+  console.log('[TeamChat] v5.0.19 AI群聊+新手引导版 加载时间:', new Date().toLocaleString());
   
   var s = document.createElement("style");
   s.textContent =
@@ -2448,6 +2450,176 @@ function ChuanChuanPage(_p) {
 
 function TeamChatPage() {
     // [v4.2.0] 串串频道内嵌视图: true → ChuanChuanPage, false → TeamChatPage
+    // ========== 新手引导系统 ==========
+    var _onboarding = useState({
+      show: !localStorage.getItem('teamchat_onboarding_v1'),
+      step: 0,
+      totalSteps: 6
+    }), onboarding = _onboarding[0], setOnboarding = _onboarding[1];
+    
+    // 引导步骤配置
+    var ONBOARDING_STEPS = [
+      {
+        id: 'welcome',
+        title: '👋 欢迎使用 TeamChat',
+        content: 'TeamChat 是 AI 驱动的团队会谈工具。让我带您了解主要功能区域。',
+        target: null,
+        position: 'center'
+      },
+      {
+        id: 'host',
+        title: '🎤 选择主持人',
+        content: '从这里选择一位智能体作为会议主持人，负责协调多智能体讨论。',
+        target: '.tc-host-select',
+        position: 'left'
+      },
+      {
+        id: 'agents',
+        title: '🤖 选择参与智能体',
+        content: '点击标签选择要参与讨论的智能体，可以多选。它们将协同为您服务。',
+        target: '.tc-agent-tags',
+        position: 'left'
+      },
+      {
+        id: 'message',
+        title: '💬 发送消息',
+        content: '在输入框中输入问题，按 Enter 发送。智能体将协同讨论并给出回复。',
+        target: '.tc-message-input',
+        position: 'bottom'
+      },
+      {
+        id: 'sidebar',
+        title: '📱 右边功能区',
+        content: '这里是功能区：📧 AI邮箱可管理邮件，🤖 AI群聊可进入Tailchat群组聊天，📡 串串频道可配置微信消息转发。还有头像上传、圆桌主题切换等功能。',
+        target: '.tc-sidebar',
+        position: 'left'
+      },
+      {
+        id: 'history',
+        title: '📂 历史会谈',
+        content: '"📂 历史会谈"部署在"串串频道"的"历史"栏，可以查看和恢复之前的会话记录，支持搜索和标签管理。',
+        target: '.tc-history-btn',
+        position: 'top'
+      }
+    ];
+    
+    // 渲染新手引导遮罩
+    function renderOnboarding() {
+      if (!onboarding.show) return null;
+      var step = ONBOARDING_STEPS[onboarding.step];
+      var isLast = onboarding.step === ONBOARDING_STEPS.length - 1;
+      
+      return e('div', {
+        style: {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.75)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }
+      },
+        e('div', {
+          style: {
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '32px',
+            maxWidth: '420px',
+            width: '90%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+            textAlign: 'center'
+          }
+        },
+          // 步骤指示器
+          e('div', { style: { marginBottom: '20px' } },
+            ONBOARDING_STEPS.map(function(_, idx) {
+              return e('span', {
+                key: idx,
+                style: {
+                  display: 'inline-block',
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: idx === onboarding.step ? '#667eea' : '#ddd',
+                  margin: '0 4px',
+                  transition: 'all 0.3s'
+                }
+              });
+            })
+          ),
+          // 图标
+          e('div', { style: { fontSize: '48px', marginBottom: '16px' } }, 
+            step.id === 'welcome' ? '👋' : 
+            step.id === 'host' ? '🎤' :
+            step.id === 'agents' ? '🤖' :
+            step.id === 'message' ? '💬' :
+            step.id === 'sidebar' ? '📱' : '📂'
+          ),
+          // 标题
+          e('h3', { style: { margin: '0 0 12px 0', color: '#333', fontSize: '22px' } }, step.title),
+          // 内容
+          e('p', { style: { color: '#666', fontSize: '15px', lineHeight: '1.6', marginBottom: '24px' } }, step.content),
+          // 按钮组
+          e('div', { style: { display: 'flex', gap: '12px', justifyContent: 'center' } },
+            e('button', {
+              onClick: function() {
+                setOnboarding({ show: false });
+                localStorage.setItem('teamchat_onboarding_v1', 'true');
+              },
+              style: {
+                padding: '10px 20px',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                background: '#fff',
+                color: '#666',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }
+            }, '跳过引导'),
+            onboarding.step > 0 ? e('button', {
+              onClick: function() {
+                setOnboarding({ ...onboarding, step: onboarding.step - 1 });
+              },
+              style: {
+                padding: '10px 20px',
+                border: '1px solid #667eea',
+                borderRadius: '8px',
+                background: '#fff',
+                color: '#667eea',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }
+            }, '上一步') : null,
+            e('button', {
+              onClick: function() {
+                if (isLast) {
+                  setOnboarding({ show: false });
+                  localStorage.setItem('teamchat_onboarding_v1', 'true');
+                } else {
+                  setOnboarding({ ...onboarding, step: onboarding.step + 1 });
+                }
+              },
+              style: {
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }
+            }, isLast ? '完成' : '下一步')
+          )
+        )
+      );
+    }
+    // ========== 新手引导结束 ==========
+    
     var _cv = useState(false), chuanView = _cv[0], setChuanView = _cv[1]
     var _av = useState(false), aimailView = _av[0], setAimailView = _av[1];var _am = useState("main"), aimailMode = _am[0], setAimailMode = _am[1];var _et = useState("inbox"), emailTab = _et[0], setEmailTab = _et[1];var _ecs = useState([]), emailConfigs = _ecs[0], setEmailConfigs = _ecs[1];var _ca = useState("__all__"), currentAccount = _ca[0], setCurrentAccount = _ca[1];
   var _data = useState([]), emails = _data[0], setEmails = _data[1];
@@ -6453,7 +6625,29 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
       ),
       sideOpen?e("div",{style:{width:280,minWidth:280,borderLeft:uiTheme==="day"?"1px solid #D7CCC8":"1px solid #3a3a4e",padding:"16px 16px 16px 8px",background:uiTheme==="day"?"#FDF8F0":"#1e1e32",flexShrink:0,display:"flex",flexDirection:"column",overflowY:"auto",minHeight:"100%"}},
         e(Button,{size:"small",type:"text",onClick:function(){setSideOpen(false);},style:{alignSelf:"flex-end",fontSize:12,fontWeight:"bold",background:"linear-gradient(180deg,#f0e8dc,#d8d0c4,#c0b8ac,#e0d8cc)",border:"1px solid #b8a898",color:"#5a4a3a",borderRadius:4,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 1px 3px rgba(0,0,0,.1)",textShadow:"0 1px 0 rgba(255,255,255,.3)",padding:"2px 10px",marginBottom:8}},"◀ 收起小桌板"),
-        e("div",{style:{marginBottom:12},onClick:function(){console.log("AI邮箱按钮被点击");setAimailView(true);}},e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setAimailView(true);},style:{display:"block",fontSize:13,fontWeight:"bold",color:"white",textDecoration:"none",cursor:"pointer",padding:"8px 12px",textAlign:"center",background:"linear-gradient(135deg,#667eea 0%,#764ba2 100%)",border:"1px solid #5a6cdb",borderRadius:16,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(102,126,234,.3)",textShadow:"0 1px 0 rgba(0,0,0,.1)"}},"📧 AI邮箱 ",e("span",{style:{display:"inline-block",fontSize:"20px",verticalAlign:"middle",animation:"tcPigeonFly 1.5s ease-in-out infinite",marginLeft:"4px"}},"🕊"))),e("div",{style:{marginBottom:12}},
+        e("div",{style:{marginBottom:12},onClick:function(){console.log("AI邮箱按钮被点击");setAimailView(true);}},e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setAimailView(true);},style:{display:"block",fontSize:13,fontWeight:"bold",color:"white",textDecoration:"none",cursor:"pointer",padding:"8px 12px",textAlign:"center",background:"linear-gradient(135deg,#667eea 0%,#764ba2 100%)",border:"1px solid #5a6cdb",borderRadius:16,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(102,126,234,.3)",textShadow:"0 1px 0 rgba(0,0,0,.1)"}},"📧 AI邮箱 ",e("span",{style:{display:"inline-block",fontSize:"20px",verticalAlign:"middle",animation:"tcPigeonFly 1.5s ease-in-out infinite",marginLeft:"4px"}},"🕊"))),
+        // AI群聊按钮 - 直接链接到Tailchat Nightly群组（土黄色/棕色主题）
+        e("div",{style:{marginBottom:12}},e("a",{
+          href:"https://nightly.paw.msgbyte.com/main/group/6a619de9ab005e23ceb2f919/6a619de9ab005e23ceb2f915",
+          target:"_blank",
+          rel:"noopener noreferrer",
+          style:{
+            display:"block",
+            fontSize:13,
+            fontWeight:"bold",
+            color:"white",
+            textDecoration:"none",
+            cursor:"pointer",
+            padding:"8px 12px",
+            textAlign:"center",
+            background:"linear-gradient(135deg,#8B6914 0%,#D4A84A 100%)",
+            border:"1px solid #8B6914",
+            borderRadius:16,
+            boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(139,105,20,.3)",
+            textShadow:"0 1px 0 rgba(0,0,0,.2)"
+          }
+        },"🤖 AI群聊")),
+        e("div",{style:{marginBottom:12}},
           e("div",{onClick:function(){setChuanView(true);},style:{cursor:"pointer"}},e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setChuanView(true);},style:{display:"block",fontSize:13,fontWeight:"bold",color:"#4E342E",textDecoration:"none",cursor:"pointer",padding:"8px 12px",textAlign:"center",background:"linear-gradient(180deg,#e8f5e9,#c8e6c9,#a5d6a7,#d0e8d0)",border:"1px solid #81c784",borderRadius:16,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(76,175,80,.15)",textShadow:"0 1px 0 rgba(255,255,255,.3)"}},"📡 串串频道"))
         ),
 
@@ -6702,7 +6896,9 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
           e("div",{style:{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #f0f0f0"}},e(Text,{strong:true},"Esc"),e(Text,{type:"secondary"},"关闭面板/PPT")),
           e("div",{style:{display:"flex",justifyContent:"space-between",padding:"4px 0"}},e(Text,{strong:true},"← → Space 1 2 3"),e(Text,{type:"secondary"},"PPT 播放控制"))
         )
-      )
+      ),
+      // 新手引导组件
+      renderOnboarding()
     ));
   }
 
