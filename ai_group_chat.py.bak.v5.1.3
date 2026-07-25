@@ -5,7 +5,7 @@ AI 群聊模块 - 支持 @提及 指定智能体回复
 
 功能：
 - 官方聊天室（OFFICIAL_ROOM）
-- 支持智能体动态添加/删除
+- 5个常驻智能体（阿里、Executor、QA、Master、Verifier）
 - @提及 功能
 - 线程安全
 """
@@ -76,8 +76,8 @@ class AIGroupChatEngine:
     MSG_MAX = 500
     MAX_MEMBERS = 50
     
-    # 默认智能体配置（初始5个）
-    DEFAULT_AGENTS = [
+    # 智能体配置
+    AGENTS_CONFIG = [
         {"id": "agent:default", "name": "阿里", "full_name": "阿里 - 数字伙伴", "agent_api_id": "default", "icon": "🤖", "color": "#FF6B6B"},
         {"id": "agent:cloud-executor", "name": "Executor", "full_name": "CloudPaw-Executor", "agent_api_id": "cloud-executor", "icon": "⚡", "color": "#4ECDC4"},
         {"id": "agent:QwenPaw_QA_Agent_0.2", "name": "QA", "full_name": "QA Agent", "agent_api_id": "QwenPaw_QA_Agent_0.2", "icon": "❓", "color": "#45B7D1"},
@@ -92,115 +92,8 @@ class AIGroupChatEngine:
         self.store = DataStore(data_dir / "ai_chatrooms")
         self._rooms = {}
         self._room_lock = threading.Lock()
-        self._agents_lock = threading.Lock()
-        # 动态智能体配置，从存储加载或初始化
-        self._agents_config = self._load_agents_config()
         self._load_rooms()
         self._ensure_official_room()
-    
-    def _load_agents_config(self) -> List[Dict]:
-        """加载智能体配置（支持持久化）"""
-        config = self.store.load("config", "agents")
-        if config and "agents" in config:
-            logger.info(f"AIChat: 从存储加载了 {len(config['agents'])} 个智能体配置")
-            return config["agents"]
-        # 首次初始化，使用默认配置
-        self._save_agents_config(self.DEFAULT_AGENTS)
-        return self.DEFAULT_AGENTS.copy()
-    
-    def _save_agents_config(self, agents: List[Dict]):
-        """保存智能体配置到存储"""
-        self.store.save("config", "agents", {"agents": agents})
-        logger.info(f"AIChat: 已保存 {len(agents)} 个智能体配置")
-    
-    @property
-    def AGENTS_CONFIG(self) -> List[Dict]:
-        """获取当前智能体配置（动态）"""
-        with self._agents_lock:
-            return self._agents_config.copy()
-    
-    def get_agents(self) -> Dict:
-        """获取所有智能体"""
-        return {
-            "success": True,
-            "agents": self.AGENTS_CONFIG,
-            "count": len(self.AGENTS_CONFIG)
-        }
-    
-    def add_agent(self, agent_data: Dict) -> Dict:
-        """添加智能体"""
-        required = ["id", "name", "agent_api_id"]
-        for field in required:
-            if field not in agent_data:
-                return {"success": False, "error": f"缺少必填字段: {field}"}
-        
-        with self._agents_lock:
-            # 检查ID是否已存在
-            if any(a["id"] == agent_data["id"] for a in self._agents_config):
-                return {"success": False, "error": f"智能体ID已存在: {agent_data['id']}"}
-            
-            # 设置默认值
-            agent = {
-                "id": agent_data["id"],
-                "name": agent_data["name"],
-                "full_name": agent_data.get("full_name", agent_data["name"]),
-                "agent_api_id": agent_data["agent_api_id"],
-                "icon": agent_data.get("icon", "🤖"),
-                "color": agent_data.get("color", "#667eea"),
-            }
-            
-            self._agents_config.append(agent)
-            self._save_agents_config(self._agents_config)
-            
-            # 更新官方聊天室的智能体列表
-            self._update_official_room_agents()
-            
-            logger.info(f"AIChat: 已添加智能体 {agent['name']}")
-            return {"success": True, "agent": agent}
-    
-    def remove_agent(self, agent_id: str) -> Dict:
-        """删除智能体"""
-        with self._agents_lock:
-            # 不能删除最后一个智能体
-            if len(self._agents_config) <= 1:
-                return {"success": False, "error": "至少需要保留一个智能体"}
-            
-            # 查找并删除
-            agent = next((a for a in self._agents_config if a["id"] == agent_id), None)
-            if not agent:
-                return {"success": False, "error": f"智能体不存在: {agent_id}"}
-            
-            self._agents_config = [a for a in self._agents_config if a["id"] != agent_id]
-            self._save_agents_config(self._agents_config)
-            
-            # 更新官方聊天室的智能体列表
-            self._update_official_room_agents()
-            
-            logger.info(f"AIChat: 已删除智能体 {agent['name']}")
-            return {"success": True, "agent": agent}
-    
-    def _update_official_room_agents(self):
-        """更新官方聊天室的智能体列表"""
-        room = self._rooms.get("OFFICIAL_ROOM")
-        if room:
-            room["agents"] = self.AGENTS_CONFIG
-            # 更新成员列表，移除已删除的智能体，添加新智能体
-            current_agent_ids = {a["id"] for a in self._agents_config}
-            room["members"] = [m for m in room["members"] if m.get("user_id") not in [a["id"] for a in self.AGENTS_CONFIG] or m.get("user_id") in current_agent_ids]
-            # 添加新智能体成员
-            existing_ids = {m.get("user_id") for m in room["members"]}
-            for agent in self._agents_config:
-                if agent["id"] not in existing_ids:
-                    room["members"].append({
-                        "user_id": agent["id"],
-                        "nickname": agent["full_name"],
-                        "role": "agent",
-                        "joined_at": datetime.now().isoformat(),
-                        "last_active": datetime.now().isoformat(),
-                        "icon": agent["icon"]
-                    })
-            room["version"] += 1
-            self.store.save("rooms", "OFFICIAL_ROOM", room)
     
     def _load_rooms(self):
         """加载活跃房间"""
@@ -263,18 +156,10 @@ class AIGroupChatEngine:
         }
         
         # 添加欢迎消息
-        agent_count = len(self.AGENTS_CONFIG)
-        welcome_text = f"""欢迎来到官方 AI 聊天室！
-
-💡 使用 @智能体名 指定特定智能体回复
-例如：@阿里 你好
-
-不@时所有{agent_count}个智能体都会回复你~"""
-        
         welcome_msg = {
             "type": "system",
-            "text": welcome_text,
-            "content": welcome_text,
+            "text": "欢迎来到官方 AI 聊天室！\n\n💡 使用 @智能体名 指定特定智能体回复\n例如：@阿里 你好\n\n不@时所有5个智能体都会回复你~",
+            "content": "欢迎来到官方 AI 聊天室！\n\n💡 使用 @智能体名 指定特定智能体回复\n例如：@阿里 你好\n\n不@时所有5个智能体都会回复你~",
             "from": "system",
             "sender_nick": "系统",
             "time": now.isoformat(),
@@ -710,50 +595,4 @@ async def ai_chat_messages(room_id: str, user_id: str, limit: int = 50):
     result = engine.get_messages(room_id, user_id, limit=limit)
     if isinstance(result, dict) and result.get("success"):
         result["agents"] = engine.AGENTS_CONFIG
-    return result
-
-
-# ---- 智能体管理 API ----
-
-class AgentAddRequest(BaseModel):
-    id: str = Field(..., max_length=100, description="智能体ID，如 agent:my-agent")
-    name: str = Field(..., max_length=50, description="智能体显示名称")
-    full_name: str = Field(default="", max_length=100, description="完整名称")
-    agent_api_id: str = Field(..., max_length=100, description="智能体API ID")
-    icon: str = Field(default="🤖", max_length=10, description="图标 emoji")
-    color: str = Field(default="#667eea", max_length=20, description="主题色")
-
-
-class AgentRemoveRequest(BaseModel):
-    agent_id: str = Field(..., max_length=100, description="要删除的智能体ID")
-
-
-@ai_chat_router.get("/agents")
-async def ai_chat_agents():
-    """获取所有智能体"""
-    engine = get_ai_chat_engine()
-    return engine.get_agents()
-
-
-@ai_chat_router.post("/agents/add")
-async def ai_chat_add_agent(req: AgentAddRequest):
-    """添加智能体"""
-    engine = get_ai_chat_engine()
-    agent_data = {
-        "id": req.id,
-        "name": req.name,
-        "full_name": req.full_name or req.name,
-        "agent_api_id": req.agent_api_id,
-        "icon": req.icon,
-        "color": req.color,
-    }
-    result = engine.add_agent(agent_data)
-    return result
-
-
-@ai_chat_router.post("/agents/remove")
-async def ai_chat_remove_agent(req: AgentRemoveRequest):
-    """删除智能体"""
-    engine = get_ai_chat_engine()
-    result = engine.remove_agent(req.agent_id)
     return result

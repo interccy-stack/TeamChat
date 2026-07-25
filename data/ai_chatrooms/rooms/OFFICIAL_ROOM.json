@@ -168,6 +168,41 @@
       "role": "member",
       "joined_at": "2026-07-25T09:44:10.544074",
       "last_active": "2026-07-25T09:44:10.544074"
+    },
+    {
+      "user_id": "user_5o6cqvej",
+      "nickname": "访客863",
+      "role": "member",
+      "joined_at": "2026-07-25T12:20:48.196761",
+      "last_active": "2026-07-25T12:20:48.196761"
+    },
+    {
+      "user_id": "user_iokl232p",
+      "nickname": "访客193",
+      "role": "member",
+      "joined_at": "2026-07-25T12:36:49.728275",
+      "last_active": "2026-07-25T12:36:49.728275"
+    },
+    {
+      "user_id": "user_2o52w6sw",
+      "nickname": "访客431",
+      "role": "member",
+      "joined_at": "2026-07-25T16:28:23.654817",
+      "last_active": "2026-07-25T16:28:23.654817"
+    },
+    {
+      "user_id": "user_nbz0wbqg",
+      "nickname": "访客125",
+      "role": "member",
+      "joined_at": "2026-07-25T17:05:09.392469",
+      "last_active": "2026-07-25T17:05:09.392469"
+    },
+    {
+      "user_id": "user_1f069c4u",
+      "nickname": "访客899",
+      "role": "member",
+      "joined_at": "2026-07-25T17:05:47.492242",
+      "last_active": "2026-07-25T17:05:47.492242"
     }
   ],
   "messages": [
@@ -464,7 +499,7 @@
     }
   ],
   "status": "active",
-  "version": 46,
+  "version": 51,
   "is_official": true,
   "description": "AI 智能体群聊室 - 支持 @提及 指定回复",
   "agents": [

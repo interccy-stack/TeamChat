@@ -1,8 +1,8 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "5.1.3",
-    "description": "TeamChat v5.1.3 — 修复AI群聊引擎初始化问题！支持5个智能体群聊、@提及指定回复，小红书风格界面，圆角卡片式消息气泡。",
+    "version": "5.1.4",
+    "description": "TeamChat v5.1.4 — AI群聊智能体动态管理！支持添加/删除AI群聊智能体，@提及指定回复。",
     "author": "0+1+2≠3 Team 115886",
     "type": "general",
     "qwenpaw_version": {
@@ -10,8 +10,8 @@
         "max": "2.1.0"
     },
     "description_i18n": {
-        "zh-CN": "TeamChat v5.1.3 — 修复AI群聊引擎初始化问题！支持5个智能体群聊、@提及指定回复，小红书风格界面，圆角卡片式消息气泡。",
-        "en-US": "TeamChat v5.1.3 — Fixed AI Group Chat engine init issue! 5 agents, @mention support, Xiaohongshu style UI, rounded card messages."
+        "zh-CN": "TeamChat v5.1.4 — AI群聊智能体动态管理！支持添加/删除AI群聊智能体，@提及指定回复。",
+        "en-US": "TeamChat v5.1.4 — Dynamic AI agent management! Add/remove AI agents in group chat, @mention support."
     },
     "meta": {
         "category": "productivity",
