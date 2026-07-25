@@ -1,8 +1,8 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "5.0.19",
-    "description": "TeamChat v5.0.19 — 新会谈，融合AI分身、巢邮箱系统。新增AI群聊入口（Tailchat集成）、6步新手引导系统。包含AI主持人团队会谈、多标签页管理、轻音乐控制、微信频道管理、传统邮箱、蜂巢邮箱、AI分身、轻量安全提示。",
+    "version": "5.1.3",
+    "description": "TeamChat v5.1.3 — 修复AI群聊引擎初始化问题！支持5个智能体群聊、@提及指定回复，小红书风格界面，圆角卡片式消息气泡。",
     "author": "0+1+2≠3 Team 115886",
     "type": "general",
     "qwenpaw_version": {
@@ -10,8 +10,8 @@
         "max": "2.1.0"
     },
     "description_i18n": {
-        "zh-CN": "TeamChat v5.0.19 — 新会谈，融合AI分身、巢邮箱系统。新增AI群聊入口（Tailchat集成）、6步新手引导系统。包含AI主持人团队会谈、多标签页管理、轻音乐控制、微信频道管理、传统邮箱、蜂巢邮箱、AI分身、轻量安全提示。",
-        "en-US": "TeamChat v5.0.19 — Integrated Hive Mail System. New: AI Group Chat entry (Tailchat integration), 6-step onboarding guide. Features: AI-hosted team discussions, multi-tab management, music control, WeChat channel management, traditional mailbox, P2P Hive Mail, AI avatars, lightweight security tips."
+        "zh-CN": "TeamChat v5.1.3 — 修复AI群聊引擎初始化问题！支持5个智能体群聊、@提及指定回复，小红书风格界面，圆角卡片式消息气泡。",
+        "en-US": "TeamChat v5.1.3 — Fixed AI Group Chat engine init issue! 5 agents, @mention support, Xiaohongshu style UI, rounded card messages."
     },
     "meta": {
         "category": "productivity",

@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""TeamChat Plugin Backend v4.1.0 — 重大更新：新增微信频道管理、轻音乐音量控制、config 路径修复
+"""TeamChat Plugin Backend v5.1.3 — 修复AI群聊引擎初始化问题
 
-新增:
+修复:
+  1. 添加 ai_group_chat 模块预加载，确保 QwenPaw 隔离环境下可解析
+  2. _get_ai_engine() 增加 sys.path 保障和错误缓存机制
+  3. 路由错误信息包含具体异常原因，便于排查
+
+原有功能:
   1. POST /upload — 文件上传（txt/md/json/py/js/html/css/xml/csv/log/yaml/yml，最大5MB）
   2. POST /chat — 返回前先存session，前端断开不丢
   3. DELETE /session/{id} — 删除会话
@@ -56,6 +61,23 @@ EMAIL_BACKEND_AVAILABLE = False
 EmailDB = None
 init_db = None
 email_router = None
+
+# AI 群聊引擎
+AI_GROUP_AVAILABLE = False
+ai_group_chat = None
+ai_chat_router = None
+
+# 提前导入 ai_group_chat 模块，确保模块在 sys.path 中可解析
+try:
+    if str(plugin_dir) not in sys.path:
+        sys.path.insert(0, str(plugin_dir))
+    import ai_group_chat
+    AI_GROUP_AVAILABLE = True
+    logger.info("[AIChat] 模块加载成功")
+except Exception as e:
+    logger.warning(f"[AIChat] 模块预加载失败，将在请求时重试: {e}")
+
+# 引擎将在第一次请求时通过 _get_ai_engine() 创建（延迟初始化）
 
 
 # ── 邮箱后端回退桩（模块加载失败时使用） ──
@@ -175,7 +197,7 @@ def _load_email_backend():
 # 配置常量
 # ============================================================
 
-CURRENT_VERSION = "5.0.16"
+CURRENT_VERSION = "5.1.2"
 DEFAULT_HOST_ID = "cloud-orchestrator"
 MAX_HISTORY = 200
 SESSION_KEEPALIVE_DAYS = 7
@@ -2980,6 +3002,106 @@ def build_router():
             logger.error(f"[蜂巢留言] 发送失败: {e}")
             return {"status": "error", "message": f"发送失败: {str(e)}"}
 
+    # ============================================================
+    # AI 群聊路由 - 始终注册，使用延迟初始化
+    # ============================================================
+    _ai_engine_instance = None
+    _ai_engine_error = None
+    
+    def _get_ai_engine():
+        """延迟获取 AI 群聊引擎"""
+        nonlocal _ai_engine_instance, _ai_engine_error
+        if _ai_engine_instance:
+            return _ai_engine_instance
+        if _ai_engine_error:
+            # 之前失败过，直接返回 None，不再重复尝试
+            return None
+        # 确保 plugin_dir 在 sys.path 中（QwenPaw 隔离环境可能已移除）
+        _saved_path = list(sys.path)
+        try:
+            plugin_dir_str = str(plugin_dir)
+            if plugin_dir_str not in sys.path:
+                sys.path.insert(0, plugin_dir_str)
+            from ai_group_chat import AIGroupChatEngine
+            _ai_engine_instance = AIGroupChatEngine(plugin_dir / "data")
+            logger.info("[AIChat] 引擎延迟初始化成功")
+            return _ai_engine_instance
+        except Exception as e:
+            _ai_engine_error = str(e)
+            logger.error(f"[AIChat] 获取引擎失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+        finally:
+            sys.path = _saved_path
+    
+    @router.get("/ai-chat/official")
+    async def get_official_room():
+        """获取官方 AI 聊天室"""
+        engine = _get_ai_engine()
+        if engine:
+            return engine.get_official_room()
+        err = _ai_engine_error or "引擎未初始化"
+        return {"success": False, "error": f"引擎未初始化: {err}"}
+    
+    @router.post("/ai-chat/join")
+    async def join_ai_room(request: Request):
+        """加入 AI 聊天室"""
+        engine = _get_ai_engine()
+        if not engine:
+            err = _ai_engine_error or "引擎未初始化"
+            return {"success": False, "error": f"引擎未初始化: {err}"}
+        try:
+            body = await request.json()
+            return engine.join_room(
+                body.get("room_id", "OFFICIAL_ROOM"),
+                body.get("user_id", ""),
+                body.get("nickname", "")
+            )
+        except Exception as e:
+            logger.error(f"[AIChat] 加入房间失败: {e}")
+            return {"success": False, "error": str(e)}
+    
+    @router.post("/ai-chat/message")
+    async def send_ai_message(request: Request):
+        """发送消息到 AI 聊天室"""
+        engine = _get_ai_engine()
+        if not engine:
+            err = _ai_engine_error or "引擎未初始化"
+            return {"success": False, "error": f"引擎未初始化: {err}"}
+        try:
+            body = await request.json()
+            return engine.send_message(
+                body.get("room_id", "OFFICIAL_ROOM"),
+                body.get("user_id", ""),
+                body.get("message", ""),
+                body.get("msg_type", "text"),
+                body.get("nickname", "")
+            )
+        except Exception as e:
+            logger.error(f"[AIChat] 发送消息失败: {e}")
+            return {"success": False, "error": str(e)}
+    
+    @router.get("/ai-chat/messages/{room_id}")
+    async def get_ai_messages(room_id: str, user_id: str = "", since: str = None, limit: int = 50):
+        """获取 AI 聊天室消息"""
+        engine = _get_ai_engine()
+        if engine:
+            return engine.get_messages(room_id, user_id, since, limit)
+        err = _ai_engine_error or "引擎未初始化"
+        return {"success": False, "error": f"引擎未初始化: {err}"}
+    
+    @router.get("/ai-chat/members/{room_id}")
+    async def get_ai_members(room_id: str):
+        """获取 AI 聊天室成员"""
+        engine = _get_ai_engine()
+        if engine:
+            return engine.get_members(room_id)
+        err = _ai_engine_error or "引擎未初始化"
+        return {"success": False, "error": f"引擎未初始化: {err}"}
+    
+    logger.info("[AIChat] AI群聊路由已注册")
+
     return router
 
 
@@ -3004,6 +3126,7 @@ class TeamChatPlugin:
         # self._register_security_router(api)
         # 注册书签工具静态文件服务
         self._register_bookmarklet_static(api)
+        # AI群聊路由已在 build_router() 中直接定义，无需额外注册
         api.register_startup_hook("team_chat_v4_start", self._startup, priority=90)
         api.register_shutdown_hook("team_chat_v4_stop", self._shutdown, priority=110)
         logger.info(f"TeamChat v{CURRENT_VERSION} 就绪")

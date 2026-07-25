@@ -1,8 +1,7 @@
 /**
  * ===================================================================
- *  TeamChat Frontend v5.1.3 — 稳定版本
- *  【修复】AI群聊引擎初始化问题，添加模块预加载和错误缓存机制
- *  【AI群聊】内部子页面，支持5个智能体群聊和@提及
+ *  TeamChat Frontend v5.0.19 — 重大更新
+ *  【AI群聊】右侧栏新增Tailchat群组入口
  *  【新手引导】6步交互式引导系统，详细说明右边功能区
  *  【串串频道 v2.0】ChuanChuanPage: 4-Tab统一页面
  *    📡频道 | 📂历史 | ✍️原创作者AI | 📤导出
@@ -12,7 +11,7 @@
  *  【AI防卫】轻量安全提示（移除ClamAV）
  *  【Chrome扩展】AI分身Pro + 智能感知
  * ===================================================================
- *  CACHE_BUST: 20250724_1030
+ *  CACHE_BUST: 20250723_1430
  */
 // 全局兜底：确保 getApiUrl 在任何时候都可用
 if(typeof window.getApiUrl==='undefined'&&window.QwenPaw&&window.QwenPaw.host&&window.QwenPaw.host.getApiUrl){window.getApiUrl=window.QwenPaw.host.getApiUrl;}
@@ -309,8 +308,8 @@ function _hiveFallback(addr){
 }
 
 (function () {
-  // TeamChat v5.1.3 - AI群聊引擎修复版
-  console.log('[TeamChat] v5.1.3 AI群聊引擎修复版 加载时间:', new Date().toLocaleString());
+  // TeamChat v5.0.19 - AI群聊+新手引导版
+  console.log('[TeamChat] v5.0.19 AI群聊+新手引导版 加载时间:', new Date().toLocaleString());
   
   var s = document.createElement("style");
   s.textContent =
@@ -2622,8 +2621,7 @@ function TeamChatPage() {
     // ========== 新手引导结束 ==========
     
     var _cv = useState(false), chuanView = _cv[0], setChuanView = _cv[1]
-    var _av = useState(false), aimailView = _av[0], setAimailView = _av[1];var _am = useState("main"), aimailMode = _am[0], setAimailMode = _am[1];
-    var _aig = useState(false), aiChatView = _aig[0], setAiChatView = _aig[1];var _et = useState("inbox"), emailTab = _et[0], setEmailTab = _et[1];var _ecs = useState([]), emailConfigs = _ecs[0], setEmailConfigs = _ecs[1];var _ca = useState("__all__"), currentAccount = _ca[0], setCurrentAccount = _ca[1];
+    var _av = useState(false), aimailView = _av[0], setAimailView = _av[1];var _am = useState("main"), aimailMode = _am[0], setAimailMode = _am[1];var _et = useState("inbox"), emailTab = _et[0], setEmailTab = _et[1];var _ecs = useState([]), emailConfigs = _ecs[0], setEmailConfigs = _ecs[1];var _ca = useState("__all__"), currentAccount = _ca[0], setCurrentAccount = _ca[1];
   var _data = useState([]), emails = _data[0], setEmails = _data[1];
   var _page = useState(1), curPage = _page[0], setCurPage = _page[1];
   var _psize = useState(20), pageSize = _psize[0], setPageSize = _psize[1];
@@ -5595,14 +5593,6 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
   var paginationBar = function(tab) { return e("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",padding:"12px 0",gap:"10px",borderTop:"1px solid #e0e0e0",marginTop:"12px"}}, e("span",{style:{fontSize:"12px",color:"#333"}},"共 " + totalEmails + " 封 · 每页 " + pageSize), e("button",{onClick:function(){goPage(tab,1);},disabled:curPage<=1,style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage<=1?"default":"pointer",opacity:curPage<=1?0.4:1,fontSize:"12px"}},"首页"), e("button",{onClick:function(){goPage(tab,curPage-1);},disabled:curPage<=1,style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage<=1?"default":"pointer",opacity:curPage<=1?0.4:1,fontSize:"12px"}},"上一页"), e("span",{style:{fontSize:"13px",color:"#333"}},curPage + " / " + Math.max(1,Math.ceil(totalEmails/pageSize))), e("button",{onClick:function(){goPage(tab,curPage+1);},disabled:curPage>=Math.ceil(totalEmails/pageSize),style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage>=Math.ceil(totalEmails/pageSize)?"default":"pointer",opacity:curPage>=Math.ceil(totalEmails/pageSize)?0.4:1,fontSize:"12px"}},"下一页"), e("button",{onClick:function(){goPage(tab,Math.ceil(totalEmails/pageSize));},disabled:curPage>=Math.ceil(totalEmails/pageSize),style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage>=Math.ceil(totalEmails/pageSize)?"default":"pointer",opacity:curPage>=Math.ceil(totalEmails/pageSize)?0.4:1,fontSize:"12px"}},"末页"), e("select",{value:pageSize,onChange:function(ev){onPageSizeChange(tab,parseInt(ev.target.value));},style:{padding:"4px 8px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",fontSize:"12px",cursor:"pointer"}}, e("option",{value:10},"10"), e("option",{value:20},"20"), e("option",{value:50},"50"), e("option",{value:100},"100"))); };
 
     if(chuanView) return e(ChuanChuanPage,{onBack:function(){setChuanView(false);}});
-    if(aiChatView) {
-      var AIGroupChat = window.AIGroupChatPage;
-      if (AIGroupChat) {
-        return e(AIGroupChat,{onBack:function(){setAiChatView(false);}});
-      } else {
-        return e('div',{style:{padding:'20px',textAlign:'center'}},'AI群聊模块加载中...');
-      }
-    }
   // AI邮箱主视图
     if(aimailView && aimailMode === "main") return e("div",{style:{padding:"20px",textAlign:"center",background:"linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%)",color:"#333",minHeight:"100vh"}},
     e("h2",null,"AI邮箱功能"), e("p",{style:{fontSize:"14px",opacity:0.8,marginTop:"8px"}},"巢邮箱 - AI邮件系统 v0.3.0"),
@@ -6294,8 +6284,7 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
           e(Popover,{content:e("div",{style:{padding:4}},e("div",null,e(Text,{style:{fontSize:11}},"🖥 IP: "),e(Text,{code:true,style:{fontSize:11}},sysIp||"---")),e("div",null,e(Text,{style:{fontSize:11}},"🕐 "+clock))),trigger:"hover"},
             e(Text,{style:{fontSize:16,cursor:"default"}},"🕐")
           ),
-          e("a",{href:"https://platform.agentscope.io/plugins/team_chat",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#1890ff",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"TC扩展"),
-          e("a",{href:"https://nightly.paw.msgbyte.com/invite/rj9iBh5Y",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#667eea",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"AI协作"),
+          e("a",{href:"https://platform.agentscope.io/plugins/team_chat",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#1890ff",textDecoration:"none",cursor:"pointer"}},"TeamChat扩展"),
           // 主界面动画区域（右上角）
           e("div",{style:{position:"relative",width:320,height:120,marginLeft:"auto",borderRadius:8,overflow:"hidden"},onMouseMove:function(ev){var r=ev.currentTarget.getBoundingClientRect();setHoverX(ev.clientX-r.left);setHoverY(ev.clientY-r.top);setHoverShow(true)},onMouseLeave:function(){setHoverShow(false)}},
             hoverShow&&e("div",{style:{position:"absolute",left:hoverX+8,top:hoverY-20,background:"rgba(0,0,0,0.75)",color:"#ffd700",padding:"2px 8px",borderRadius:"4px",fontSize:"12px",fontWeight:"bold",fontFamily:"monospace",pointerEvents:"none",whiteSpace:"nowrap",zIndex:999}},"115886"),
@@ -6637,10 +6626,11 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
       sideOpen?e("div",{style:{width:280,minWidth:280,borderLeft:uiTheme==="day"?"1px solid #D7CCC8":"1px solid #3a3a4e",padding:"16px 16px 16px 8px",background:uiTheme==="day"?"#FDF8F0":"#1e1e32",flexShrink:0,display:"flex",flexDirection:"column",overflowY:"auto",minHeight:"100%"}},
         e(Button,{size:"small",type:"text",onClick:function(){setSideOpen(false);},style:{alignSelf:"flex-end",fontSize:12,fontWeight:"bold",background:"linear-gradient(180deg,#f0e8dc,#d8d0c4,#c0b8ac,#e0d8cc)",border:"1px solid #b8a898",color:"#5a4a3a",borderRadius:4,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 1px 3px rgba(0,0,0,.1)",textShadow:"0 1px 0 rgba(255,255,255,.3)",padding:"2px 10px",marginBottom:8}},"◀ 收起小桌板"),
         e("div",{style:{marginBottom:12},onClick:function(){console.log("AI邮箱按钮被点击");setAimailView(true);}},e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setAimailView(true);},style:{display:"block",fontSize:13,fontWeight:"bold",color:"white",textDecoration:"none",cursor:"pointer",padding:"8px 12px",textAlign:"center",background:"linear-gradient(135deg,#667eea 0%,#764ba2 100%)",border:"1px solid #5a6cdb",borderRadius:16,boxShadow:"inset 0 1px 0 rgba(255,255,255,.25),0 2px 6px rgba(102,126,234,.3)",textShadow:"0 1px 0 rgba(0,0,0,.1)"}},"📧 AI邮箱 ",e("span",{style:{display:"inline-block",fontSize:"20px",verticalAlign:"middle",animation:"tcPigeonFly 1.5s ease-in-out infinite",marginLeft:"4px"}},"🕊"))),
-        // AI群聊按钮 - 打开内部AI群聊页面（土黄色/棕色主题）
-        e("div",{style:{marginBottom:12},onClick:function(){console.log("AI群聊按钮被点击");setAiChatView(true);}},e("a",{
-          href:"javascript:void(0)",
-          onClick:function(ev){ev.preventDefault();setAiChatView(true);},
+        // AI群聊按钮 - 直接链接到Tailchat Nightly群组（土黄色/棕色主题）
+        e("div",{style:{marginBottom:12}},e("a",{
+          href:"https://nightly.paw.msgbyte.com/main/group/6a619de9ab005e23ceb2f919/6a619de9ab005e23ceb2f915",
+          target:"_blank",
+          rel:"noopener noreferrer",
           style:{
             display:"block",
             fontSize:13,
@@ -10127,78 +10117,34 @@ window.TeamChatEmail.editAICronJob = function() {
     }
     
     // AI 群聊组件
-    function AIGroupChatPage(props) {
-      var onBack = props && props.onBack;
+    function AIGroupChatPage() {
       var [messages, setMessages] = useState([]);
       var [inputText, setInputText] = useState('');
       var [loading, setLoading] = useState(false);
       var [agents, setAgents] = useState([]);
-      var [showAllAgents, setShowAllAgents] = useState(false);
       var [userId, setUserId] = useState('user_' + Math.random().toString(36).substr(2, 8));
       var [nickname, setNickname] = useState('访客' + Math.floor(Math.random() * 1000));
       var messagesEndRef = useRef(null);
       var inputRef = useRef(null);
       
-      // 初始化 - 获取智能体列表
+      // 智能体配置
+      var AGENTS = [
+        { id: 'agent:default', name: '阿里', icon: '🤖', color: '#FF6B6B' },
+        { id: 'agent:cloud-executor', name: 'Executor', icon: '⚡', color: '#4ECDC4' },
+        { id: 'agent:QwenPaw_QA_Agent_0.2', name: 'QA', icon: '❓', color: '#45B7D1' },
+        { id: 'agent:cloud-orchestrator', name: 'Master', icon: '🎯', color: '#96CEB4' },
+        { id: 'agent:cloud-verifier', name: 'Verifier', icon: '✓', color: '#FFEAA7' }
+      ];
+      
+      // 初始化
       useEffect(function() {
-        // 使用 TeamChat 首页相同的 API 获取智能体列表
-        console.log('[AIChat] 开始获取智能体列表...');
-        fetch(getApiUrl('/plugins/team_chat/all-agents'), {
-          headers: { 'Content-Type': 'application/json' }
-        })
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            console.log('[AIChat] 获取智能体响应:', data);
-            if (data.agents && Array.isArray(data.agents)) {
-              // 转换智能体格式
-              var colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
-              var icons = ['🤖', '⚡', '❓', '🎯', '✓', '🔮', '🌟'];
-              var formattedAgents = data.agents.map(function(agent, index) {
-                return {
-                  id: 'agent:' + agent.agent_id,
-                  name: agent.name || agent.agent_id,
-                  full_name: agent.description || agent.name,
-                  agent_api_id: agent.agent_id,
-                  icon: icons[index % icons.length],
-                  color: colors[index % colors.length]
-                };
-              });
-              console.log('[AIChat] 智能体数量:', formattedAgents.length);
-              setAgents(formattedAgents);
-            } else {
-              console.error('[AIChat] 获取智能体失败:', data.error || '未知错误');
-              // 使用默认智能体
-              setAgents([
-                { id: 'agent:default', name: '阿里', icon: '🤖', color: '#FF6B6B' },
-                { id: 'agent:cloud-executor', name: 'Executor', icon: '⚡', color: '#4ECDC4' },
-                { id: 'agent:QwenPaw_QA_Agent_0.2', name: 'QA', icon: '❓', color: '#45B7D1' },
-                { id: 'agent:cloud-orchestrator', name: 'Master', icon: '🎯', color: '#96CEB4' },
-                { id: 'agent:cloud-verifier', name: 'Verifier', icon: '✓', color: '#FFEAA7' }
-              ]);
-            }
-          })
-          .catch(function(err) { 
-            console.error('[AIChat] 获取智能体失败:', err);
-            // 使用默认智能体
-            setAgents([
-              { id: 'agent:default', name: '阿里', icon: '🤖', color: '#FF6B6B' },
-              { id: 'agent:cloud-executor', name: 'Executor', icon: '⚡', color: '#4ECDC4' },
-              { id: 'agent:QwenPaw_QA_Agent_0.2', name: 'QA', icon: '❓', color: '#45B7D1' },
-              { id: 'agent:cloud-orchestrator', name: 'Master', icon: '🎯', color: '#96CEB4' },
-              { id: 'agent:cloud-verifier', name: 'Verifier', icon: '✓', color: '#FFEAA7' }
-            ]);
-          });
-        
         // 加入官方聊天室
         aiChatApiPost('/join', {
           room_id: 'OFFICIAL_ROOM',
           user_id: userId,
           nickname: nickname
-        }).then(function(data) {
-          console.log('[AIChat] 加入聊天室响应:', data);
+        }).then(function() {
           loadMessages();
-        }).catch(function(err) {
-          console.error('[AIChat] 加入聊天室失败:', err);
         });
         
         // 定时刷新消息
@@ -10218,9 +10164,7 @@ window.TeamChatEmail.editAICronJob = function() {
           .then(function(data) {
             if (data.success && data.messages) {
               setMessages(data.messages);
-              if (data.agents && data.agents.length > 0) {
-                setAgents(data.agents);
-              }
+              if (data.agents) setAgents(data.agents);
             }
           })
           .catch(function(err) { console.error('[AIChat] 加载消息失败:', err); });
@@ -10233,32 +10177,25 @@ window.TeamChatEmail.editAICronJob = function() {
         setInputText('');
         setLoading(true);
         
-        var payload = {
+        aiChatApiPost('/message', {
           room_id: 'OFFICIAL_ROOM',
           user_id: userId,
           message: text,
           msg_type: 'text',
           nickname: nickname
-        };
-        console.log('[AIChat] 发送消息:', payload);
-        
-        aiChatApiPost('/message', payload)
-          .then(function(data) {
-            console.log('[AIChat] 发送响应:', data);
-            if (data.success) {
-              loadMessages();
-              setTimeout(loadMessages, 2000);
-              setTimeout(loadMessages, 5000);
-            } else {
-              console.error('[AIChat] 发送失败:', data.error || '未知错误');
-              message.error('发送失败: ' + (data.error || '未知错误'));
-            }
-            setLoading(false);
-          }).catch(function(err) {
-            console.error('[AIChat] 发送失败:', err);
-            message.error('发送失败，请检查网络连接');
-            setLoading(false);
-          });
+        }).then(function(data) {
+          if (data.success) {
+            loadMessages();
+            setTimeout(loadMessages, 2000); // 2秒后再次刷新，获取智能体回复
+            setTimeout(loadMessages, 5000); // 5秒后再次刷新
+          } else {
+            message.error('发送失败: ' + (data.error || '未知错误'));
+          }
+          setLoading(false);
+        }).catch(function(err) {
+          message.error('发送失败');
+          setLoading(false);
+        });
       }
       
       function insertMention(agentName) {
@@ -10277,64 +10214,11 @@ window.TeamChatEmail.editAICronJob = function() {
         } catch(e) { return ''; }
       }
       
-      // 渲染智能体标签 - 超过5个时收缩
-      function renderAgentTags() {
-        if (!agents || agents.length === 0) {
-          return e('span', { style: { fontSize: '13px', color: '#999' } }, '加载中...');
-        }
-        
-        var displayAgents = showAllAgents ? agents : agents.slice(0, 5);
-        var hasMore = agents.length > 5;
-        
-        return e('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } },
-          e('span', { style: { fontSize: '13px', color: '#666' } }, '💬 点击@智能体:'),
-          displayAgents.map(function(agent) {
-            return e('span', {
-              key: agent.id,
-              onClick: function() { insertMention(agent.name); },
-              style: {
-                padding: '6px 12px',
-                borderRadius: '16px',
-                background: agent.color || '#667eea',
-                color: 'white',
-                fontSize: '13px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                userSelect: 'none'
-              },
-              onMouseEnter: function(e) {
-                e.target.style.transform = 'scale(1.05)';
-                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
-              },
-              onMouseLeave: function(e) {
-                e.target.style.transform = 'scale(1)';
-                e.target.style.boxShadow = 'none';
-              }
-            }, agent.icon || '🤖', ' ', agent.name);
-          }),
-          hasMore ? e('span', {
-            onClick: function() { setShowAllAgents(!showAllAgents); },
-            style: {
-              padding: '6px 12px',
-              borderRadius: '16px',
-              background: '#e0e0e0',
-              color: '#666',
-              fontSize: '13px',
-              cursor: 'pointer',
-              userSelect: 'none'
-            }
-          }, showAllAgents ? '收起 ▲' : '+' + (agents.length - 5) + ' 更多 ▼') : null
-        );
-      }
-      
       // 渲染消息
       function renderMessage(msg) {
         var isUser = msg.from && !msg.from.startsWith('agent:');
         var isAgent = msg.from && msg.from.startsWith('agent:');
-        var agent = isAgent ? agents.find(function(a) { return a.id === msg.from; }) : null;
+        var agent = isAgent ? AGENTS.find(function(a) { return a.id === msg.from; }) : null;
         
         var bubbleStyle = {
           maxWidth: '80%',
@@ -10344,54 +10228,51 @@ window.TeamChatEmail.editAICronJob = function() {
           wordBreak: 'break-word'
         };
         
-        if (msg.type === 'system' || msg.msg_type === 'system') {
+        if (msg.type === 'system') {
           return e('div', {
-            key: msg.msg_id || msg.id,
+            key: msg.msg_id,
             style: { textAlign: 'center', margin: '16px 0', color: '#888', fontSize: '13px' }
-          }, e('span', { style: { background: '#f0f0f0', padding: '6px 12px', borderRadius: '12px' } }, msg.text || msg.content));
+          }, e('span', { style: { background: '#f0f0f0', padding: '6px 12px', borderRadius: '12px' } }, msg.text));
         }
         
         if (isUser) {
           return e('div', {
-            key: msg.msg_id || msg.id,
+            key: msg.msg_id,
             style: { display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }
           }, e('div', {
             style: Object.assign({}, bubbleStyle, { background: '#1890ff', color: 'white' })
           }, e('div', { style: { fontSize: '12px', marginBottom: '4px', opacity: 0.8 } }, 
-             msg.sender_nick || msg.nickname || '我', ' · ', formatTime(msg.time || msg.timestamp)),
-             e('div', null, msg.text || msg.content)));
+             msg.sender_nick || '我', ' · ', formatTime(msg.time)),
+             e('div', null, msg.text)));
         }
         
         if (isAgent && agent) {
           return e('div', {
-            key: msg.msg_id || msg.id,
+            key: msg.msg_id,
             style: { display: 'flex', justifyContent: 'flex-start', marginBottom: '12px' }
           }, e('div', {
             style: { display: 'flex', alignItems: 'flex-start', gap: '8px' }
           }, e('div', {
             style: { 
               width: '36px', height: '36px', borderRadius: '50%', 
-              background: agent.color || '#667eea', display: 'flex', alignItems: 'center', 
+              background: agent.color, display: 'flex', alignItems: 'center', 
               justifyContent: 'center', fontSize: '18px', flexShrink: 0 
             }
-          }, agent.icon || '🤖'), e('div', {
+          }, agent.icon), e('div', {
             style: Object.assign({}, bubbleStyle, { background: '#f6f8fa', border: '1px solid #e8e8e8' })
-          }, e('div', { style: { fontSize: '12px', marginBottom: '4px', color: agent.color || '#667eea', fontWeight: 'bold' } }, 
-             agent.name, ' · ', formatTime(msg.time || msg.timestamp)),
-             e('div', { style: { color: '#333' } }, msg.text || msg.content))));
+          }, e('div', { style: { fontSize: '12px', marginBottom: '4px', color: agent.color, fontWeight: 'bold' } }, 
+             agent.name, ' · ', formatTime(msg.time)),
+             e('div', { style: { color: '#333' } }, msg.text))));
         }
         
         // 默认样式
         return e('div', {
-          key: msg.msg_id || msg.id,
+          key: msg.msg_id,
           style: { marginBottom: '12px', padding: '8px 12px', background: '#f5f5f5', borderRadius: '8px' }
         }, e('div', { style: { fontSize: '12px', color: '#888', marginBottom: '4px' } }, 
-           msg.sender_nick || msg.nickname, ' · ', formatTime(msg.time || msg.timestamp)),
-           e('div', null, msg.text || msg.content));
+           msg.sender_nick, ' · ', formatTime(msg.time)),
+           e('div', null, msg.text));
       }
-      
-      // 生成提示文本
-      var agentNames = agents.length > 0 ? agents.map(function(a) { return '@' + a.name; }).join(' ') : '@阿里 @Executor @QA @Master @Verifier';
       
       return e('div', { style: { height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' } },
         // 头部
@@ -10400,30 +10281,12 @@ window.TeamChatEmail.editAICronJob = function() {
             padding: '16px 20px', 
             borderBottom: '1px solid #e8e8e8',
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
+            color: 'white'
           } 
         }, 
-          e('div', null,
-            e('div', { style: { fontSize: '20px', fontWeight: 'bold' } }, '🤖 AI群聊'),
-            e('div', { style: { fontSize: '13px', opacity: 0.9, marginTop: '4px' } }, 
-              (agents.length > 0 ? agents.length + '个智能体常驻' : '加载智能体中...') + ' · 支持 @提及 指定回复')
-          ),
-          onBack ? e('button', {
-            onClick: onBack,
-            style: {
-              padding: '8px 16px',
-              background: 'rgba(255,255,255,0.2)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              borderRadius: '8px',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 'bold'
-            }
-          }, '◀ 返回') : null
+          e('div', { style: { fontSize: '20px', fontWeight: 'bold' } }, '🏠 官方 AI 聊天室'),
+          e('div', { style: { fontSize: '13px', opacity: 0.9, marginTop: '4px' } }, 
+            '5个智能体常驻 · 支持 @提及 指定回复')
         ),
         
         // 智能体标签栏
@@ -10431,9 +10294,40 @@ window.TeamChatEmail.editAICronJob = function() {
           style: { 
             padding: '12px 20px', 
             background: '#f8f9fa',
-            borderBottom: '1px solid #e8e8e8'
+            borderBottom: '1px solid #e8e8e8',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
           } 
-        }, renderAgentTags()),
+        },
+          e('span', { style: { fontSize: '13px', color: '#666', marginRight: '8px' } }, '💬 点击@智能体:'),
+          AGENTS.map(function(agent) {
+            return e('span', {
+              key: agent.id,
+              onClick: function() { insertMention(agent.name); },
+              style: {
+                padding: '6px 12px',
+                borderRadius: '16px',
+                background: agent.color,
+                color: 'white',
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              },
+              onMouseEnter: function(e) {
+                e.target.style.transform = 'scale(1.05)';
+                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+              },
+              onMouseLeave: function(e) {
+                e.target.style.transform = 'scale(1)';
+                e.target.style.boxShadow = 'none';
+              }
+            }, agent.icon, ' ', agent.name);
+          })
+        ),
         
         // 消息列表
         e('div', { 
@@ -10471,14 +10365,11 @@ window.TeamChatEmail.editAICronJob = function() {
             }, '发送')
           ),
           e('div', { style: { marginTop: '8px', fontSize: '12px', color: '#999' } },
-            '💡 提示: ' + agentNames + ' 可指定回复，不@则所有智能体都回复'
+            '💡 提示: @阿里 @Executor @QA @Master @Verifier 可指定回复，不@则所有智能体都回复'
           )
         )
       );
     }
-    
-    // 将 AIGroupChatPage 暴露到全局，供 TeamChat 主代码使用
-    window.AIGroupChatPage = AIGroupChatPage;
     
     // 注册路由
     if (QP.menu && QP.menu.add && QP.route && QP.route.add) {
