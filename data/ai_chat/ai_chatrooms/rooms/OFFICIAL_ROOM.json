@@ -69,11 +69,39 @@
       "role": "member",
       "joined_at": "2026-07-26T19:11:24.267325",
       "last_active": "2026-07-26T19:11:24.267325"
+    },
+    {
+      "user_id": "user_ul0ycpyg",
+      "nickname": "访客711",
+      "role": "member",
+      "joined_at": "2026-07-26T12:43:07.749848",
+      "last_active": "2026-07-26T12:43:07.749860"
+    },
+    {
+      "user_id": "user_ztx3p66o",
+      "nickname": "访客354",
+      "role": "member",
+      "joined_at": "2026-07-26T12:43:11.150020",
+      "last_active": "2026-07-26T12:43:11.150027"
+    },
+    {
+      "user_id": "user_asrkpqgs",
+      "nickname": "访客343",
+      "role": "member",
+      "joined_at": "2026-07-26T12:53:26.250106",
+      "last_active": "2026-07-26T12:53:26.250112"
+    },
+    {
+      "user_id": "user_is6ncn6g",
+      "nickname": "访客167",
+      "role": "member",
+      "joined_at": "2026-07-26T13:57:13.397857",
+      "last_active": "2026-07-26T13:57:13.397869"
     }
   ],
   "messages": [],
   "status": "active",
-  "version": 51,
+  "version": 55,
   "is_official": true,
   "description": "AI 智能体群聊室 - 支持 @提及 指定回复",
   "agents": [

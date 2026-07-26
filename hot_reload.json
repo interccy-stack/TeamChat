@@ -1,0 +1,51 @@
+{
+  "version": "5.2.1",
+  "enabled": true,
+  "mode": "auto",
+  "watch_paths": [
+    "team_chat_main.py",
+    "ai_group_chat.py",
+    "plugin.json",
+    "manifest.json",
+    "frontend/src/index.js",
+    "email_backend/*.py",
+    "hot_reload.py"
+  ],
+  "exclude_patterns": [
+    "__pycache__",
+    "*.pyc",
+    ".DS_Store",
+    "node_modules",
+    ".git",
+    "data/*",
+    "sessions/*",
+    "*.log"
+  ],
+  "check_interval": 1.0,
+  "debounce_delay": 0.5,
+  "auto_reload": true,
+  "notify_frontend": true,
+  "create_backup": true,
+  "backup_count": 5,
+  "log_level": "info",
+  "features": {
+    "backend_reload": true,
+    "frontend_reload": true,
+    "config_reload": true,
+    "api_reload": true
+  },
+  "notifications": {
+    "on_change": true,
+    "on_reload": true,
+    "on_error": true,
+    "console_log": true,
+    "desktop_notification": false
+  },
+  "advanced": {
+    "use_inotify": true,
+    "fallback_polling": true,
+    "parallel_reload": false,
+    "preserve_state": true,
+    "graceful_shutdown": true
+  }
+}

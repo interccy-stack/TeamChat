@@ -1,8 +1,8 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "5.2.0",
-    "description": "TeamChat v5.2.0 — 再一次跨界的扩展「智能体可以管理并匹配工作任务建立自定义群进行团队会谈」 · AI主持圆桌会谈 · AI群聊（上下文感知）· AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇 ",
+    "version": "5.2.2",
+    "description": "TeamChat v5.2.1 — 再一次跨界的扩展「智能体可以管理并匹配工作任务建立自定义群进行团队会谈」 · AI主持圆桌会谈 · AI群聊（上下文感知）· AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇 ",
     "author": "0+1+2≠3 Team 115886",
     "type": "general",
     "qwenpaw_version": {
@@ -10,12 +10,12 @@
         "max": "2.1.0"
     },
     "description_i18n": {
-        "zh-CN": "TeamChat v5.2.0 — 再一次跨界的扩展「智能体可以管理并匹配工作任务建立自定义群进行团队会谈」 · AI主持圆桌会谈 · AI群聊（上下文感知）· AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇 ",
-        "en-US": "TeamChat v5.2.0 — Another Cross-border Expansion: Agents Can Manage and Match Work Tasks, Create Custom Groups for Team Meetings AI-hosted Roundtable Discussion AI Group Chat (Context-aware) AI Avatar AI PRO Browser Extension AI Collaboration Platform AI Email Industrial-grade Nest Email System Multi-tab Roundtable Animation PPT Playback File Rack Light Music Onboarding Guide Chuanchuan Channel Channel Broadcasting Station Original Author AI Chuanchuan Hub"
+        "zh-CN": "TeamChat v5.2.2 — 再一次跨界的扩展「智能体可以管理并匹配工作任务建立自定义群进行团队会谈」 · AI主持圆桌会谈 · AI群聊（上下文感知）· AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇 ",
+        "en-US": "TeamChat v5.2.2 — Another Cross-border Expansion: Agents Can Manage and Match Work Tasks, Create Custom Groups for Team Meetings AI-hosted Roundtable Discussion AI Group Chat (Context-aware) AI Avatar AI PRO Browser Extension AI Collaboration Platform AI Email Industrial-grade Nest Email System Multi-tab Roundtable Animation PPT Playback File Rack Light Music Onboarding Guide Chuanchuan Channel Channel Broadcasting Station Original Author AI Chuanchuan Hub"
     },
     "meta": {
         "category": "productivity",
-        "tags": ["teamchat", "email", "ai-agent", "webrtc", "hive-mail", "tailchat", "onboarding"]
+        "tags": ["teamchat", "email", "Chat","ai-agent", "webrtc", "hive-mail", "tailchat", "onboarding"]
     },
     "entry": {
         "backend": "team_chat_main.py",

@@ -1,0 +1,47 @@
+{
+  "session_id": "383135bc-9aaf-4856-93d1-8472a12ce9d9",
+  "host_id": "cloud-orchestrator",
+  "host_name": "CloudPaw-Master",
+  "agent_ids": [
+    "QwenPaw_QA_Agent_0.2"
+  ],
+  "history": [
+    {
+      "role": "human",
+      "sender": "human",
+      "sender_name": "人类用户",
+      "content": "我们的qwenpaw的版本是v2.0.1?",
+      "timestamp": 1785081443.4952571
+    },
+    {
+      "role": "agent",
+      "sender": "QwenPaw_QA_Agent_0.2",
+      "sender_name": "QA Agent",
+      "content": "[错误] QwenPaw_QA_Agent_0.2: {'code': 'MODEL_QUOTA_EXCEEDED', 'message': \"Quota exceeded for model 'unknown'. Reason: Error code: 429 - {'error': 'Rate limit exceeded', 'error_type': 'rate_limit_exceeded', 'message': 'Free model usage limit reached. Please try again later or upgrade to a paid model.'} [dump: /tmp/qwenpaw_query_error_2q6fhssb.json]\"}",
+      "timestamp": 1785081472.1850784
+    },
+    {
+      "role": "host",
+      "sender": "cloud-orchestrator",
+      "sender_name": "CloudPaw-Master",
+      "content": "[错误] cloud-orchestrator: {'code': 'MODEL_QUOTA_EXCEEDED', 'message': \"Quota exceeded for model 'unknown'. Reason: Error code: 429 - {'error': 'Rate limit exceeded', 'error_type': 'rate_limit_exceeded', 'message': 'Free model usage limit reached. Please try again later or upgrade to a paid model.'} [dump: /tmp/qwenpaw_query_error_1az3n652.json]\"}",
+      "timestamp": 1785081507.2004385
+    }
+  ],
+  "host_steps": [
+    {
+      "id": "cloud-orchestrator",
+      "content": "你是团队主持人。以下是多智能体讨论的内容：\n\n[用户] 我们的qwenpaw的版本是v2.0.1?\n[QA Agent] [错误] QwenPaw_QA_Agent_0.2: {'code': 'MODEL_QUOTA_EXCEEDED', 'message': \"Quota exceeded for model 'unknown'. Reason: Error code: 429 - {'error': 'Rate limit exceeded', 'error_type': 'rate_limit_exceeded', 'message': 'Free model usage limit reached. Please try again later or upgrade to a paid model.'} [dump: /tmp/qwenpaw_query_error_2q6fhssb.json]\"}\n\n请做一个简洁的总结（200字以内），指出各智能体的观点异同，并给出你的建议。",
+      "response": "[错误] cloud-orchestrator: {'code': 'MODEL_QUOTA_EXCEEDED', 'message': \"Quota exceeded for model 'unknown'. Reason: Error code: 429 - {'error': 'Rate limit exceeded', 'error_type': 'rate_limit_exceeded', 'message': 'Free model usage limit reached. Please try again later or upgrade to a paid model.'} [dump: /tmp/qwenpaw_query_error_1az3n652.json]\"}",
+      "time": 1785081507.2004352,
+      "action": "主持人 CloudPaw-Master 汇总回复",
+      "detail": "[错误] cloud-orchestrator: {'code': 'MODEL_QUOTA_EXCEEDED', 'message': \"Quota exceeded for model 'unknown'. Reason: Error "
+    }
+  ],
+  "brainstorm": false,
+  "discussion_done": false,
+  "created_at": 1785081443.4952571,
+  "updated_at": 1785081443.4952571,
+  "tag": "",
+  "pinned": ""
+}

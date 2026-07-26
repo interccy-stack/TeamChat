@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""TeamChat Plugin Backend v5.2.0 — AI群聊文件上传下载
+"""TeamChat Plugin Backend v5.2.2 — AI群聊文件上传下载
 
 修复:
   1. AI群聊支持文件上传/下载/预览
   2. 智能体产物（代码、文档、图片）可保存和下载
   3. 支持图片、PDF、代码文件在线预览
   4. 文件元数据持久化存储
+  5. 热重载支持 - 文件变更自动检测，无需重启
 
 原有功能:
   1. POST /upload — 文件上传
@@ -906,6 +907,40 @@ def build_router():
                 return PlainTextResponse(content=content)
         except Exception as e:
             logger.error(f"读取静态文件失败: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # ---- 媒体文件服务（鸟巢图片等） ----
+    @router.get("/media/{filename}")
+    async def get_media_file(filename: str):
+        """获取媒体文件（鸟巢图片等）"""
+        try:
+            from pathlib import Path
+            from fastapi.responses import FileResponse
+            
+            plugin_dir = Path(__file__).parent
+            media_dir = plugin_dir / "media"
+            file_path = media_dir / filename
+            
+            # 安全检查：确保文件在media目录下
+            if not file_path.exists():
+                raise HTTPException(status_code=404, detail="文件不存在")
+            
+            # 检查文件是否在允许的目录中
+            try:
+                file_path.relative_to(media_dir)
+            except ValueError:
+                raise HTTPException(status_code=403, detail="访问被拒绝")
+            
+            # 根据文件类型返回
+            if filename.endswith('.svg'):
+                content = file_path.read_text(encoding='utf-8')
+                return PlainTextResponse(content=content, media_type="image/svg+xml")
+            else:
+                return FileResponse(str(file_path))
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"读取媒体文件失败: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     # ---- 书签工具远程聊天 ----
@@ -2706,14 +2741,6 @@ def build_router():
         except FileNotFoundError:
             raise HTTPException(status_code=404, detail="README.md not found")
 
-    # 媒体文件服务
-    @router.get("/media/{filename}")
-    async def get_media(filename: str):
-        file_path = os.path.join(MEDIA_DIR, filename)
-        if not os.path.isfile(file_path):
-            raise HTTPException(status_code=404, detail="File not found")
-        return FileResponse(file_path)
-
     # ---- 内置浏览器（学习自串串插件） ----
 
     class LaunchReq(BaseModel):
@@ -3079,7 +3106,53 @@ class TeamChatPlugin:
         # AI群聊路由已在 build_router() 中直接定义，无需额外注册
         api.register_startup_hook("team_chat_v4_start", self._startup, priority=90)
         api.register_shutdown_hook("team_chat_v4_stop", self._shutdown, priority=110)
+        # 注册热重载支持
+        self._register_hot_reload(api)
         logger.info(f"TeamChat v{CURRENT_VERSION} 就绪")
+    
+    def _register_hot_reload(self, api):
+        """注册热重载支持 - 开发模式下自动检测文件变更"""
+        try:
+            from pathlib import Path
+            plugin_dir = Path(__file__).parent
+            
+            # 尝试导入热重载模块
+            hot_reload_path = plugin_dir / "hot_reload.py"
+            if hot_reload_path.exists():
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("hot_reload", hot_reload_path)
+                if spec and spec.loader:
+                    hot_reload_module = importlib.util.module_from_spec(spec)
+                    sys.modules["hot_reload"] = hot_reload_module
+                    spec.loader.exec_module(hot_reload_module)
+                    
+                    # 启用热重载
+                    reloader = hot_reload_module.enable_hot_reload(plugin_dir)
+                    
+                    # 注册重载回调 - 刷新路由
+                    def on_reload():
+                        logger.info("[HotReload] 检测到文件变更，正在刷新...")
+                        # 通知前端刷新
+                        try:
+                            import json
+                            reload_notify_path = plugin_dir / "data" / ".hot_reload_notify"
+                            reload_notify_path.parent.mkdir(parents=True, exist_ok=True)
+                            reload_notify_path.write_text(json.dumps({
+                                "timestamp": time.time(),
+                                "version": CURRENT_VERSION
+                            }))
+                        except Exception as e:
+                            logger.warning(f"[HotReload] 通知文件写入失败: {e}")
+                    
+                    reloader.on_reload(on_reload)
+                    logger.info("[HotReload] 热重载已启用 - 修改文件后自动生效")
+                    
+                    # 添加热重载状态API
+                    @api.router.get("/hot-reload-status")
+                    async def hot_reload_status():
+                        return hot_reload_module.get_hot_reload_status()
+        except Exception as e:
+            logger.warning(f"[HotReload] 热重载初始化失败: {e}")
     
     def _register_bookmarklet_static(self, api):
         """注册书签工具静态文件服务"""
@@ -3143,48 +3216,59 @@ class TeamChatPlugin:
             logger.warning(f"[Cron] 自动同步定时任务设置失败: {e}")
 
     def _setup_auto_sync_cron(self):
-        """自动设置邮件同步定时任务"""
+        """自动设置邮件同步定时任务 - 异步执行避免阻塞"""
         import subprocess
         import json
+        import threading
         
-        try:
-            # 检查是否已存在TeamChat邮件同步任务
-            result = subprocess.run(
-                ['qwenpaw', 'cron', 'list', '--agent-id', 'default'],
-                capture_output=True, text=True, encoding='utf-8'
-            )
-            
-            if result.returncode == 0:
-                jobs = json.loads(result.stdout)
-                for job in jobs:
-                    if job.get('name') == 'TeamChat邮件同步':
-                        logger.info("[Cron] 邮件同步任务已存在，跳过创建")
-                        return
-            
-            # 创建新的定时任务
-            logger.info("[Cron] 正在创建邮件同步定时任务...")
-            create_result = subprocess.run(
-                [
-                    'qwenpaw', 'cron', 'create',
-                    '--agent-id', 'default',
-                    '--name', 'TeamChat邮件同步',
-                    '--cron', '*/3 * * * *',
-                    '--text', '请调用TeamChat邮箱同步API: POST /api/plugins/team_chat/sync',
-                    '--type', 'agent',
-                    '--channel', 'console',
-                    '--target-user', 'default',
-                    '--target-session', 'default'
-                ],
-                capture_output=True, text=True, encoding='utf-8'
-            )
-            
-            if create_result.returncode == 0:
-                logger.info("[Cron] 邮件同步定时任务创建成功")
-            else:
-                logger.warning(f"[Cron] 创建任务失败: {create_result.stderr}")
+        def setup_cron_async():
+            try:
+                # 检查是否已存在TeamChat邮件同步任务
+                result = subprocess.run(
+                    ['qwenpaw', 'cron', 'list', '--agent-id', 'default'],
+                    capture_output=True, text=True, encoding='utf-8',
+                    timeout=5  # 添加5秒超时
+                )
                 
-        except Exception as e:
-            logger.warning(f"[Cron] 设置定时任务时出错: {e}")
+                if result.returncode == 0:
+                    jobs = json.loads(result.stdout)
+                    for job in jobs:
+                        if job.get('name') == 'TeamChat邮件同步':
+                            logger.info("[Cron] 邮件同步任务已存在，跳过创建")
+                            return
+                
+                # 创建新的定时任务
+                logger.info("[Cron] 正在创建邮件同步定时任务...")
+                create_result = subprocess.run(
+                    [
+                        'qwenpaw', 'cron', 'create',
+                        '--agent-id', 'default',
+                        '--name', 'TeamChat邮件同步',
+                        '--cron', '*/3 * * * *',
+                        '--text', '请调用TeamChat邮箱同步API: POST /api/plugins/team_chat/sync',
+                        '--type', 'agent',
+                        '--channel', 'console',
+                        '--target-user', 'default',
+                        '--target-session', 'default'
+                    ],
+                    capture_output=True, text=True, encoding='utf-8',
+                    timeout=5  # 添加5秒超时
+                )
+                
+                if create_result.returncode == 0:
+                    logger.info("[Cron] 邮件同步定时任务创建成功")
+                else:
+                    logger.warning(f"[Cron] 创建任务失败: {create_result.stderr}")
+                    
+            except subprocess.TimeoutExpired:
+                logger.warning("[Cron] 设置定时任务超时，将在后台重试")
+            except Exception as e:
+                logger.warning(f"[Cron] 设置定时任务时出错: {e}")
+        
+        # 在后台线程中执行，避免阻塞启动
+        thread = threading.Thread(target=setup_cron_async, daemon=True)
+        thread.start()
+        logger.info("[Cron] 定时任务设置已移至后台线程")
     
     def _shutdown(self):
         try:

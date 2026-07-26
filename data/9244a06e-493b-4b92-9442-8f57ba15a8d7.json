@@ -1,0 +1,47 @@
+{
+  "session_id": "9244a06e-493b-4b92-9442-8f57ba15a8d7",
+  "host_id": "cloud-orchestrator",
+  "host_name": "CloudPaw-Master",
+  "agent_ids": [
+    "cloud-executor"
+  ],
+  "history": [
+    {
+      "role": "human",
+      "sender": "human",
+      "sender_name": "人类用户",
+      "content": "今天 星期几？",
+      "timestamp": 1785081009.979
+    },
+    {
+      "role": "agent",
+      "sender": "cloud-executor",
+      "sender_name": "CloudPaw-Executor",
+      "content": "[错误] cloud-executor: {'code': 'MODEL_QUOTA_EXCEEDED', 'message': \"Quota exceeded for model 'unknown'. Reason: usage allocated quota exceeded. please try again later. [dump: /tmp/qwenpaw_query_error_zf_d6uvg.json]\"}",
+      "timestamp": 1785081039.9003482
+    },
+    {
+      "role": "host",
+      "sender": "cloud-orchestrator",
+      "sender_name": "CloudPaw-Master",
+      "content": "本次讨论仅一轮：用户询问今日星期几，CloudPaw-Executor 因模型配额超限（MODEL_QUOTA_EXCEEDED）未能成功响应，未形成有效观点。观点异同：单一代理参与，无分歧可对比。建议：检查配额状态并稍后重试；或由主持人直接作答——今日为星期日（2026-07-26）。",
+      "timestamp": 1785081080.2478418
+    }
+  ],
+  "host_steps": [
+    {
+      "id": "cloud-orchestrator",
+      "content": "你是团队主持人。以下是多智能体讨论的内容：\n\n[用户] 今天 星期几？\n[CloudPaw-Executor] [错误] cloud-executor: {'code': 'MODEL_QUOTA_EXCEEDED', 'message': \"Quota exceeded for model 'unknown'. Reason: usage allocated quota exceeded. please try again later. [dump: /tmp/qwenpaw_query_error_zf_d6uvg.json]\"}\n\n请做一个简洁的总结（200字以内），指出各智能体的观点异同，并给出你的建议。",
+      "response": "本次讨论仅一轮：用户询问今日星期几，CloudPaw-Executor 因模型配额超限（MODEL_QUOTA_EXCEEDED）未能成功响应，未形成有效观点。观点异同：单一代理参与，无分歧可对比。建议：检查配额状态并稍后重试；或由主持人直接作答——今日为星期日（2026-07-26）。",
+      "time": 1785081080.2478287,
+      "action": "主持人 CloudPaw-Master 汇总回复",
+      "detail": "本次讨论仅一轮：用户询问今日星期几，CloudPaw-Executor 因模型配额超限（MODEL_QUOTA_EXCEEDED）未能成功响应，未形成有效观点。观点异同：单一代理参与，无分歧可对比。建议：检查配额状态并稍后重试；或由主持人直"
+    }
+  ],
+  "brainstorm": false,
+  "discussion_done": false,
+  "created_at": 1785081009.979,
+  "updated_at": 1785081009.979,
+  "tag": "",
+  "pinned": ""
+}
