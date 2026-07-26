@@ -7811,11 +7811,16 @@ window.generateEmailWithAI = function() {
         };
         
         document.body.appendChild(btn);
-        // 检查全局开关状态，如果之前已关闭则隐藏
+        // 检查全局开关状态，默认始终显示（除非用户明确关闭）
+        // 修复：确保AI分身按钮默认可见
         if (!window.isAIFenshenEnabled()) {
             btn.classList.add("ai-copilot-btn-hidden");
         }
-        console.log('[AI Copilot] 浮动按钮已添加');
+        // 确保localStorage中的状态正确
+        if (localStorage.getItem("aiFenshenGlobalEnabled") === null) {
+            localStorage.setItem("aiFenshenGlobalEnabled", "true");
+        }
+        console.log('[AI Copilot] 浮动按钮已添加，状态:', window.isAIFenshenEnabled());
     }
     
     setTimeout(initAICopilot, 2000);
