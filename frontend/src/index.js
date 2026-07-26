@@ -1,5 +1,5 @@
 /**
- * TeamChat Frontend v4.0.9
+ * TeamChat Frontend v5.2.0
  * 修复: QP.plugin.getMediaUrl 渲染崩盘，加安全守卫
  */
 (function () {
@@ -960,7 +960,7 @@
           );
         })()
       ),
-      e(Modal,{title:"📖 TeamChat v4.0.9 说明文档",open:readmeV,onCancel:function(){setReadmeV(false);},footer:null,width:800,style:{maxHeight:"80vh"}},
+      e(Modal,{title:"📖 TeamChat v5.2.0 说明文档",open:readmeV,onCancel:function(){setReadmeV(false);},footer:null,width:800,style:{maxHeight:"80vh"}},
         e("div",{style:{maxHeight:"60vh",overflow:"auto",padding:"0 8px",fontFamily:"monospace",fontSize:12,whiteSpace:"pre-wrap",lineHeight:1.6}},readmeC||"加载中...")
       )
     ));

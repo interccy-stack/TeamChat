@@ -1,5 +1,5 @@
 /**
- * TeamChat 邮箱管理组件 v0.5.0
+ * TeamChat 邮箱管理组件 v5.2.0
  * 多邮箱管理 + 写邮件 + AI助手
  */
 
@@ -62,7 +62,7 @@
         container.innerHTML = `
             <div class="email-header">
                 <h2 style="margin: 0 0 15px 0; color: #667eea; font-size: 24px;">
-                    📧 TeamChat 邮箱系统 v0.5.0
+                    📧 TeamChat 邮箱系统 v5.2.0
                 </h2>
                 <p style="margin: 0 0 20px 0; color: #666; font-size: 14px;">
                     多邮箱管理 + 写邮件 + AI助手 | 端口: 18888
@@ -779,7 +779,7 @@
         // 加载写邮件组件
         loadEmailComposeComponent();
 
-        console.log('[TeamChat Email] 邮箱管理组件 v0.5.0 已初始化');
+        console.log('[TeamChat Email] 邮箱管理组件 v5.2.0 已初始化');
     }
 
     // 导出到全局

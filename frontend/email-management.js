@@ -1,5 +1,5 @@
 /**
- * TeamChat 邮箱管理组件 v0.4.0
+ * TeamChat 邮箱管理组件 v5.2.0
  * 多邮箱管理 + 传统邮箱
  * 集成到TeamChat插件内部
  */
@@ -25,7 +25,7 @@
         container.innerHTML = `
             <div class="email-header">
                 <h2 style="margin: 0 0 15px 0; color: #667eea; font-size: 24px;">
-                    📧 TeamChat 邮箱系统 v0.4.0
+                    📧 TeamChat 邮箱系统 v5.2.0
                 </h2>
                 <p style="margin: 0 0 20px 0; color: #666; font-size: 14px;">
                     多邮箱管理 | 端口: 18888

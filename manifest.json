@@ -1,8 +1,8 @@
 {
     "id": "team_chat",
     "name": "TeamChat",
-    "version": "5.0.19",
-    "description": "TeamChat v5.0.19 — 新会谈，融合AI分身、巢邮箱系统。新增AI群聊入口、6步新手引导。",
+    "version": "5.2.0",
+    "description": "TeamChat v5.2.0 — 再一次跨界的扩展「智能体可以管理并匹配工作任务建立自定义群进行团队会谈」 · AI主持圆桌会谈 · AI群聊（上下文感知）· AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇",
     "author": "0+1+2≠3 Team 115886",
     "entry": {
         "backend": "team_chat_main.py",
@@ -11,7 +11,7 @@
     "menu": {
         "label": "新会谈",
         "icon": "团",
-        "description": "以 AI 为主持人，开启人类与智能体之间的新会谈。新增AI群聊、新手引导。"
+        "description": "以 AI 为主持人，开启人类与智能体之间的新会谈。再一次跨界的扩展「智能体可以管理并匹配工作任务建立自定义群进行团队会谈」 · AI主持圆桌会谈 · AI群聊（上下文感知）· AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇"
     },
     "permissions": [
         "agent.list",

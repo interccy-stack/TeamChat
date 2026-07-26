@@ -1,24 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""TeamChat Plugin Backend v5.1.4 — AI群聊智能体动态管理
+"""TeamChat Plugin Backend v5.2.0 — AI群聊文件上传下载
 
 修复:
-  1. 添加 ai_group_chat 模块预加载，确保 QwenPaw 隔离环境下可解析
-  2. _get_ai_engine() 增加 sys.path 保障和错误缓存机制
-  3. 路由错误信息包含具体异常原因，便于排查
+  1. AI群聊支持文件上传/下载/预览
+  2. 智能体产物（代码、文档、图片）可保存和下载
+  3. 支持图片、PDF、代码文件在线预览
+  4. 文件元数据持久化存储
 
 原有功能:
-  1. POST /upload — 文件上传（txt/md/json/py/js/html/css/xml/csv/log/yaml/yml，最大5MB）
-  2. POST /chat — 返回前先存session，前端断开不丢
+  1. POST /upload — 文件上传
+  2. POST /chat — 返回前先存session
   3. DELETE /session/{id} — 删除会话
   4. PUT /session/{id}/tag — 标签
   5. PUT /session/{id}/pin — 置顶/取消
   6. GET /sessions?search= — 搜索
-  7. POST /avatar — 头像上传（20x20 像素，jpg/png，用于圆桌动画）
-  8. 前端智能体图标缩放功能（16-40px滑块调节）
+  7. POST /avatar — 头像上传
+  8. 前端智能体图标缩放功能
   9. 右下角支持链接区域
   10. 修复 Python 3.12+ imghdr 兼容性问题
-  11. 删除五子棋功能（精简）
+  11. 删除五子棋功能
+  12. AI群聊智能体动态管理（v5.1.4）
+  13. AI群聊上下文感知（v5.1.5）
 """
 
 import asyncio
@@ -197,7 +200,7 @@ def _load_email_backend():
 # 配置常量
 # ============================================================
 
-CURRENT_VERSION = "5.1.2"
+CURRENT_VERSION = "5.2.0"
 DEFAULT_HOST_ID = "cloud-orchestrator"
 MAX_HISTORY = 200
 SESSION_KEEPALIVE_DAYS = 7
@@ -882,7 +885,11 @@ def build_router():
         try:
             from pathlib import Path
             plugin_dir = Path(__file__).parent
+            
+            # 尝试多个目录：bookmarklet 或 frontend/dist/static
             file_path = plugin_dir / "bookmarklet" / filename
+            if not file_path.exists():
+                file_path = plugin_dir / "frontend" / "dist" / "static" / filename
             
             if not file_path.exists():
                 raise HTTPException(status_code=404, detail="文件不存在")
@@ -3035,111 +3042,15 @@ def build_router():
         finally:
             sys.path = _saved_path
     
-    @router.get("/ai-chat/official")
-    async def get_official_room():
-        """获取官方 AI 聊天室"""
-        engine = _get_ai_engine()
-        if engine:
-            return engine.get_official_room()
-        err = _ai_engine_error or "引擎未初始化"
-        return {"success": False, "error": f"引擎未初始化: {err}"}
-    
-    @router.post("/ai-chat/join")
-    async def join_ai_room(request: Request):
-        """加入 AI 聊天室"""
-        engine = _get_ai_engine()
-        if not engine:
-            err = _ai_engine_error or "引擎未初始化"
-            return {"success": False, "error": f"引擎未初始化: {err}"}
+    # 注册 AI 群聊路由（所有路由都在 ai_group_chat.py 中定义）
+    if ai_group_chat and hasattr(ai_group_chat, 'ai_chat_router'):
         try:
-            body = await request.json()
-            return engine.join_room(
-                body.get("room_id", "OFFICIAL_ROOM"),
-                body.get("user_id", ""),
-                body.get("nickname", "")
-            )
+            router.include_router(ai_group_chat.ai_chat_router, prefix="/ai-chat", tags=["ai-chat"])
+            logger.info("[AIChat] AI群聊路由已注册")
         except Exception as e:
-            logger.error(f"[AIChat] 加入房间失败: {e}")
-            return {"success": False, "error": str(e)}
-    
-    @router.post("/ai-chat/message")
-    async def send_ai_message(request: Request):
-        """发送消息到 AI 聊天室"""
-        engine = _get_ai_engine()
-        if not engine:
-            err = _ai_engine_error or "引擎未初始化"
-            return {"success": False, "error": f"引擎未初始化: {err}"}
-        try:
-            body = await request.json()
-            return engine.send_message(
-                body.get("room_id", "OFFICIAL_ROOM"),
-                body.get("user_id", ""),
-                body.get("message", ""),
-                body.get("msg_type", "text"),
-                body.get("nickname", "")
-            )
-        except Exception as e:
-            logger.error(f"[AIChat] 发送消息失败: {e}")
-            return {"success": False, "error": str(e)}
-    
-    @router.get("/ai-chat/messages/{room_id}")
-    async def get_ai_messages(room_id: str, user_id: str = "", since: str = None, limit: int = 50):
-        """获取 AI 聊天室消息"""
-        engine = _get_ai_engine()
-        if engine:
-            return engine.get_messages(room_id, user_id, since, limit)
-        err = _ai_engine_error or "引擎未初始化"
-        return {"success": False, "error": f"引擎未初始化: {err}"}
-    
-    @router.get("/ai-chat/members/{room_id}")
-    async def get_ai_members(room_id: str):
-        """获取 AI 聊天室成员"""
-        engine = _get_ai_engine()
-        if engine:
-            return engine.get_members(room_id)
-        err = _ai_engine_error or "引擎未初始化"
-        return {"success": False, "error": f"引擎未初始化: {err}"}
-    
-    # ---- AI群聊智能体管理 (v5.1.4) ----
-    
-    @router.get("/ai-chat/agents")
-    async def get_ai_agents():
-        """获取所有AI群聊智能体"""
-        engine = _get_ai_engine()
-        if not engine:
-            err = _ai_engine_error or "引擎未初始化"
-            return {"success": False, "error": f"引擎未初始化: {err}"}
-        return engine.get_agents()
-    
-    @router.post("/ai-chat/agents/add")
-    async def add_ai_agent(request: Request):
-        """添加AI群聊智能体"""
-        engine = _get_ai_engine()
-        if not engine:
-            err = _ai_engine_error or "引擎未初始化"
-            return {"success": False, "error": f"引擎未初始化: {err}"}
-        try:
-            body = await request.json()
-            return engine.add_agent(body)
-        except Exception as e:
-            logger.error(f"[AIChat] 添加智能体失败: {e}")
-            return {"success": False, "error": str(e)}
-    
-    @router.post("/ai-chat/agents/remove")
-    async def remove_ai_agent(request: Request):
-        """删除AI群聊智能体"""
-        engine = _get_ai_engine()
-        if not engine:
-            err = _ai_engine_error or "引擎未初始化"
-            return {"success": False, "error": f"引擎未初始化: {err}"}
-        try:
-            body = await request.json()
-            return engine.remove_agent(body.get("agent_id", ""))
-        except Exception as e:
-            logger.error(f"[AIChat] 删除智能体失败: {e}")
-            return {"success": False, "error": str(e)}
-    
-    logger.info("[AIChat] AI群聊路由已注册")
+            logger.warning(f"[AIChat] AI群聊路由注册失败: {e}")
+    else:
+        logger.warning("[AIChat] ai_group_chat 模块未加载，跳过路由注册")
 
     return router
 

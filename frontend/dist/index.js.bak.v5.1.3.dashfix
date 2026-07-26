@@ -1,10 +1,8 @@
 /**
  * ===================================================================
- *  TeamChat Frontend v5.2.0 — AI群聊文件管理
- *  【新增】AI群聊智能体动态添加/删除
- *  【修复】串串汇选择智能体渲染错误
- *  【修复】AI群聊引擎初始化问题，模块预加载和错误缓存
- *  【AI群聊】内部子页面，支持动态智能体群聊和@提及
+ *  TeamChat Frontend v5.1.3 — 稳定版本
+ *  【修复】AI群聊引擎初始化问题，添加模块预加载和错误缓存机制
+ *  【AI群聊】内部子页面，支持5个智能体群聊和@提及
  *  【新手引导】6步交互式引导系统，详细说明右边功能区
  *  【串串频道 v2.0】ChuanChuanPage: 4-Tab统一页面
  *    📡频道 | 📂历史 | ✍️原创作者AI | 📤导出
@@ -14,37 +12,10 @@
  *  【AI防卫】轻量安全提示（移除ClamAV）
  *  【Chrome扩展】AI分身Pro + 智能感知
  * ===================================================================
- *  CACHE_BUST: 20260726_2200_v14
+ *  CACHE_BUST: 20250724_1030
  */
 // 全局兜底：确保 getApiUrl 在任何时候都可用
 if(typeof window.getApiUrl==='undefined'&&window.QwenPaw&&window.QwenPaw.host&&window.QwenPaw.host.getApiUrl){window.getApiUrl=window.QwenPaw.host.getApiUrl;}
-
-// AI群聊样式优化
-var aiChatStyle = document.createElement('style');
-aiChatStyle.textContent = `
-  /* AI群聊容器 */
-  .ai-chat-container { }
-  
-  /* 消息区域 - 保留滚动功能 */
-  .ai-chat-messages { }
-`;
-document.head.appendChild(aiChatStyle);
-
-// 页面加载时将滚动位置设为顶部
-window.addEventListener('load', function() {
-  window.scrollTo(0, 0);
-  document.body.scrollTop = 0;
-  document.documentElement.scrollTop = 0;
-});
-
-// 进入AI群聊时滚动到顶部
-function scrollToTop() {
-  window.scrollTo(0, 0);
-  document.body.scrollTop = 0;
-  document.documentElement.scrollTop = 0;
-  var msgContainer = document.querySelector('.ai-chat-messages');
-  if (msgContainer) msgContainer.scrollTop = 0;
-}
 // ========== 原生联系人添加弹窗（绕过React渲染管道） ==========
 window.showAddContactModal = function(newContact, setNewContact, addContact) {
   if (document.getElementById('cc-add-contact-modal')) return;
@@ -338,8 +309,8 @@ function _hiveFallback(addr){
 }
 
 (function () {
-  // TeamChat v5.2.0 - AI群聊文件管理
-  console.log('[TeamChat] v5.2.0 AI群聊文件管理 加载时间:', new Date().toLocaleString());
+  // TeamChat v5.1.3 - AI群聊引擎修复版
+  console.log('[TeamChat] v5.1.3 AI群聊引擎修复版 加载时间:', new Date().toLocaleString());
   
   var s = document.createElement("style");
   s.textContent =
@@ -594,6 +565,75 @@ function _hiveFallback(addr){
     var r = await fetch(getApiUrl("/plugins/team_chat"+p), {method:"DELETE",headers:apiHeaders()});
     if (!r.ok) throw new Error("HTTP "+r.status);
     return r.json();
+  }
+
+  // ---- LLM 配置 API ----
+  async function loadLlmConfig() {
+    setLlmLoading(true);
+    try {
+      var r = await fetch(getApiUrl("/plugins/team_chat/llm-config"), {headers:apiHeaders()});
+      if (!r.ok) throw new Error("HTTP "+r.status);
+      var d = await r.json();
+      setLlmSaved(d);
+      // 如果有已保存的配置，加载到表单
+      if (d.has_key) {
+        setLlmCfg({
+          api_key: "",  // 不显示完整 key
+          base_url: d.base_url || "https://dashscope.aliyuncs.com/compatible-mode/v1",
+          model: d.model || "qwen-plus"
+        });
+      }
+      setLlmLoading(false);
+    } catch(e) {
+      setLlmLoading(false);
+      console.error("加载 LLM 配置失败:", e);
+    }
+  }
+
+  async function saveLlmConfig() {
+    setLlmSaveResult(null);
+    try {
+      var body = {
+        api_key: llmCfg.api_key,
+        base_url: llmCfg.base_url,
+        model: llmCfg.model
+      };
+      var r = await fetch(getApiUrl("/plugins/team_chat/llm-config"), {
+        method:"POST",
+        headers:apiHeaders(),
+        body:JSON.stringify(body)
+      });
+      if (!r.ok) throw new Error("HTTP "+r.status);
+      var d = await r.json();
+      setLlmSaveResult({ok:true, msg:d.message||"配置已保存"});
+      // 重新加载配置
+      loadLlmConfig();
+    } catch(e) {
+      setLlmSaveResult({ok:false, msg:e.message});
+    }
+  }
+
+  async function testLlmConfig() {
+    setLlmTestResult(null);
+    setLlmTestLoading(true);
+    try {
+      var body = {
+        api_key: llmCfg.api_key || llmSaved.api_key,  // 如果表单为空，用已保存的
+        base_url: llmCfg.base_url,
+        model: llmCfg.model
+      };
+      var r = await fetch(getApiUrl("/plugins/team_chat/llm-config/test"), {
+        method:"POST",
+        headers:apiHeaders(),
+        body:JSON.stringify(body)
+      });
+      var d = await r.json();
+      setLlmTestResult(d);
+      setLlmTestLoading(false);
+    } catch(e) {
+      setLlmTestResult({ok:false, error:e.message});
+      setLlmTestLoading(false);
+    }
   }
 
   // =================== MessageBubble ===================
@@ -897,75 +937,6 @@ function ChuanChuanPage(_p) {
   var _llmTestResult = useState(null), llmTestResult = _llmTestResult[0], setLlmTestResult = _llmTestResult[1];
   var _llmTestLoading = useState(false), llmTestLoading = _llmTestLoading[0], setLlmTestLoading = _llmTestLoading[1];
   var _llmSaveResult = useState(null), llmSaveResult = _llmSaveResult[0], setLlmSaveResult = _llmSaveResult[1];
-
-  // ---- LLM 配置 API ----
-  async function loadLlmConfig() {
-    setLlmLoading(true);
-    try {
-      var r = await fetch(getApiUrl("/plugins/team_chat/llm-config"), {headers:apiHeaders()});
-      if (!r.ok) throw new Error("HTTP "+r.status);
-      var d = await r.json();
-      setLlmSaved(d);
-      // 如果有已保存的配置，加载到表单
-      if (d.has_key) {
-        setLlmCfg({
-          api_key: "",  // 不显示完整 key
-          base_url: d.base_url || "https://dashscope.aliyuncs.com/compatible-mode/v1",
-          model: d.model || "qwen-plus"
-        });
-      }
-      setLlmLoading(false);
-    } catch(e) {
-      setLlmLoading(false);
-      console.error("加载 LLM 配置失败:", e);
-    }
-  }
-
-  async function saveLlmConfig() {
-    setLlmSaveResult(null);
-    try {
-      var body = {
-        api_key: llmCfg.api_key,
-        base_url: llmCfg.base_url,
-        model: llmCfg.model
-      };
-      var r = await fetch(getApiUrl("/plugins/team_chat/llm-config"), {
-        method:"POST",
-        headers:apiHeaders(),
-        body:JSON.stringify(body)
-      });
-      if (!r.ok) throw new Error("HTTP "+r.status);
-      var d = await r.json();
-      setLlmSaveResult({ok:true, msg:d.message||"配置已保存"});
-      // 重新加载配置
-      loadLlmConfig();
-    } catch(e) {
-      setLlmSaveResult({ok:false, msg:e.message});
-    }
-  }
-
-  async function testLlmConfig() {
-    setLlmTestResult(null);
-    setLlmTestLoading(true);
-    try {
-      var body = {
-        api_key: llmCfg.api_key || llmSaved.api_key,  // 如果表单为空，用已保存的
-        base_url: llmCfg.base_url,
-        model: llmCfg.model
-      };
-      var r = await fetch(getApiUrl("/plugins/team_chat/llm-config/test"), {
-        method:"POST",
-        headers:apiHeaders(),
-        body:JSON.stringify(body)
-      });
-      var d = await r.json();
-      setLlmTestResult(d);
-      setLlmTestLoading(false);
-    } catch(e) {
-      setLlmTestResult({ok:false, error:e.message});
-      setLlmTestLoading(false);
-    }
-  }
 
   // 快捷指令
   var QUICK_COMMANDS = [
@@ -1352,15 +1323,6 @@ function ChuanChuanPage(_p) {
   }
   useEffect(function(){ loadSess(); },[]);
 
-  // 检测分享链接，自动打开AI群聊
-  useEffect(function(){
-    var hash = window.location.hash;
-    if (hash && hash.startsWith('#/chat/')) {
-      console.log('[TeamChat] 检测到分享链接，自动打开AI群聊');
-      setAiChatView(true);
-    }
-  },[]);
-
   // 加载 LLM 配置
   useEffect(function(){ loadLlmConfig(); },[]);
 
@@ -1729,25 +1691,6 @@ function ChuanChuanPage(_p) {
             e("div",null,e("strong",null,"⚡ 快捷指令")," — /总结 /翻译 /代码 /提问 /邮件 等10个指令"),
             e("div",null,e("strong",null,"🧠 记忆增强")," — 记住用户偏好、历史话题、跨会话记忆"),
             e("div",null,e("strong",null,"💡 使用方式")," — 点击浮动🤖按钮，输入/查看快捷指令")
-          )
-        ),
-        e(Card,{title:"💬 AI群聊",style:{marginBottom:14,borderRadius:16,background:"linear-gradient(135deg,#E3F2FD,#BBDEFB)",border:"1px solid #2196F3"}},
-          e("div",{style:{fontSize:13,color:"#1565C0",lineHeight:2}},
-            e("div",null,e("strong",null,"👥 多智能体群聊")," — 阿里、Executor、QA、Master、Verifier 常驻群聊"),
-            e("div",null,e("strong",null,"@ 提及回复")," — @智能体名 指定特定智能体回复"),
-            e("div",null,e("strong",null,"📝 上下文感知")," — 智能体能看到群聊历史，回复更连贯"),
-            e("div",null,e("strong",null,"⚙️ 管理智能体")," — 在聊天室可以删除和增加智能体"),
-            e("div",null,e("strong",null,"💡 使用方式")," — 点击菜单 🤖 AI群聊 进入")
-          )
-        ),
-        // AI协作 - 隐藏功能
-        e(Card,{title:"🤝 AI协作",style:{marginBottom:14,borderRadius:16,background:"linear-gradient(135deg,#FFF3E0,#FFE0B2)",border:"1px solid #FF9800"}},
-          e("div",{style:{fontSize:13,color:"#E65100",lineHeight:2}},
-            e("div",null,e("strong",null,"🌐 云端协作")," — 多端同步，团队共享智能体"),
-            e("div",null,e("strong",null,"📢 公共频道")," — 插件开发、创意建议、云端讨论"),
-            e("div",null,e("strong",null,"💬 话题讨论")," — 留言墙、好物分享、心音疗愈"),
-            e("div",null,e("strong",null,"🎮 互动功能")," — 土豆游戏、番茄钟、工具哇"),
-            e("div",null,e("strong",null,"🔗 加入方式")," — ",e("a",{href:"https://nightly.paw.msgbyte.com/invite/cHcE5-8q",target:"_blank",style:{color:"#FF9800",textDecoration:"underline"}},"点击加入云端协作"))
           )
         )
       ):null,
@@ -2264,7 +2207,7 @@ function ChuanChuanPage(_p) {
                   e("div",{style:{fontSize:11,color:"#1565C0",marginTop:2}},agentDetail.host_id)
                 ),
                 e("div",{style:{textAlign:"right"}},
-                  e("div",{style:{fontSize:24,fontWeight:"bold",color:"#0D47A1"}},(agentDetail.stats&&agentDetail.stats.msg_count)||0),
+                  e("div",{style:{fontSize:24,fontWeight:"bold",color:"#0D47A1"}},agentDetail.stats.msg_count),
                   e("div",{style:{fontSize:11,color:"#1565C0"}},"总消息数")
                 )
               )
@@ -2272,26 +2215,26 @@ function ChuanChuanPage(_p) {
             // 该智能体指标卡
             e("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}},
               e(Card,{size:"small",style:{borderRadius:12,background:"#E8F5E9",border:"1px solid #A5D6A7",textAlign:"center"}},
-                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#2E7D32"}},(agentDetail.stats&&agentDetail.stats.count_12h)||0),
+                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#2E7D32"}},agentDetail.stats.count_12h),
                 e("div",{style:{fontSize:10,color:"#388E3C",marginTop:2}},"12h被问")
               ),
               e(Card,{size:"small",style:{borderRadius:12,background:"#E3F2FD",border:"1px solid #90CAF9",textAlign:"center"}},
-                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#1565C0"}},(agentDetail.stats&&agentDetail.stats.count_7d)||0),
+                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#1565C0"}},agentDetail.stats.count_7d),
                 e("div",{style:{fontSize:10,color:"#1976D2",marginTop:2}},"7天被问")
               ),
               e(Card,{size:"small",style:{borderRadius:12,background:"#FFF3E0",border:"1px solid #FFCC80",textAlign:"center"}},
-                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#E65100"}},(agentDetail.stats&&agentDetail.stats.session_count)||0),
+                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#E65100"}},agentDetail.stats.session_count),
                 e("div",{style:{fontSize:10,color:"#EF6C00",marginTop:2}},t("totalSessions"))
               ),
               e(Card,{size:"small",style:{borderRadius:12,background:"#F3E5F5",border:"1px solid #CE93D8",textAlign:"center"}},
-                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#6A1B9A"}},(agentDetail.stats&&agentDetail.stats.brainstorm_count)||0),
+                e("div",{style:{fontSize:20,fontWeight:"bold",color:"#6A1B9A"}},agentDetail.stats.brainstorm_count),
                 e("div",{style:{fontSize:10,color:"#7B1FA2",marginTop:2}},t("brainstorm"))
               )
             ),
             // 该智能体的会话列表
             e(Card,{size:"small",style:{borderRadius:14,background:"#FFFFFF",border:"1px solid #E0E0E0"}},
               e("div",{style:{fontSize:13,fontWeight:"bold",color:"#4E342E",marginBottom:8}},"📂 与该智能体的对话记录"),
-              (agentDetail.sessions&&agentDetail.sessions.length>0)?
+              agentDetail.sessions.length>0?
                 e("div",{style:{display:"flex",flexDirection:"column",gap:4}},
                   agentDetail.sessions.map(function(s,i){
                     var t = new Date(s.updated_at*1000);
@@ -2321,22 +2264,22 @@ function ChuanChuanPage(_p) {
           e("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}},
             // 总对话次数
             e(Card,{size:"small",style:{borderRadius:14,background:"linear-gradient(135deg,#E8F5E9,#C8E6C9)",border:"1px solid #A5D6A7",textAlign:"center"}},
-              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#2E7D32"}},(dashData.summary&&dashData.summary.total_messages)||0),
+              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#2E7D32"}},dashData.summary.total_messages),
               e("div",{style:{fontSize:11,color:"#388E3C",marginTop:2}},"📝 总消息数")
             ),
             // 活跃会话
             e(Card,{size:"small",style:{borderRadius:14,background:"linear-gradient(135deg,#E3F2FD,#BBDEFB)",border:"1px solid #90CAF9",textAlign:"center"}},
-              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#1565C0"}},(dashData.summary&&dashData.summary.active_12h)||0),
+              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#1565C0"}},dashData.summary.active_12h),
               e("div",{style:{fontSize:11,color:"#1976D2",marginTop:2}},"⚡ 12h活跃")
             ),
             // 智能体数
             e(Card,{size:"small",style:{borderRadius:14,background:"linear-gradient(135deg,#FFF3E0,#FFE0B2)",border:"1px solid #FFCC80",textAlign:"center"}},
-              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#E65100"}},(dashData.summary&&dashData.summary.agent_count)||0),
+              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#E65100"}},dashData.summary.agent_count),
               e("div",{style:{fontSize:11,color:"#EF6C00",marginTop:2}},"🤖 智能体")
             ),
             // 头脑风暴
             e(Card,{size:"small",style:{borderRadius:14,background:"linear-gradient(135deg,#F3E5F5,#E1BEE7)",border:"1px solid #CE93D8",textAlign:"center"}},
-              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#6A1B9A"}},(dashData.summary&&dashData.summary.brainstorm_total)||0),
+              e("div",{style:{fontSize:24,fontWeight:"bold",color:"#6A1B9A"}},dashData.summary.brainstorm_total),
               e("div",{style:{fontSize:11,color:"#7B1FA2",marginTop:2}},"💡 头脑风暴")
             )
           ),
@@ -2351,25 +2294,25 @@ function ChuanChuanPage(_p) {
               e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0",textAlign:"center"}},t("totalMsgs")),
               e("div",{style:{padding:"6px 8px",background:"#F5F5F5",fontWeight:"bold",borderBottom:"1px solid #E0E0E0",textAlign:"center"}},"风暴次数"),
               // 数据行
-              (dashData.agents||[]).map(function(a,i){
+              dashData.agents.map(function(a,i){
                 return [
                   e("div",{key:"n"+i,style:{padding:"6px 8px",borderBottom:"1px solid #F0F0F0",color:"#4E342E"}},
                     e("span",{style:{fontWeight:500}},a.host_name||a.host_id)),
                   e("div",{key:"h"+i,style:{padding:"6px 8px",borderBottom:"1px solid #F0F0F0",textAlign:"center"}},
                     e("span",{style:{
                       display:"inline-block",padding:"2px 8px",borderRadius:10,fontSize:11,fontWeight:"bold",
-                      background:(a.count_12h||0)>0?"#E8F5E9":"#F5F5F5",
-                      color:(a.count_12h||0)>0?"#2E7D32":"#BDBDBD"
-                    }},a.count_12h||0)),
+                      background:a.count_12h>0?"#E8F5E9":"#F5F5F5",
+                      color:a.count_12h>0?"#2E7D32":"#BDBDBD"
+                    }},a.count_12h)),
                   e("div",{key:"d"+i,style:{padding:"6px 8px",borderBottom:"1px solid #F0F0F0",textAlign:"center"}},
                     e("span",{style:{
                       display:"inline-block",padding:"2px 8px",borderRadius:10,fontSize:11,fontWeight:"bold",
-                      background:(a.count_7d||0)>0?"#E3F2FD":"#F5F5F5",
-                      color:(a.count_7d||0)>0?"#1565C0":"#BDBDBD"
-                    }},a.count_7d||0)),
-                  e("div",{key:"m"+i,style:{padding:"6px 8px",borderBottom:"1px solid #F0F0F0",textAlign:"center",color:"#5D4037"}},a.msg_count||0),
+                      background:a.count_7d>0?"#E3F2FD":"#F5F5F5",
+                      color:a.count_7d>0?"#1565C0":"#BDBDBD"
+                    }},a.count_7d)),
+                  e("div",{key:"m"+i,style:{padding:"6px 8px",borderBottom:"1px solid #F0F0F0",textAlign:"center",color:"#5D4037"}},a.msg_count),
                   e("div",{key:"b"+i,style:{padding:"6px 8px",borderBottom:"1px solid #F0F0F0",textAlign:"center"}},
-                    (a.brainstorm_count||0)>0?
+                    a.brainstorm_count>0?
                       e("span",{style:{color:"#7B1FA2",fontWeight:"bold"}},"💡 "+a.brainstorm_count):
                       e("span",{style:{color:"#BDBDBD"}},"-"))
                 ];
@@ -2384,30 +2327,30 @@ function ChuanChuanPage(_p) {
               e("div",{style:{display:"flex",flexDirection:"column",gap:6}},
                 e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
                   e("span",{style:{fontSize:12,color:"#5D4037"}},"⚡ 12h内对话"),
-                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#E65100"}},((dashData.summary&&dashData.summary.active_12h)||0)+"次")
+                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#E65100"}},dashData.summary.active_12h+"次")
                 ),
                 e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
                   e("span",{style:{fontSize:12,color:"#5D4037"}},"📅 7天内对话"),
-                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#1565C0"}},((dashData.summary&&dashData.summary.active_7d)||0)+"次")
+                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#1565C0"}},dashData.summary.active_7d+"次")
                 ),
                 e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
                   e("span",{style:{fontSize:12,color:"#5D4037"}},"💡 12h头脑风暴"),
-                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#7B1FA2"}},((dashData.summary&&dashData.summary.brainstorm_12h)||0)+"次")
+                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#7B1FA2"}},dashData.summary.brainstorm_12h+"次")
                 ),
                 e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
                   e("span",{style:{fontSize:12,color:"#5D4037"}},"💡 7天头脑风暴"),
-                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#7B1FA2"}},((dashData.summary&&dashData.summary.brainstorm_7d)||0)+"次")
+                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#7B1FA2"}},dashData.summary.brainstorm_7d+"次")
                 ),
                 e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
                   e("span",{style:{fontSize:12,color:"#5D4037"}},"📂 总会话数"),
-                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#4E342E"}},(dashData.summary&&dashData.summary.total_sessions)||0)
+                  e("span",{style:{fontSize:14,fontWeight:"bold",color:"#4E342E"}},dashData.summary.total_sessions)
                 )
               )
             ),
             // ===== 最近活跃会话（右侧） =====
             e(Card,{size:"small",style:{borderRadius:14,background:"#FFFFFF",border:"1px solid #E0E0E0"}},
               e("div",{style:{fontSize:13,fontWeight:"bold",color:"#4E342E",marginBottom:8}},"🕐 最近活跃会话"),
-              (dashData.recent_sessions&&dashData.recent_sessions.length>0)?
+              dashData.recent_sessions.length>0?
                 e("div",{style:{display:"flex",flexDirection:"column",gap:4}},
                   dashData.recent_sessions.map(function(s,i){
                     var t = new Date(s.updated_at*1000);
@@ -2424,7 +2367,7 @@ function ChuanChuanPage(_p) {
                         s.tag?e("span",{style:{fontSize:10,padding:"1px 6px",borderRadius:6,background:"#FFF3E0",color:"#E65100"}},s.tag):null
                       ),
                       e("div",{style:{display:"flex",alignItems:"center",gap:8}},
-                        e("span",{style:{fontSize:11,color:"#8D6E63"}},(s.msg_count||0)+"条消息"),
+                        e("span",{style:{fontSize:11,color:"#8D6E63"}},s.msg_count+"条消息"),
                         e("span",{style:{fontSize:11,color:"#BDBDBD"}},timeStr)
                       )
                     );
@@ -2433,7 +2376,7 @@ function ChuanChuanPage(_p) {
                 e("div",{style:{textAlign:"center",padding:"12px 0",color:"#BDBDBD",fontSize:12}},"暂无活跃会话"),
               // 更新时间
               e("div",{style:{fontSize:10,color:"#BDBDBD",marginTop:8,textAlign:"right"}},
-                "上次更新: "+(dashData.generated_at?new Date(dashData.generated_at*1000).toLocaleTimeString():"未知")+" · 每30秒自动刷新")
+                "上次更新: "+new Date(dashData.generated_at*1000).toLocaleTimeString()+" · 每30秒自动刷新")
             )
           ),
           // ===== 关于串串 =====
@@ -6950,7 +6893,7 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
           )
         ))
       ),
-      e(Modal,{title:"📖 TeamChat v5.2.0 说明文档",open:readmeV,onCancel:function(){setReadmeV(false);},footer:null,width:800,style:{maxHeight:"80vh"}},
+      e(Modal,{title:"📖 TeamChat v4.0.9 说明文档",open:readmeV,onCancel:function(){setReadmeV(false);},footer:null,width:800,style:{maxHeight:"80vh"}},
         e("div",{style:{maxHeight:"60vh",overflow:"auto",padding:"0 8px",fontFamily:"monospace",fontSize:12,whiteSpace:"pre-wrap",lineHeight:1.6}},readmeC||t("loading"))
       ),
       // ⌨ 快捷键面板
@@ -9292,7 +9235,7 @@ window.sendToAgentViaStorage = function(message, retryCount) {
     };
     
     var parseResponse = function(text) {
-        console.log('[AI分身] 收到响应:', text.substring(0, 500));
+        console.log('[AI分身] 收到响应:', text.substring(0, 200));
         
         // 解析 SSE 流式响应
         var reply = '';
@@ -9306,9 +9249,8 @@ window.sendToAgentViaStorage = function(message, retryCount) {
                 if (dataStr && dataStr !== '[DONE]') {
                     try {
                         var data = JSON.parse(dataStr);
-                        console.log('[AI分身] 解析到数据:', JSON.stringify(data).substring(0, 200));
-                        // 保存所有有效数据（不只是 completed）
-                        if (data.output || data.message || data.text || data.content) {
+                        // 只保存状态为 completed 或 output 不为 null 的数据
+                        if (data.status === 'completed' || data.output) {
                             lastData = data;
                         }
                     } catch(e) {
@@ -9320,8 +9262,6 @@ window.sendToAgentViaStorage = function(message, retryCount) {
         
         // 从最后一个有效 data 中提取回复
         if (lastData) {
-            console.log('[AI分身] 最后数据:', JSON.stringify(lastData).substring(0, 300));
-            
             // 尝试从 output 中提取
             if (lastData.output && Array.isArray(lastData.output)) {
                 for (var j = 0; j < lastData.output.length; j++) {
@@ -9332,8 +9272,6 @@ window.sendToAgentViaStorage = function(message, retryCount) {
                                 reply += item.content[k].text;
                             }
                         }
-                    } else if (typeof item.content === 'string') {
-                        reply += item.content;
                     }
                 }
             }
@@ -9346,15 +9284,7 @@ window.sendToAgentViaStorage = function(message, retryCount) {
                 reply = lastData.text;
             }
             if (!reply && lastData.content) {
-                if (typeof lastData.content === 'string') {
-                    reply = lastData.content;
-                } else if (Array.isArray(lastData.content)) {
-                    for (var c = 0; c < lastData.content.length; c++) {
-                        if (lastData.content[c].type === 'text') {
-                            reply += lastData.content[c].text;
-                        }
-                    }
-                }
+                reply = lastData.content;
             }
         }
         
@@ -10199,195 +10129,69 @@ window.TeamChatEmail.editAICronJob = function() {
     // AI 群聊组件
     function AIGroupChatPage(props) {
       var onBack = props && props.onBack;
-      // 房间管理
-      var [roomId, setRoomId] = useState('OFFICIAL_ROOM');
-      var [roomName, setRoomName] = useState('官方 AI 聊天室');
-      var [rooms, setRooms] = useState([]);
-      var [showRoomList, setShowRoomList] = useState(false);
-      var [showCreateRoom, setShowCreateRoom] = useState(false);
-      var [newRoomName, setNewRoomName] = useState('');
-      var [newRoomPassword, setNewRoomPassword] = useState('');
       var [messages, setMessages] = useState([]);
       var [inputText, setInputText] = useState('');
       var [loading, setLoading] = useState(false);
       var [agents, setAgents] = useState([]);
       var [showAllAgents, setShowAllAgents] = useState(false);
-      var [showAgentMgr, setShowAgentMgr] = useState(false);
-      var [agentForm, setAgentForm] = useState({name:'',agent_api_id:'',icon:'🤖',color:'#667eea'});
-      // 系统可用智能体列表
-      var [systemAgents, setSystemAgents] = useState([]);
-      // 使用 localStorage 存储固定的用户ID，保持一致性
-      var [userId, setUserId] = useState(function() {
-        var savedUserId = localStorage.getItem('teamchat_ai_user_id');
-        if (savedUserId) return savedUserId;
-        var newUserId = 'user_' + Math.random().toString(36).substr(2, 8);
-        localStorage.setItem('teamchat_ai_user_id', newUserId);
-        return newUserId;
-      });
-      var [nickname, setNickname] = useState(function() {
-        var savedNickname = localStorage.getItem('teamchat_ai_nickname');
-        if (savedNickname) return savedNickname;
-        var newNickname = '访客' + Math.floor(Math.random() * 1000);
-        localStorage.setItem('teamchat_ai_nickname', newNickname);
-        return newNickname;
-      });
+      var [userId, setUserId] = useState('user_' + Math.random().toString(36).substr(2, 8));
+      var [nickname, setNickname] = useState('访客' + Math.floor(Math.random() * 1000));
       var messagesEndRef = useRef(null);
-      var messagesContainerRef = useRef(null);
-      var [unreadCount, setUnreadCount] = useState(0);
-      var [isAtBottom, setIsAtBottom] = useState(true);
       var inputRef = useRef(null);
       
-      // 解析分享链接中的房间ID
-      function parseShareLink() {
-        var hash = window.location.hash;
-        if (hash && hash.startsWith('#/chat/')) {
-          var sharedRoomId = hash.replace('#/chat/', '');
-          if (sharedRoomId && sharedRoomId !== 'OFFICIAL_ROOM') {
-            console.log('[AIChat] 检测到分享链接，房间ID:', sharedRoomId);
-            return sharedRoomId;
-          }
-        }
-        return null;
-      }
-      
-      // 通过分享链接加入房间
-      function joinSharedRoom(sharedRoomId, password) {
-        aiChatApiPost('/join', {
-          room_id: sharedRoomId,
-          user_id: userId,
-          nickname: nickname,
-          password: password || ''
-        }).then(function(data) {
-          if (data.success) {
-            console.log('[AIChat] 通过分享链接加入房间成功:', sharedRoomId);
-            setRoomId(sharedRoomId);
-            setRoomName(data.room_name || sharedRoomId);
-            message.success('✅ 已通过分享链接加入房间: ' + (data.room_name || sharedRoomId));
-            // 清除hash，避免重复加入
-            window.location.hash = '';
-            // 加载房间数据
-            loadRoomAgents(sharedRoomId);
-            loadMessages();
-          } else if (data.require_password) {
-            // 需要密码
-            var pwd = prompt('该房间需要密码才能进入:');
-            if (pwd) {
-              joinSharedRoom(sharedRoomId, pwd);
-            } else {
-              message.error('加入房间需要密码');
-            }
-          } else {
-            console.error('[AIChat] 通过分享链接加入房间失败:', data.error);
-            message.error('加入房间失败: ' + (data.error || '房间不存在或已过期'));
-          }
-        }).catch(function(err) {
-          console.error('[AIChat] 加入房间请求失败:', err);
-          message.error('加入房间失败: ' + err.message);
-        });
-      }
-      
-      // 初始化 - 检查分享链接
+      // 初始化 - 获取智能体列表
       useEffect(function() {
-        // 滚动到顶部
-        scrollToTop();
-        
-        // 预加载系统智能体列表
-        loadSystemAgents();
-        
-        var sharedRoomId = parseShareLink();
-        if (sharedRoomId) {
-          joinSharedRoom(sharedRoomId);
-        }
-      }, []);
-      
-      // 加载系统可用智能体列表
-      function loadSystemAgents() {
-        aiChatApiGet('/agents')
-          .then(function(data) {
-            if (data.success && data.agents) {
-              setSystemAgents(data.agents);
-            }
-          })
-          .catch(function(err) { console.error('[AIChat] 加载系统智能体失败:', err); });
-      }
-      
-      // 加载房间智能体列表
-      function loadRoomAgents(currentRoomId) {
-        console.log('[AIChat] 加载房间智能体列表, roomId:', currentRoomId);
-        aiChatApiGet('/agents?room_id=' + currentRoomId)
+        // 使用 TeamChat 首页相同的 API 获取智能体列表
+        console.log('[AIChat] 开始获取智能体列表...');
+        fetch(getApiUrl('/plugins/team_chat/all-agents'), {
+          headers: { 'Content-Type': 'application/json' }
+        })
+          .then(function(r) { return r.json(); })
           .then(function(data) {
             console.log('[AIChat] 获取智能体响应:', data);
-            if (data.success) {
-              console.log('[AIChat] 房间', currentRoomId, '的智能体:', data.agents ? data.agents.map(function(a) { return a.name; }).join(', ') : '空');
-              setAgents(data.agents || []);
+            if (data.agents && Array.isArray(data.agents)) {
+              // 转换智能体格式
+              var colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+              var icons = ['🤖', '⚡', '❓', '🎯', '✓', '🔮', '🌟'];
+              var formattedAgents = data.agents.map(function(agent, index) {
+                return {
+                  id: 'agent:' + agent.agent_id,
+                  name: agent.name || agent.agent_id,
+                  full_name: agent.description || agent.name,
+                  agent_api_id: agent.agent_id,
+                  icon: icons[index % icons.length],
+                  color: colors[index % colors.length]
+                };
+              });
+              console.log('[AIChat] 智能体数量:', formattedAgents.length);
+              setAgents(formattedAgents);
             } else {
-              console.error('[AIChat] 获取智能体失败:', data.error || '无数据');
-              setAgents([]);
+              console.error('[AIChat] 获取智能体失败:', data.error || '未知错误');
+              // 使用默认智能体
+              setAgents([
+                { id: 'agent:default', name: '阿里', icon: '🤖', color: '#FF6B6B' },
+                { id: 'agent:cloud-executor', name: 'Executor', icon: '⚡', color: '#4ECDC4' },
+                { id: 'agent:QwenPaw_QA_Agent_0.2', name: 'QA', icon: '❓', color: '#45B7D1' },
+                { id: 'agent:cloud-orchestrator', name: 'Master', icon: '🎯', color: '#96CEB4' },
+                { id: 'agent:cloud-verifier', name: 'Verifier', icon: '✓', color: '#FFEAA7' }
+              ]);
             }
           })
           .catch(function(err) { 
             console.error('[AIChat] 获取智能体失败:', err);
-            setAgents([]);
+            // 使用默认智能体
+            setAgents([
+              { id: 'agent:default', name: '阿里', icon: '🤖', color: '#FF6B6B' },
+              { id: 'agent:cloud-executor', name: 'Executor', icon: '⚡', color: '#4ECDC4' },
+              { id: 'agent:QwenPaw_QA_Agent_0.2', name: 'QA', icon: '❓', color: '#45B7D1' },
+              { id: 'agent:cloud-orchestrator', name: 'Master', icon: '🎯', color: '#96CEB4' },
+              { id: 'agent:cloud-verifier', name: 'Verifier', icon: '✓', color: '#FFEAA7' }
+            ]);
           });
-      }
-      
-      // 消息变化时自动滚动
-      useEffect(function() {
-        if (messages.length > 0) {
-          var container = messagesContainerRef.current;
-          if (container) {
-            // 检查是否在底部（允许50px误差）
-            var isBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-            if (isBottom) {
-              // 在底部，自动滚动
-              setTimeout(function() {
-                if (messagesEndRef.current) {
-                  messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-                }
-              }, 100);
-              setUnreadCount(0);
-            } else {
-              // 不在底部，增加未读计数
-              var lastMsg = messages[messages.length - 1];
-              if (lastMsg && !lastMsg.from.startsWith('agent:')) {
-                setUnreadCount(function(c) { return c + 1; });
-              }
-            }
-          }
-        }
-      }, [messages]);
-      
-      // 滚动到底部
-      function scrollToBottom() {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-        setUnreadCount(0);
-        setIsAtBottom(true);
-      }
-      
-      // 监听滚动事件
-      function handleScroll() {
-        var container = messagesContainerRef.current;
-        if (container) {
-          var isBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-          setIsAtBottom(isBottom);
-          if (isBottom) {
-            setUnreadCount(0);
-          }
-        }
-      }
-      
-      // 房间变化时重新加载智能体
-      useEffect(function() {
-        console.log('[AIChat] 房间变化, 新房间:', roomId);
         
-        // 加载该房间的智能体
-        loadRoomAgents(roomId);
-        
-        // 加入当前房间
+        // 加入官方聊天室
         aiChatApiPost('/join', {
-          room_id: roomId,
+          room_id: 'OFFICIAL_ROOM',
           user_id: userId,
           nickname: nickname
         }).then(function(data) {
@@ -10397,104 +10201,26 @@ window.TeamChatEmail.editAICronJob = function() {
           console.error('[AIChat] 加入聊天室失败:', err);
         });
         
-        // 加载房间列表
-        loadRooms();
-        
         // 定时刷新消息
         var interval = setInterval(loadMessages, 3000);
         return function() { clearInterval(interval); };
-      }, [roomId]);
+      }, []);
       
-      // 消息更新时保持当前滚动位置（不自动滚动）
-      // 如需滚动到底部，请手动滚动
-      
-      function loadRooms() {
-        aiChatApiGet('/rooms/list?user_id=' + userId)
-          .then(function(data) {
-            if (data.success && data.rooms) {
-              setRooms(data.rooms);
-            }
-          })
-          .catch(function(err) { console.error('[AIChat] 加载房间列表失败:', err); });
-      }
-      
-      function deleteRoom(roomIdToDelete, roomNameToDelete) {
-        if (roomIdToDelete === 'OFFICIAL_ROOM') {
-          message.error('官方聊天室不能删除');
-          return;
+      // 滚动到底部
+      useEffect(function() {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-        if (!confirm('确定要删除房间 "' + roomNameToDelete + '" 吗？此操作不可恢复。')) {
-          return;
-        }
-        console.log('[AIChat] 删除房间:', roomIdToDelete, '用户:', userId);
-        aiChatApiPost('/rooms/delete', {
-          room_id: roomIdToDelete,
-          user_id: userId
-        }).then(function(data) {
-          console.log('[AIChat] 删除房间响应:', data);
-          if (data.success) {
-            message.success('房间已删除: ' + roomNameToDelete);
-            // 如果删除的是当前房间，切换到官方聊天室
-            if (roomIdToDelete === roomId) {
-              switchRoom('OFFICIAL_ROOM', '官方 AI 聊天室');
-            }
-            loadRooms();
-          } else {
-            message.error('删除失败: ' + (data.error || '未知错误'));
-          }
-        }).catch(function(err) {
-          console.error('[AIChat] 删除房间失败:', err);
-          message.error('删除失败: ' + err.message);
-        });
-      }
-      
-      function switchRoom(newRoomId, newRoomName) {
-        setRoomId(newRoomId);
-        setRoomName(newRoomName || newRoomId);
-        setMessages([]);
-        setShowRoomList(false);
-        // 先清空智能体，避免显示旧房间的智能体
-        setAgents([]);
-        // 加载新房间的智能体
-        loadRoomAgents(newRoomId);
-      }
-      
-      function createRoom() {
-        if (!newRoomName.trim()) {
-          message.warning('请输入房间名称');
-          return;
-        }
-        console.log('[AIChat] 创建房间:', newRoomName.trim(), '用户:', userId);
-        aiChatApiPost('/rooms/create', {
-          room_name: newRoomName.trim(),
-          user_id: userId,
-          nickname: nickname,
-          password: newRoomPassword.trim()
-        }).then(function(data) {
-          console.log('[AIChat] 创建房间响应:', data);
-          if (data.success) {
-            message.success('房间创建成功: ' + data.room_name + (data.is_private ? '（有密码）' : ''));
-            setNewRoomName('');
-            setNewRoomPassword('');
-            setShowCreateRoom(false);
-            switchRoom(data.room_id, data.room_name);
-            loadRooms();
-          } else {
-            message.error('创建失败: ' + (data.error || '未知错误'));
-          }
-        }).catch(function(err) {
-          console.error('[AIChat] 创建房间错误:', err);
-          message.error('创建失败: ' + err.message);
-        });
-      }
+      }, [messages]);
       
       function loadMessages() {
-        aiChatApiGet('/messages/' + roomId + '?user_id=' + userId + '&limit=50')
+        aiChatApiGet('/messages/OFFICIAL_ROOM?user_id=' + userId + '&limit=50')
           .then(function(data) {
             if (data.success && data.messages) {
               setMessages(data.messages);
-              // 不再从消息API更新智能体，避免覆盖
-              // 智能体通过 loadRoomAgents 单独加载
+              if (data.agents && data.agents.length > 0) {
+                setAgents(data.agents);
+              }
             }
           })
           .catch(function(err) { console.error('[AIChat] 加载消息失败:', err); });
@@ -10508,7 +10234,7 @@ window.TeamChatEmail.editAICronJob = function() {
         setLoading(true);
         
         var payload = {
-          room_id: roomId,
+          room_id: 'OFFICIAL_ROOM',
           user_id: userId,
           message: text,
           msg_type: 'text',
@@ -10551,25 +10277,10 @@ window.TeamChatEmail.editAICronJob = function() {
         } catch(e) { return ''; }
       }
       
-      // 渲染智能体标签 - 支持动态管理
+      // 渲染智能体标签 - 超过5个时收缩
       function renderAgentTags() {
-        // 没有智能体时显示添加提示
         if (!agents || agents.length === 0) {
-          return e('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
-            e('span', { style: { fontSize: '13px', color: '#999' } }, '💬 纯聊天模式 - 可添加智能体或用于人与人交流'),
-            e('span', {
-              onClick: function() { setShowAgentMgr(true); },
-              style: {
-                padding: '4px 12px',
-                borderRadius: '12px',
-                background: '#e6f7ff',
-                color: '#1890ff',
-                fontSize: '12px',
-                cursor: 'pointer',
-                border: '1px solid #91d5ff'
-              }
-            }, '➕ 添加智能体')
-          );
+          return e('span', { style: { fontSize: '13px', color: '#999' } }, '加载中...');
         }
         
         var displayAgents = showAllAgents ? agents : agents.slice(0, 5);
@@ -10615,27 +10326,7 @@ window.TeamChatEmail.editAICronJob = function() {
               cursor: 'pointer',
               userSelect: 'none'
             }
-          }, showAllAgents ? '收起 ▲' : '+' + (agents.length - 5) + ' 更多 ▼') : null,
-          // 管理智能体按钮
-          e('span', {
-            onClick: function() { 
-              setShowAgentMgr(true); 
-              loadSystemAgents(); // 加载系统智能体列表
-            },
-            style: {
-              padding: '6px 12px',
-              borderRadius: '16px',
-              background: '#fff3e0',
-              color: '#e65100',
-              fontSize: '13px',
-              cursor: 'pointer',
-              border: '1px solid #ffcc80',
-              userSelect: 'none',
-              marginLeft: '4px'
-            },
-            onMouseEnter: function(e) { e.target.style.background = '#ffe0b2'; },
-            onMouseLeave: function(e) { e.target.style.background = '#fff3e0'; }
-          }, '⚙️ 管理智能体')
+          }, showAllAgents ? '收起 ▲' : '+' + (agents.length - 5) + ' 更多 ▼') : null
         );
       }
       
@@ -10644,7 +10335,6 @@ window.TeamChatEmail.editAICronJob = function() {
         var isUser = msg.from && !msg.from.startsWith('agent:');
         var isAgent = msg.from && msg.from.startsWith('agent:');
         var agent = isAgent ? agents.find(function(a) { return a.id === msg.from; }) : null;
-        var msgType = msg.type || msg.msg_type || 'text';
         
         var bubbleStyle = {
           maxWidth: '80%',
@@ -10654,106 +10344,13 @@ window.TeamChatEmail.editAICronJob = function() {
           wordBreak: 'break-word'
         };
         
-        // 系统消息
-        if (msgType === 'system') {
+        if (msg.type === 'system' || msg.msg_type === 'system') {
           return e('div', {
             key: msg.msg_id || msg.id,
             style: { textAlign: 'center', margin: '16px 0', color: '#888', fontSize: '13px' }
           }, e('span', { style: { background: '#f0f0f0', padding: '6px 12px', borderRadius: '12px' } }, msg.text || msg.content));
         }
         
-        // 文件消息 - 显示为卡片
-        if (msgType === 'file' || (msg.text && msg.text.startsWith('[文件]'))) {
-          var fileName = msg.text ? msg.text.replace('[文件] ', '').replace('[文件]', '') : '文件';
-          var fileUrl = msg.file_url || msg.download_url || '#';
-          var fileSize = msg.file_size || msg.size_human || '';
-          var isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileName);
-          
-          // 构建完整下载 URL
-          var fullFileUrl = fileUrl;
-          if (fileUrl && fileUrl !== '#' && !fileUrl.startsWith('http')) {
-            fullFileUrl = getApiUrl('/plugins/team_chat' + fileUrl);
-          }
-          
-          var isAgentProduct = msg.is_agent_product || msg.text && msg.text.includes('我生成了文件');
-          
-          var fileCard = e('div', {
-            style: {
-              background: isAgentProduct ? '#e6f7ff' : '#f6f8fa',
-              border: '1px solid ' + (isAgentProduct ? '#1890ff' : '#e8e8e8'),
-              borderRadius: '8px',
-              padding: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              cursor: fullFileUrl !== '#' ? 'pointer' : 'default',
-              transition: 'all 0.2s'
-            },
-            onClick: function() {
-              if (fullFileUrl && fullFileUrl !== '#') {
-                window.open(fullFileUrl, '_blank');
-              }
-            },
-            onMouseEnter: function(e) { 
-              if (fullFileUrl !== '#') {
-                e.currentTarget.style.background = isAgentProduct ? '#bae7ff' : '#e6f7ff';
-              }
-            },
-            onMouseLeave: function(e) { 
-              e.currentTarget.style.background = isAgentProduct ? '#e6f7ff' : '#f6f8fa';
-            }
-          },
-            e('div', { style: { fontSize: '32px' } }, isImage ? '🖼️' : (isAgentProduct ? '🎁' : '📄') ),
-            e('div', { style: { flex: 1 } },
-              e('div', { style: { fontSize: '14px', fontWeight: 500, color: '#333', marginBottom: '4px' } }, fileName),
-              e('div', { style: { fontSize: '12px', color: '#888' } }, 
-                fileSize ? fileSize + ' · ' : '',
-                isAgentProduct ? '智能体产物 · 点击下载' : '点击下载'
-              )
-            ),
-            e('div', { style: { fontSize: '20px', color: '#1890ff' } }, '⬇️')
-          );
-          
-          if (isUser) {
-            return e('div', {
-              key: msg.msg_id || msg.id,
-              style: { display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }
-            }, e('div', null,
-              e('div', { style: { fontSize: '12px', marginBottom: '4px', color: '#888', textAlign: 'right' } }, 
-                msg.sender_nick || msg.nickname || '我', ' · ', formatTime(msg.time || msg.timestamp)),
-              fileCard
-            ));
-          }
-          
-          if (isAgent && agent) {
-            return e('div', {
-              key: msg.msg_id || msg.id,
-              style: { display: 'flex', justifyContent: 'flex-start', marginBottom: '12px' }
-            }, e('div', { style: { display: 'flex', alignItems: 'flex-start', gap: '8px' } },
-              e('div', {
-                style: { 
-                  width: '36px', height: '36px', borderRadius: '50%', 
-                  background: agent.color || '#667eea', display: 'flex', alignItems: 'center', 
-                  justifyContent: 'center', fontSize: '18px', flexShrink: 0 
-                }
-              }, agent.icon || '🤖'),
-              e('div', null,
-                e('div', { style: { fontSize: '12px', marginBottom: '4px', color: agent.color || '#667eea', fontWeight: 'bold' } }, 
-                  agent.name, ' · ', formatTime(msg.time || msg.timestamp)),
-                fileCard
-              )
-            ));
-          }
-          
-          return e('div', {
-            key: msg.msg_id || msg.id,
-            style: { marginBottom: '12px' }
-          }, e('div', { style: { fontSize: '12px', color: '#888', marginBottom: '4px' } }, 
-             msg.sender_nick || msg.nickname, ' · ', formatTime(msg.time || msg.timestamp)),
-             fileCard);
-        }
-        
-        // 普通用户消息
         if (isUser) {
           return e('div', {
             key: msg.msg_id || msg.id,
@@ -10765,7 +10362,6 @@ window.TeamChatEmail.editAICronJob = function() {
              e('div', null, msg.text || msg.content)));
         }
         
-        // 智能体消息
         if (isAgent && agent) {
           return e('div', {
             key: msg.msg_id || msg.id,
@@ -10794,91 +10390,10 @@ window.TeamChatEmail.editAICronJob = function() {
            e('div', null, msg.text || msg.content));
       }
       
-      // 生成提示文本（根据当前房间智能体动态生成）
-      var agentNames = agents.length > 0 ? agents.map(function(a) { return '@' + a.name; }).join(' ') : '';
+      // 生成提示文本
+      var agentNames = agents.length > 0 ? agents.map(function(a) { return '@' + a.name; }).join(' ') : '@阿里 @Executor @QA @Master @Verifier';
       
-      // 添加/删除智能体（房间级）
-      function handleAddAgent() {
-        if (!agentForm.name || !agentForm.agent_api_id) {
-          message.warning('请填写智能体名称和API ID');
-          return;
-        }
-        var newAgent = {
-          room_id: roomId,
-          id: 'agent:' + agentForm.agent_api_id,
-          name: agentForm.name,
-          full_name: agentForm.name,
-          agent_api_id: agentForm.agent_api_id,
-          icon: agentForm.icon,
-          color: agentForm.color
-        };
-        aiChatApiPost('/agents/add', newAgent)
-          .then(function(data) {
-            if (data.success) {
-              message.success('智能体 ' + agentForm.name + ' 已添加到当前房间');
-              setShowAgentMgr(false);
-              setAgentForm({name:'',agent_api_id:'',icon:'🤖',color:'#667eea'});
-              // 刷新智能体列表（带room_id）
-              console.log('[AIChat] 添加后刷新智能体列表, roomId:', roomId);
-              aiChatApiGet('/agents?room_id=' + roomId).then(function(d) {
-                console.log('[AIChat] 添加后获取智能体:', d);
-                if(d.success && d.agents) {
-                  console.log('[AIChat] 更新智能体列表:', d.agents.map(function(a) { return a.name; }).join(', '));
-                  setAgents(d.agents);
-                }
-              });
-            } else {
-              message.error('添加失败: ' + (data.error || '未知错误'));
-            }
-          })
-          .catch(function(err) {
-            message.error('添加失败: ' + err.message);
-          });
-      }
-      
-      function handleRemoveAgent(agentId, agentName) {
-        if (agents.length <= 1) {
-          message.warning('至少需要保留一个智能体');
-          return;
-        }
-        if (!confirm('确定要从当前房间删除智能体 "' + agentName + '" 吗？')) return;
-        aiChatApiPost('/agents/remove', {room_id: roomId, agent_id: agentId})
-          .then(function(data) {
-            if (data.success) {
-              message.success('智能体 ' + agentName + ' 已从当前房间删除');
-              // 刷新智能体列表（带room_id）
-              console.log('[AIChat] 删除后刷新智能体列表, roomId:', roomId);
-              aiChatApiGet('/agents?room_id=' + roomId).then(function(d) {
-                console.log('[AIChat] 删除后获取智能体:', d);
-                if(d.success && d.agents) {
-                  console.log('[AIChat] 更新智能体列表:', d.agents.map(function(a) { return a.name; }).join(', '));
-                  setAgents(d.agents);
-                } else if (d.success) {
-                  // 删除后可能没有智能体了
-                  console.log('[AIChat] 删除后智能体列表为空');
-                  setAgents([]);
-                }
-              });
-            } else {
-              message.error('删除失败: ' + (data.error || '未知错误'));
-            }
-          })
-          .catch(function(err) {
-            message.error('删除失败: ' + err.message);
-          });
-      }
-      
-      return e('div', { 
-        style: { 
-          height: '100vh', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          background: '#fff', 
-          position: 'relative',
-          overflow: 'hidden'
-        },
-        className: 'ai-chat-container'
-      },
+      return e('div', { style: { height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' } },
         // 头部
         e('div', { 
           style: { 
@@ -10888,80 +10403,27 @@ window.TeamChatEmail.editAICronJob = function() {
             color: 'white',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            flexShrink: 0
+            justifyContent: 'space-between'
           } 
         }, 
           e('div', null,
-            e('div', { style: { fontSize: '20px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' } }, 
-              '🤖 AI群聊',
-              e('span', { 
-                style: { 
-                  fontSize: '13px', 
-                  background: 'rgba(255,255,255,0.2)', 
-                  padding: '4px 12px', 
-                  borderRadius: '12px',
-                  cursor: 'pointer'
-                },
-                onClick: function() { setShowRoomList(true); }
-              }, roomName + ' ▼')
-            ),
+            e('div', { style: { fontSize: '20px', fontWeight: 'bold' } }, '🤖 AI群聊'),
             e('div', { style: { fontSize: '13px', opacity: 0.9, marginTop: '4px' } }, 
-              (agents.length > 0 ? agents.length + '个智能体常驻' : '纯聊天模式') + ' · 支持 @提及 指定回复')
+              (agents.length > 0 ? agents.length + '个智能体常驻' : '加载智能体中...') + ' · 支持 @提及 指定回复')
           ),
-          e('div', { style: { display: 'flex', gap: '12px', alignItems: 'center' } },
-            e('div', { 
-              style: { 
-                padding: '6px 12px', 
-                background: 'rgba(255,255,255,0.15)', 
-                borderRadius: '20px',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              } 
-            }, 
-              '👤', 
-              e('span', { 
-                style: { cursor: 'pointer', borderBottom: '1px dashed rgba(255,255,255,0.5)' },
-                onClick: function() {
-                  var newNickname = prompt('修改你的昵称（当前: ' + nickname + '）:', nickname);
-                  if (newNickname && newNickname.trim() && newNickname !== nickname) {
-                    newNickname = newNickname.trim().substring(0, 20);
-                    setNickname(newNickname);
-                    localStorage.setItem('teamchat_ai_nickname', newNickname);
-                    message.success('✅ 昵称已修改为: ' + newNickname);
-                  }
-                }
-              }, nickname)
-            ),
-            e('button', {
-              onClick: function() { setShowCreateRoom(true); },
-              style: {
-                padding: '8px 16px',
-                background: 'rgba(255,255,255,0.2)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                borderRadius: '8px',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold'
-              }
-            }, '➕ 创建房间'),
-            onBack ? e('button', {
-              onClick: onBack,
-              style: {
-                padding: '8px 16px',
-                background: 'rgba(255,255,255,0.2)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                borderRadius: '8px',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold'
-              }
-            }, '◀ 返回') : null
-          )
+          onBack ? e('button', {
+            onClick: onBack,
+            style: {
+              padding: '8px 16px',
+              background: 'rgba(255,255,255,0.2)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: '8px',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }
+          }, '◀ 返回') : null
         ),
         
         // 智能体标签栏
@@ -10969,571 +10431,49 @@ window.TeamChatEmail.editAICronJob = function() {
           style: { 
             padding: '12px 20px', 
             background: '#f8f9fa',
-            borderBottom: '1px solid #e8e8e8',
-            flexShrink: 0
+            borderBottom: '1px solid #e8e8e8'
           } 
         }, renderAgentTags()),
         
-        // 消息列表 - 可滚动区域（保留滚动条）
+        // 消息列表
         e('div', { 
-          ref: messagesContainerRef,
-          style: { 
-            flex: 1, 
-            overflow: 'auto', 
-            padding: '20px', 
-            background: '#fafbfc', 
-            minHeight: 0,
-            position: 'relative'
-          },
-          className: 'ai-chat-messages',
-          onScroll: handleScroll
+          style: { flex: 1, overflow: 'auto', padding: '20px', background: '#fafbfc' }
         },
           messages.length === 0 ? 
             e(Empty, { description: '暂无消息，发送第一条消息开始聊天吧！', image: Empty.PRESENTED_IMAGE_SIMPLE }) :
             messages.map(renderMessage),
-          e('div', { ref: messagesEndRef }),
-          // 未读消息提醒
-          unreadCount > 0 && !isAtBottom ? e('div', {
-            onClick: scrollToBottom,
-            style: {
-              position: 'absolute',
-              bottom: '20px',
-              right: '20px',
-              background: '#667eea',
-              color: '#fff',
-              padding: '8px 16px',
-              borderRadius: '20px',
-              fontSize: '13px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              zIndex: 10
-            }
-          }, '⬇️ ', unreadCount, ' 条新消息') : null
+          e('div', { ref: messagesEndRef })
         ),
         
-        // 输入区域 - 固定在底部
+        // 输入区域
         e('div', { 
           style: { 
-            padding: '12px 20px', 
+            padding: '16px 20px', 
             borderTop: '1px solid #e8e8e8',
-            background: '#fff',
-            flexShrink: 0
+            background: '#fff'
           } 
         },
-        // 工具栏
-          e('div', { style: { display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' } },
-            // 表情按钮
-            e('button', {
-              style: {
-                padding: '6px 12px',
-                borderRadius: '6px',
-                background: '#f5f5f5',
-                border: '1px solid transparent',
-                cursor: 'pointer',
-                fontSize: '13px',
-                color: '#666',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'all 0.2s'
-              },
-              onMouseEnter: function(e) { e.currentTarget.style.background='#fffbe6'; e.currentTarget.style.color='#faad14'; },
-              onMouseLeave: function(e) { e.currentTarget.style.background='#f5f5f5'; e.currentTarget.style.color='#666'; },
-              onClick: function() {
-                var emojis = ['👍', '👏', '😊', '😂', '🤔', '👀', '✅', '❌', '🎉', '🔥', '💡', '⚡', '📌', '⭐', '💯'];
-                var picker = document.createElement('div');
-                picker.style.cssText = 'position:absolute;bottom:60px;left:20px;background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:10px;box-shadow:0 4px 12px rgba(0,0,0,0.15);display:flex;gap:8px;z-index:1000;';
-                emojis.forEach(function(emoji) {
-                  var btn = document.createElement('span');
-                  btn.textContent = emoji;
-                  btn.style.cssText = 'cursor:pointer;font-size:20px;padding:4px;border-radius:4px;transition:background 0.2s;';
-                  btn.onmouseenter = function() { this.style.background='#f0f0f0'; };
-                  btn.onmouseleave = function() { this.style.background='transparent'; };
-                  btn.onclick = function() { setInputText(inputText + emoji); picker.remove(); };
-                  picker.appendChild(btn);
-                });
-                document.body.appendChild(picker);
-                setTimeout(function() {
-                  document.addEventListener('click', function close(e) {
-                    if (!picker.contains(e.target)) { picker.remove(); document.removeEventListener('click', close); }
-                  });
-                }, 100);
-              }
-            }, '😊', '表情'),
-            // @提及按钮 - 下拉选择所有智能体
-            e('div', {
-              style: { position: 'relative' }
-            },
-              e('button', {
-                id: 'mention-btn',
-                style: {
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  background: '#f5f5f5',
-                  border: '1px solid transparent',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  color: '#666',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  transition: 'all 0.2s'
-                },
-                onMouseEnter: function(e) { e.currentTarget.style.background='#e6f7ff'; e.currentTarget.style.color='#1890ff'; },
-                onMouseLeave: function(e) { e.currentTarget.style.background='#f5f5f5'; e.currentTarget.style.color='#666'; },
-                onClick: function(e) {
-                  e.stopPropagation();
-                  var picker = document.getElementById('mention-picker');
-                  if (picker) {
-                    picker.remove();
-                    return;
-                  }
-                  if (agents.length === 0) {
-                    message.info('暂无智能体');
-                    return;
-                  }
-                  picker = document.createElement('div');
-                  picker.id = 'mention-picker';
-                  picker.style.cssText = 'position:absolute;bottom:45px;left:0;background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:1000;min-width:180px;';
-                  agents.forEach(function(agent) {
-                    var item = document.createElement('div');
-                    item.style.cssText = 'cursor:pointer;padding:8px 12px;border-radius:6px;transition:background 0.2s;display:flex;align-items:center;gap:8px;white-space:nowrap;';
-                    item.innerHTML = '<span style="font-size:16px;">' + (agent.icon || '🤖') + '</span><span>' + agent.name + '</span>';
-                    item.onmouseenter = function() { this.style.background='#f0f0f0'; };
-                    item.onmouseleave = function() { this.style.background='transparent'; };
-                    item.onclick = function() {
-                      setInputText(inputText + '@' + agent.name + ' ');
-                      if (inputRef.current) inputRef.current.focus();
-                      picker.remove();
-                    };
-                    picker.appendChild(item);
-                  });
-                  e.currentTarget.parentNode.appendChild(picker);
-                  setTimeout(function() {
-                    document.addEventListener('click', function close(ev) {
-                      if (!picker.contains(ev.target) && ev.target.id !== 'mention-btn') {
-                        picker.remove();
-                        document.removeEventListener('click', close);
-                      }
-                    });
-                  }, 100);
-                }
-              }, '@', '提及')
-            ),
-            // 清空历史按钮
-            e('button', {
-              style: {
-                padding: '6px 12px',
-                borderRadius: '6px',
-                background: '#f5f5f5',
-                border: '1px solid transparent',
-                cursor: 'pointer',
-                fontSize: '13px',
-                color: '#666',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'all 0.2s',
-                marginLeft: 'auto'
-              },
-              onMouseEnter: function(e) { e.currentTarget.style.background='#fff1f0'; e.currentTarget.style.color='#ff4d4f'; },
-              onMouseLeave: function(e) { e.currentTarget.style.background='#f5f5f5'; e.currentTarget.style.color='#666'; },
-              onClick: function() {
-                if (confirm('确定要清空当前群聊的所有消息吗？')) {
-                  fetch(getApiUrl('/plugins/team_chat/ai-chat/messages/clear'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ room_id: 'OFFICIAL_ROOM', user_id: userId })
-                  }).then(function(r) { 
-                    if (!r.ok) {
-                      throw new Error('HTTP ' + r.status + ': ' + r.statusText);
-                    }
-                    return r.json(); 
-                  }).then(function(data) {
-                    if (data.success) {
-                      message.success('✅ 已清空消息');
-                      setMessages([]);
-                      loadMessages();
-                    } else {
-                      message.error('❌ 清空失败: ' + (data.error || '未知错误'));
-                    }
-                  }).catch(function(err) {
-                    console.error('[AIChat] 清空消息失败:', err);
-                    message.error('❌ 清空错误: ' + err.message);
-                  });
-                }
-              }
-            }, '🗑️', '清空')
-          ),
-          // 输入框和发送按钮
-          e('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-end' } },
-            e(Input.TextArea, {
+          e('div', { style: { display: 'flex', gap: '12px' } },
+            e(Input, {
               ref: inputRef,
               value: inputText,
               onChange: function(e) { setInputText(e.target.value); },
-              placeholder: '输入消息... 使用 @智能体名 指定回复，Shift+Enter 换行',
-              onPressEnter: function(e) {
-                if (!e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              },
+              placeholder: '输入消息... 使用 @智能体名 指定回复',
+              onPressEnter: sendMessage,
               disabled: loading,
-              autoSize: { minRows: 1, maxRows: 5 },
-              style: { flex: 1, borderRadius: '8px' }
+              style: { flex: 1 }
             }),
             e(Button, {
               type: 'primary',
               onClick: sendMessage,
               loading: loading,
-              disabled: !inputText.trim(),
-              style: { 
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                height: '40px',
-                borderRadius: '8px'
-              }
+              style: { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }
             }, '发送')
           ),
-          e('div', { style: { marginTop: '8px', fontSize: '12px', color: '#999', display: 'flex', justifyContent: 'space-between' } },
-            agents.length > 0 ? 
-              e('span', null, '💡 提示: ' + agentNames + ' 可指定回复，不@则所有智能体都回复') :
-              e('span', null, '💡 纯聊天模式 - 直接输入消息发送'),
-            e('span', null, 'Shift+Enter 换行')
+          e('div', { style: { marginTop: '8px', fontSize: '12px', color: '#999' } },
+            '💡 提示: ' + agentNames + ' 可指定回复，不@则所有智能体都回复'
           )
-        ),
-        // ========== 房间列表弹窗 ==========
-        showRoomList ? e('div', {
-          style: {
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.4)', zIndex: 1000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          },
-          onClick: function(e) { if (e.target === e.currentTarget) setShowRoomList(false); }
-        },
-          e('div', {
-            style: {
-              background: '#fff', borderRadius: '16px', padding: '24px', width: '400px',
-              maxWidth: '90vw', maxHeight: '70vh', overflow: 'auto',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-            }
-          },
-            e('div', { style: { fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#333' } },
-              '🏠 选择聊天室'
-            ),
-            rooms.length > 0 ? e('div', { style: { marginBottom: '16px' } },
-              rooms.map(function(r) {
-                var isOfficial = r.room_id === 'OFFICIAL_ROOM';
-                return e('div', {
-                  key: r.room_id,
-                  style: {
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    marginBottom: '8px',
-                    background: r.room_id === roomId ? '#e6f7ff' : '#f8f9fa',
-                    border: r.room_id === roomId ? '1px solid #1890ff' : '1px solid #e8e8e8',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }
-                },
-                  e('div', { 
-                    style: { flex: 1, cursor: 'pointer' },
-                    onClick: function() { switchRoom(r.room_id, r.room_name); }
-                  },
-                    e('div', { style: { fontWeight: 'bold', color: '#333' } }, 
-                      r.room_name + (isOfficial ? ' 🏠' : '')
-                    ),
-                    e('div', { style: { fontSize: '12px', color: '#999' } }, r.members_count + '人 · ' + r.messages_count + '消息')
-                  ),
-                  e('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
-                    r.room_id === roomId ? e('span', { style: { color: '#1890ff' } }, '✓') : null,
-                    // 非官方房间显示删除按钮
-                    !isOfficial ? e('button', {
-                      onClick: function(e) { e.stopPropagation(); deleteRoom(r.room_id, r.room_name); },
-                      style: {
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        border: '1px solid #ff4d4f',
-                        background: '#fff',
-                        color: '#ff4d4f',
-                        cursor: 'pointer',
-                        fontSize: '12px'
-                      }
-                    }, '🗑️') : null
-                  )
-                );
-              })
-            ) : e('div', { style: { textAlign: 'center', padding: '20px', color: '#999' } }, '暂无房间，创建一个吧！'),
-            e('button', {
-              onClick: function() { setShowRoomList(false); setShowCreateRoom(true); },
-              style: {
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold'
-              }
-            }, '➕ 创建新房间')
-          )
-        ) : null,
-        
-        // ========== 创建房间弹窗 ==========
-        showCreateRoom ? e('div', {
-          style: {
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.4)', zIndex: 1000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          },
-          onClick: function(e) { if (e.target === e.currentTarget) setShowCreateRoom(false); }
-        },
-          e('div', {
-            style: {
-              background: '#fff', borderRadius: '16px', padding: '24px', width: '360px',
-              maxWidth: '90vw',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-            }
-          },
-            e('div', { style: { fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#333' } },
-              '➕ 创建新房间'
-            ),
-            e('input', {
-              value: newRoomName,
-              onChange: function(e) { setNewRoomName(e.target.value); },
-              placeholder: '输入房间名称',
-              style: {
-                width: '100%',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                border: '1px solid #d9d9d9',
-                fontSize: '14px',
-                marginBottom: '12px',
-                boxSizing: 'border-box'
-              }
-            }),
-            e('input', {
-              value: newRoomPassword,
-              onChange: function(e) { setNewRoomPassword(e.target.value); },
-              placeholder: '设置房间密码（可选）',
-              type: 'password',
-              style: {
-                width: '100%',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                border: '1px solid #d9d9d9',
-                fontSize: '14px',
-                marginBottom: '16px',
-                boxSizing: 'border-box'
-              }
-            }),
-            e('div', { style: { display: 'flex', gap: '12px' } },
-              e('button', {
-                onClick: function() { setShowCreateRoom(false); },
-                style: {
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: '1px solid #d9d9d9',
-                  background: '#fff',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }
-              }, '取消'),
-              e('button', {
-                onClick: createRoom,
-                style: {
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 'bold'
-                }
-              }, '创建')
-            )
-          )
-        ) : null,
-        
-        // ========== 智能体管理弹窗 ==========
-        showAgentMgr ? e('div', {
-          style: {
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.4)', zIndex: 1000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          },
-          onClick: function(e) { if (e.target === e.currentTarget) setShowAgentMgr(false); }
-        },
-          e('div', {
-            style: {
-              background: '#fff', borderRadius: '16px', padding: '24px', width: '420px',
-              maxWidth: '90vw', maxHeight: '80vh', overflow: 'auto',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-            }
-          },
-            e('div', { style: { fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', color: '#333' } },
-              '⚙️ 管理当前房间智能体'
-            ),
-            e('div', { style: { fontSize: '12px', color: '#999', marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid #e8e8e8' } },
-              '房间: ' + roomId + ' · 仅影响此房间的智能体配置'
-            ),
-            // 现有智能体列表
-            agents.length > 0 ? e('div', { style: { marginBottom: '16px' } },
-              e('div', { style: { fontSize: '13px', color: '#666', marginBottom: '8px' } }, '当前智能体 (' + agents.length + '个):'),
-              agents.map(function(agent, i) {
-                var canRemove = agents.length > 1;
-                return e('div', {
-                  key: agent.id,
-                  style: {
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '8px 12px', borderRadius: '8px', marginBottom: '4px',
-                    background: i % 2 === 0 ? '#f8f9fa' : '#fff'
-                  }
-                },
-                  e('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
-                    e('span', { style: { fontSize: '20px' } }, agent.icon || '🤖'),
-                    e('span', { style: { fontWeight: 500, color: '#333' } }, agent.name),
-                    e('span', { style: { fontSize: '12px', color: '#999' } }, agent.id)
-                  ),
-                  canRemove ? e('button', {
-                    onClick: function() { handleRemoveAgent(agent.id, agent.name); },
-                    style: {
-                      padding: '4px 10px', borderRadius: '6px', border: '1px solid #ffcdd2',
-                      background: '#fff', color: '#e53935', cursor: 'pointer', fontSize: '12px'
-                    },
-                    onMouseEnter: function(e) { e.target.style.background = '#ffebee'; },
-                    onMouseLeave: function(e) { e.target.style.background = '#fff'; }
-                  }, '🗑 删除') : e('span', { style: { fontSize: '11px', color: '#ccc' } }, '至少保留一个')
-                );
-              })
-            ) : null,
-            // 添加新智能体
-            e('div', { style: { borderTop: '1px solid #e8e8e8', paddingTop: '16px' } },
-              e('div', { style: { fontSize: '13px', fontWeight: 'bold', color: '#333', marginBottom: '12px' } }, '➕ 添加新智能体'),
-              // 系统智能体下拉选择
-              systemAgents.length > 0 ? e('div', { style: { marginBottom: '12px' } },
-                e('div', { style: { fontSize: '12px', color: '#666', marginBottom: '8px' } }, '选择系统智能体 (' + systemAgents.length + '个):'),
-                e('select', {
-                  value: agentForm.agent_api_id,
-                  onChange: function(e) {
-                    var selectedId = e.target.value;
-                    if (!selectedId) return;
-                    var selectedAgent = systemAgents.find(function(a) { return a.agent_api_id === selectedId || a.id === selectedId; });
-                    if (selectedAgent) {
-                      setAgentForm(Object.assign({}, agentForm, {
-                        name: selectedAgent.name,
-                        agent_api_id: selectedAgent.agent_api_id || selectedAgent.id,
-                        icon: selectedAgent.icon || '🤖',
-                        color: selectedAgent.color || '#667eea'
-                      }));
-                    }
-                  },
-                  style: {
-                    width: '100%', padding: '10px 12px', borderRadius: '8px',
-                    border: '1px solid #d9d9d9', fontSize: '14px', cursor: 'pointer'
-                  }
-                },
-                  e('option', { value: '' }, '请选择智能体...'),
-                  systemAgents.map(function(sysAgent) {
-                    return e('option', { 
-                      key: sysAgent.id || sysAgent.agent_api_id,
-                      value: sysAgent.agent_api_id || sysAgent.id
-                    }, (sysAgent.icon || '🤖') + ' ' + sysAgent.name + ' (' + (sysAgent.agent_api_id || sysAgent.id) + ')');
-                  })
-                )
-              ) : e('div', { style: { 
-                fontSize: '12px', color: '#667eea', marginBottom: '12px', 
-                padding: '8px 12px', background: '#e6f7ff', borderRadius: '6px',
-                display: 'flex', alignItems: 'center', gap: '6px'
-              } }, 
-                e('span', { style: { animation: 'spin 1s linear infinite' } }, '⏳'), 
-                '正在加载系统智能体...'
-              ),
-              // 或自定义输入
-              e('div', { style: { borderTop: '1px solid #e8e8e8', paddingTop: '12px', marginBottom: '8px' } },
-                e('div', { style: { fontSize: '12px', color: '#999', marginBottom: '8px' } }, '或自定义输入:')
-              ),
-              e('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
-                e('div', { style: { display: 'flex', gap: '8px' } },
-                  e('input', {
-                    value: agentForm.name,
-                    onChange: function(e) { setAgentForm(Object.assign({}, agentForm, {name: e.target.value})); },
-                    placeholder: '名称 (如: 助手)',
-                    style: { flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #d9d9d9', fontSize: '13px' }
-                  }),
-                  e('input', {
-                    value: agentForm.agent_api_id,
-                    onChange: function(e) { setAgentForm(Object.assign({}, agentForm, {agent_api_id: e.target.value})); },
-                    placeholder: 'API ID (如: cloud-executor)',
-                    style: { flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #d9d9d9', fontSize: '13px' }
-                  })
-                ),
-                // 图标选择器
-                e('div', { style: { marginBottom: '8px' } },
-                  e('div', { style: { fontSize: '12px', color: '#666', marginBottom: '6px' } }, '选择图标:'),
-                  e('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } },
-                    ['🤖','⚡','❓','🎯','✓','🔍','💡','🎨','🔧','📊','📝','🎓','💼','🏥','🔬','🌐','📱','💻','🔒','⚙️'].map(function(icon) {
-                      return e('button', {
-                        key: icon,
-                        onClick: function() { setAgentForm(Object.assign({}, agentForm, {icon: icon})); },
-                        style: {
-                          width: '36px', height: '36px', borderRadius: '8px',
-                          border: agentForm.icon === icon ? '2px solid #667eea' : '1px solid #d9d9d9',
-                          background: agentForm.icon === icon ? '#e6f7ff' : '#fff',
-                          cursor: 'pointer', fontSize: '18px',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }
-                      }, icon);
-                    })
-                  )
-                ),
-                // 颜色选择器
-                e('div', { style: { marginBottom: '8px' } },
-                  e('div', { style: { fontSize: '12px', color: '#666', marginBottom: '6px' } }, '选择颜色:'),
-                  e('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } },
-                    ['#667eea','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F','#BB8FCE','#85C1E2','#F8B500','#E74C3C','#2ECC71','#3498DB','#9B59B6'].map(function(color) {
-                      return e('button', {
-                        key: color,
-                        onClick: function() { setAgentForm(Object.assign({}, agentForm, {color: color})); },
-                        style: {
-                          width: '32px', height: '32px', borderRadius: '8px',
-                          border: agentForm.color === color ? '3px solid #333' : '2px solid #fff',
-                          background: color, cursor: 'pointer',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                        }
-                      });
-                    })
-                  )
-                )
-              ),
-              e('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' } },
-                e('button', {
-                  onClick: function() { setShowAgentMgr(false); },
-                  style: {
-                    padding: '8px 20px', borderRadius: '8px', border: '1px solid #d9d9d9',
-                    background: '#fff', cursor: 'pointer', fontSize: '13px'
-                  }
-                }, '取消'),
-                e('button', {
-                  onClick: handleAddAgent,
-                  style: {
-                    padding: '8px 20px', borderRadius: '8px', border: 'none',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold'
-                  }
-                }, '✅ 添加')
-              )
-            )
-          )
-        ) : null
+        )
       );
     }
     
@@ -11561,4 +10501,3 @@ window.TeamChatEmail.editAICronJob = function() {
     initAIGroupChat();
   }
 })();
-
