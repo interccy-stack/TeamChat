@@ -1,0 +1,13 @@
+{
+  "room_id": "3K7NQLW1",
+  "room_name": "11",
+  "password": "115886",
+  "is_private": true,
+  "created_at": "2026-07-26T10:40:10.030118",
+  "expires_at": "2026-08-02T10:40:10.030118",
+  "status": "active",
+  "members": [],
+  "messages": [],
+  "agents": [],
+  "version": 1
+}

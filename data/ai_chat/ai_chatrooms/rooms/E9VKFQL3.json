@@ -1,0 +1,45 @@
+{
+  "room_id": "E9VKFQL3",
+  "room_name": "12",
+  "password": "115886",
+  "is_private": true,
+  "created_at": "2026-07-26T09:19:42.536110",
+  "expires_at": "2026-08-02T09:19:42.536110",
+  "status": "active",
+  "members": [],
+  "messages": [
+    {
+      "type": "text",
+      "msg_type": "text",
+      "text": "？？",
+      "content": "？？",
+      "from": "user_9ywu1zog",
+      "sender_nick": "Cshu",
+      "time": "2026-07-26T09:19:50.149928",
+      "timestamp": "2026-07-26T09:19:50.149928",
+      "msg_id": "E9VKFQL3:0"
+    },
+    {
+      "type": "text",
+      "msg_type": "text",
+      "text": "@阿里 ？？",
+      "content": "@阿里 ？？",
+      "from": "user_9ywu1zog",
+      "sender_nick": "Cshu",
+      "time": "2026-07-26T09:19:56.136836",
+      "timestamp": "2026-07-26T09:19:56.136836",
+      "msg_id": "E9VKFQL3:1"
+    }
+  ],
+  "agents": [
+    {
+      "id": "agent:default",
+      "name": "阿里",
+      "full_name": "阿里 - 数字伙伴",
+      "agent_api_id": "default",
+      "icon": "🤖",
+      "color": "#FF6B6B"
+    }
+  ],
+  "version": 3
+}

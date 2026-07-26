@@ -1,0 +1,37 @@
+{
+  "files": {
+    "file_000001": {
+      "id": "file_000001",
+      "filename": "screenshot-20260726-010855.png",
+      "storage_name": "file_000001.png",
+      "mime_type": "image/png",
+      "size": 157438,
+      "size_human": "153.7 KB",
+      "uploader": "user_l0p0pid3",
+      "room_id": "OFFICIAL_ROOM",
+      "created_at": "2026-07-26T01:29:19.502392",
+      "download_url": "/ai-chat/files/file_000001/download",
+      "preview_url": "/ai-chat/files/file_000001/preview",
+      "metadata": {
+        "nickname": "访客166"
+      }
+    },
+    "file_000002": {
+      "id": "file_000002",
+      "filename": "F2SP后端不可用，使用本地模式.txt",
+      "storage_name": "file_000002.txt",
+      "mime_type": "text/plain",
+      "size": 40,
+      "size_human": "40.0 B",
+      "uploader": "user_q0y55qnm",
+      "room_id": "OFFICIAL_ROOM",
+      "created_at": "2026-07-26T01:35:50.384772",
+      "download_url": "/ai-chat/files/file_000002/download",
+      "preview_url": "/ai-chat/files/file_000002/preview",
+      "metadata": {
+        "nickname": "访客25"
+      }
+    }
+  },
+  "next_id": 3
+}

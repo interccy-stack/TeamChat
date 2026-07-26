@@ -1,0 +1,36 @@
+{
+  "agents": [
+    {
+      "id": "agent:default",
+      "name": "阿里",
+      "full_name": "阿里 - 数字伙伴",
+      "agent_api_id": "default",
+      "icon": "🤖",
+      "color": "#FF6B6B"
+    },
+    {
+      "id": "agent:cloud-executor",
+      "name": "Executor",
+      "full_name": "CloudPaw-Executor",
+      "agent_api_id": "cloud-executor",
+      "icon": "⚡",
+      "color": "#4ECDC4"
+    },
+    {
+      "id": "agent:QwenPaw_QA_Agent_0.2",
+      "name": "QA",
+      "full_name": "QA Agent",
+      "agent_api_id": "QwenPaw_QA_Agent_0.2",
+      "icon": "❓",
+      "color": "#45B7D1"
+    },
+    {
+      "id": "agent:cloud-orchestrator",
+      "name": "Master",
+      "full_name": "CloudPaw-Master",
+      "agent_api_id": "cloud-orchestrator",
+      "icon": "🎯",
+      "color": "#96CEB4"
+    }
+  ]
+}

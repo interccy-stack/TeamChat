@@ -1,0 +1,113 @@
+{
+  "room_id": "OFFICIAL_ROOM",
+  "room_name": "🏠 官方 AI 聊天室",
+  "creator_id": "system",
+  "created_at": "2026-07-26T01:03:18.788663",
+  "expires_at": "2026-08-02T01:03:18.788663",
+  "members": [
+    {
+      "user_id": "agent:default",
+      "nickname": "阿里 - 数字伙伴",
+      "role": "agent",
+      "icon": "🤖",
+      "color": "#FF6B6B",
+      "joined_at": "2026-07-26T01:03:18.788663",
+      "last_active": "2026-07-26T01:03:18.788663"
+    },
+    {
+      "user_id": "agent:cloud-executor",
+      "nickname": "CloudPaw-Executor",
+      "role": "agent",
+      "icon": "⚡",
+      "color": "#4ECDC4",
+      "joined_at": "2026-07-26T01:03:18.788663",
+      "last_active": "2026-07-26T01:03:18.788663"
+    },
+    {
+      "user_id": "agent:QwenPaw_QA_Agent_0.2",
+      "nickname": "QA Agent",
+      "role": "agent",
+      "icon": "❓",
+      "color": "#45B7D1",
+      "joined_at": "2026-07-26T01:03:18.788663",
+      "last_active": "2026-07-26T01:03:18.788663"
+    },
+    {
+      "user_id": "agent:cloud-orchestrator",
+      "nickname": "CloudPaw-Master",
+      "role": "agent",
+      "icon": "🎯",
+      "color": "#96CEB4",
+      "joined_at": "2026-07-26T01:03:18.788663",
+      "last_active": "2026-07-26T01:03:18.788663"
+    },
+    {
+      "user_id": "agent:cloud-verifier",
+      "nickname": "CloudPaw-Verifier",
+      "role": "agent",
+      "icon": "✓",
+      "color": "#FFEAA7",
+      "joined_at": "2026-07-26T01:03:18.788663",
+      "last_active": "2026-07-26T01:03:18.788663"
+    }
+  ],
+  "messages": [
+    {
+      "type": "system",
+      "text": "欢迎来到官方 AI 聊天室！\n\n💡 使用 @智能体名 指定特定智能体回复\n例如：@阿里 你好\n\n不@时所有5个智能体都会回复你~",
+      "content": "欢迎来到官方 AI 聊天室！\n\n💡 使用 @智能体名 指定特定智能体回复\n例如：@阿里 你好\n\n不@时所有5个智能体都会回复你~",
+      "from": "system",
+      "sender_nick": "系统",
+      "time": "2026-07-26T01:03:18.788663",
+      "timestamp": "2026-07-26T01:03:18.788663",
+      "msg_id": "OFFICIAL_ROOM:0",
+      "icon": "🔔"
+    }
+  ],
+  "status": "active",
+  "version": 1,
+  "is_official": true,
+  "description": "AI 智能体群聊室 - 支持 @提及 指定回复",
+  "agents": [
+    {
+      "id": "agent:default",
+      "name": "阿里",
+      "full_name": "阿里 - 数字伙伴",
+      "agent_api_id": "default",
+      "icon": "🤖",
+      "color": "#FF6B6B"
+    },
+    {
+      "id": "agent:cloud-executor",
+      "name": "Executor",
+      "full_name": "CloudPaw-Executor",
+      "agent_api_id": "cloud-executor",
+      "icon": "⚡",
+      "color": "#4ECDC4"
+    },
+    {
+      "id": "agent:QwenPaw_QA_Agent_0.2",
+      "name": "QA",
+      "full_name": "QA Agent",
+      "agent_api_id": "QwenPaw_QA_Agent_0.2",
+      "icon": "❓",
+      "color": "#45B7D1"
+    },
+    {
+      "id": "agent:cloud-orchestrator",
+      "name": "Master",
+      "full_name": "CloudPaw-Master",
+      "agent_api_id": "cloud-orchestrator",
+      "icon": "🎯",
+      "color": "#96CEB4"
+    },
+    {
+      "id": "agent:cloud-verifier",
+      "name": "Verifier",
+      "full_name": "CloudPaw-Verifier",
+      "agent_api_id": "cloud-verifier",
+      "icon": "✓",
+      "color": "#FFEAA7"
+    }
+  ]
+}
