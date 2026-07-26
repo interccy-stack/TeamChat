@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150" width="200" height="150">
+  <!-- 背景 -->
+  <rect width="200" height="150" fill="#FFFAF5"/>
+  
+  <!-- 树枝 -->
+  <path d="M20 120 Q50 115 80 118 Q110 121 140 117 Q170 113 190 119" 
+        stroke="#8D6E63" stroke-width="4" fill="none" stroke-linecap="round"/>
+  
+  <!-- 鸟巢主体 - 编织效果 -->
+  <ellipse cx="100" cy="105" rx="55" ry="25" fill="#D4A574"/>
+  <ellipse cx="100" cy="102" rx="50" ry="22" fill="#C49464"/>
+  <ellipse cx="100" cy="99" rx="45" ry="19" fill="#B48454"/>
+  
+  <!-- 鸟巢纹理线条 -->
+  <path d="M65 95 Q100 85 135 95" stroke="#A07044" stroke-width="2" fill="none"/>
+  <path d="M70 100 Q100 90 130 100" stroke="#A07044" stroke-width="2" fill="none"/>
+  <path d="M75 105 Q100 95 125 105" stroke="#A07044" stroke-width="2" fill="none"/>
+  <path d="M70 108 Q100 100 130 108" stroke="#906040" stroke-width="1.5" fill="none"/>
+  <path d="M80 112 Q100 106 120 112" stroke="#906040" stroke-width="1.5" fill="none"/>
+  
+  <!-- 鸟蛋 -->
+  <ellipse cx="90" cy="98" rx="8" ry="11" fill="#E8DCC8"/>
+  <ellipse cx="105" cy="98" rx="8" ry="11" fill="#E8DCC8"/>
+  <ellipse cx="97" cy="102" rx="8" ry="11" fill="#E8DCC8"/>
+  
+  <!-- 鸟蛋斑点 -->
+  <circle cx="88" cy="95" r="1.5" fill="#C4B49C"/>
+  <circle cx="92" cy="100" r="1.5" fill="#C4B49C"/>
+  <circle cx="103" cy="94" r="1.5" fill="#C4B49C"/>
+  <circle cx="107" cy="99" r="1.5" fill="#C4B49C"/>
+  <circle cx="95" cy="99" r="1.5" fill="#C4B49C"/>
+  <circle cx="99" cy="104" r="1.5" fill="#C4B49C"/>
+  
+  <!-- 小鸟 -->
+  <g transform="translate(140, 75)">
+    <!-- 身体 -->
+    <ellipse cx="0" cy="10" rx="12" ry="10" fill="#4A90E2"/>
+    <!-- 头 -->
+    <circle cx="0" cy="0" r="8" fill="#4A90E2"/>
+    <!-- 眼睛 -->
+    <circle cx="-3" cy="-2" r="2" fill="white"/>
+    <circle cx="-3" cy="-2" r="1" fill="black"/>
+    <!-- 嘴巴 -->
+    <path d="M5 0 L12 -2 L5 4 Z" fill="#FFA500"/>
+    <!-- 翅膀 -->
+    <ellipse cx="-5" cy="8" rx="6" ry="4" fill="#3A80D2"/>
+    <!-- 尾巴 -->
+    <path d="M-10 12 L-20 8 L-18 16 Z" fill="#4A90E2"/>
+    <!-- 腿 -->
+    <line x1="-3" y1="18" x2="-3" y2="25" stroke="#FFA500" stroke-width="2"/>
+    <line x1="3" y1="18" x2="3" y2="25" stroke="#FFA500" stroke-width="2"/>
+    <!-- 爪子 -->
+    <path d="M-6 25 L0 25 M-3 25 L-3 28" stroke="#FFA500" stroke-width="1.5"/>
+    <path d="M0 25 L6 25 M3 25 L3 28" stroke="#FFA500" stroke-width="1.5"/>
+  </g>
+  
+  <!-- 树叶装饰 -->
+  <g transform="translate(30, 60)">
+    <ellipse cx="0" cy="0" rx="8" ry="4" fill="#7CB342" transform="rotate(-30)"/>
+    <line x1="0" y1="0" x2="0" y2="15" stroke="#5A9216" stroke-width="1"/>
+  </g>
+  <g transform="translate(160, 50)">
+    <ellipse cx="0" cy="0" rx="8" ry="4" fill="#7CB342" transform="rotate(30)"/>
+    <line x1="0" y1="0" x2="0" y2="15" stroke="#5A9216" stroke-width="1"/>
+  </g>
+  
+  <!-- 文字 -->
+  <text x="100" y="145" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#8D6E63">
+    选择主持人和参与智能体，开始团队会谈
+  </text>
+</svg>

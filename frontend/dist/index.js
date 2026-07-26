@@ -6398,7 +6398,13 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
       ),
       e("div",{ref:histRf,style:{flex:1,overflow:"auto",padding:"16px 20px",background:"#FFFAF5",position:"relative"},onScroll:onMsgScroll},
         withEB("消息列表", e("div",null,
-          hist.length===0&&!ld?e(Empty,{description:"host主持和参与智能体，开始团队会谈",style:{marginTop:60}}):null,
+          hist.length===0&&!ld?e("div",{style:{textAlign:"center",marginTop:40}},
+            e("div",{
+              style:{width:200,height:150,margin:"0 auto 16px",background:"#FFFAF5",borderRadius:8,overflow:"hidden"},
+              dangerouslySetInnerHTML:{__html:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150" width="200" height="150"><rect width="200" height="150" fill="#FFFAF5"/><path d="M20 120 Q50 115 80 118 Q110 121 140 117 Q170 113 190 119" stroke="#8D6E63" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="100" cy="105" rx="55" ry="25" fill="#D4A574"/><ellipse cx="100" cy="102" rx="50" ry="22" fill="#C49464"/><ellipse cx="100" cy="99" rx="45" ry="19" fill="#B48454"/><ellipse cx="90" cy="98" rx="8" ry="11" fill="#E8DCC8"/><ellipse cx="105" cy="98" rx="8" ry="11" fill="#E8DCC8"/><ellipse cx="97" cy="102" rx="8" ry="11" fill="#E8DCC8"/><circle cx="88" cy="95" r="1.5" fill="#C4B49C"/><circle cx="92" cy="100" r="1.5" fill="#C4B49C"/><circle cx="103" cy="94" r="1.5" fill="#C4B49C"/><circle cx="107" cy="99" r="1.5" fill="#C4B49C"/><circle cx="95" cy="99" r="1.5" fill="#C4B49C"/><circle cx="99" cy="104" r="1.5" fill="#C4B49C"/><g transform="translate(140,75)"><ellipse cx="0" cy="10" rx="12" ry="10" fill="#4A90E2"/><circle cx="0" cy="0" r="8" fill="#4A90E2"/><circle cx="-3" cy="-2" r="2" fill="white"/><circle cx="-3" cy="-2" r="1" fill="black"/><path d="M5 0 L12 -2 L5 4 Z" fill="#FFA500"/></g><g transform="translate(30,60)"><ellipse cx="0" cy="0" rx="8" ry="4" fill="#7CB342" transform="rotate(-30)"/><line x1="0" y1="0" x2="0" y2="15" stroke="#5A9216" stroke-width="1"/></g><g transform="translate(160,50)"><ellipse cx="0" cy="0" rx="8" ry="4" fill="#7CB342" transform="rotate(30)"/><line x1="0" y1="0" x2="0" y2="15" stroke="#5A9216" stroke-width="1"/></g></svg>'}
+            }),
+            e(Text,{type:"secondary",style:{fontSize:13,color:"#8D6E63"}},"选择主持人和参与智能体，开始团队会谈")
+          ):null,
           hist.map(function (m, i) { return e(MessageBubble,{key:i,msg:m}); }),
           discSumV&&discDone?e("div",{style:{marginTop:14,padding:14,background:"linear-gradient(135deg,#FFF8E1,#FFF3E0)",borderRadius:16,border:"1px solid #FFD54F",display:"flex",alignItems:"center",justifyContent:"space-between"}},
             e("div",null,
