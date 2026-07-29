@@ -1,5 +1,5 @@
 #!/bin/bash
-# TeamChat 自动热更新脚本 v5.2.1
+# TeamChat 自动热更新脚本 v5.3.0
 # 用法: ./auto_update.sh [start|stop|status|restart]
 
 set -e
@@ -51,7 +51,7 @@ log_error() {
 # 显示帮助
 show_help() {
     cat << EOF
-TeamChat 自动热更新脚本 v5.2.1
+TeamChat 自动热更新脚本 v5.3.0
 
 用法: $0 [命令]
 
@@ -156,7 +156,7 @@ trigger_reload() {
     # 方法2: 创建通知文件
     local notify_file="${PLUGIN_DIR}/data/.hot_reload_trigger"
     mkdir -p "$(dirname ${notify_file})"
-    echo "{\"timestamp\": $(date +%s), \"version\": \"5.2.1\"}" > "${notify_file}"
+    echo "{\"timestamp\": $(date +%s), \"version\": \"5.3.0\"}" > "${notify_file}"
     
     # 方法3: 发送信号给进程（如果支持）
     if [ -f "${PID_FILE}" ]; then

@@ -1,5 +1,5 @@
 {
-  "version": "5.2.1",
+  "version": "5.3.0",
   "enabled": true,
   "mode": "auto",
   "watch_paths": [
@@ -8,6 +8,7 @@
     "plugin.json",
     "manifest.json",
     "frontend/src/index.js",
+    "frontend/dist/index.js",
     "email_backend/*.py",
     "hot_reload.py"
   ],

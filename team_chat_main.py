@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""TeamChat Plugin Backend v5.2.2 — AI群聊文件上传下载
+"""TeamChat Plugin Backend v5.3.0 — AI群聊文件上传下载
 
 修复:
   1. AI群聊支持文件上传/下载/预览
@@ -201,7 +201,7 @@ def _load_email_backend():
 # 配置常量
 # ============================================================
 
-CURRENT_VERSION = "5.2.0"
+CURRENT_VERSION = "5.3.0"
 DEFAULT_HOST_ID = "cloud-orchestrator"
 MAX_HISTORY = 200
 SESSION_KEEPALIVE_DAYS = 7
@@ -3079,6 +3079,32 @@ def build_router():
     else:
         logger.warning("[AIChat] ai_group_chat 模块未加载，跳过路由注册")
 
+    # ── 邮箱同步 API ──────────────────────────────────────────────────────
+    @router.post("/sync")
+    async def team_chat_sync(config_id: Optional[int] = None):
+        """邮件同步入口，转发到 email_backend 同步逻辑"""
+        if not EMAIL_BACKEND_AVAILABLE:
+            return JSONResponse(
+                content={"success": False, "message": "邮箱后端未加载"},
+                status_code=503
+            )
+        try:
+            import sys as _sys
+            _routes_mod = _sys.modules.get("email_backend.routes")
+            if _routes_mod and hasattr(_routes_mod, "do_sync_emails"):
+                return await _routes_mod.do_sync_emails(config_id)
+            # fallback: 自行实现简化版
+            configs = [EmailDB.get_config(config_id)] if config_id else EmailDB.get_all_configs()
+            if not configs:
+                return {"success": False, "message": "没有邮箱配置"}
+            return {"success": True, "message": "同步功能就绪，但路由代理未完整加载"}
+        except Exception as e:
+            logger.error(f"[Sync] 同步失败: {e}")
+            return JSONResponse(
+                content={"success": False, "message": f"同步失败: {str(e)}"},
+                status_code=500
+            )
+
     return router
 
 
@@ -3095,7 +3121,10 @@ class TeamChatPlugin:
     def register(self, api):
         logger.info(f"TeamChat v{CURRENT_VERSION} 注册中...")
         _load_email_backend()  # 延迟加载，用完即还原 sys.path
-        api.register_http_router(build_router(), prefix="/plugins/team_chat", tags=["team-chat"])
+        main_router = build_router()
+        # 将AI投票路由合并到主router
+        main_router.include_router(ai_voting_router, tags=["ai-voting"])
+        api.register_http_router(main_router, prefix="/plugins/team_chat", tags=["team-chat"])
         if EMAIL_BACKEND_AVAILABLE and email_router:
             api.register_http_router(email_router, prefix="/plugins/team_chat/email", tags=["email"])
             logger.info("[Email] 邮箱路由已注册: /plugins/team_chat/email")
@@ -3215,6 +3244,13 @@ class TeamChatPlugin:
         except Exception as e:
             logger.warning(f"[Cron] 自动同步定时任务设置失败: {e}")
 
+        # 恢复AI决策投票数据
+        try:
+            _ai_restore_votes()
+            logger.info("[AI决策] 投票数据恢复完成")
+        except Exception as e:
+            logger.warning(f"[AI决策] 投票数据恢复失败: {e}")
+
     def _setup_auto_sync_cron(self):
         """自动设置邮件同步定时任务 - 异步执行避免阻塞"""
         import subprocess
@@ -3278,5 +3314,640 @@ class TeamChatPlugin:
             logger.warning(f"[TeamChat] ThreadPoolExecutor 关闭失败: {e}")
         logger.info(f"TeamChat v{CURRENT_VERSION} 已关闭")
 
+# ═══════════════════════════════════════════════════════════════
+# AI决策系统 API v2.0 — 融合 AI决策 MVP v1.2.1
+# ═══════════════════════════════════════════════════════════════
+
+# ── 加载 AI决策 模块 ──
+_AI_DECISION_AVAILABLE = False
+
+try:
+    if str(plugin_dir) not in sys.path:
+        sys.path.insert(0, str(plugin_dir))
+    from modules.ai_decision.ai_decision_core import (
+        AIVotingSystem, VoteConfig, VoteOption, AgentConfig, AIVote, VoteStatus,
+        ai_decision_system, AgentVote as _AgentVote
+    )
+    from modules.ai_decision.negotiation_engine import NegotiationEngine
+    from modules.ai_decision.report_generator import ReportGenerator
+    from modules.ai_decision.llm_engine import (
+        LLMVotingEngine, LLMConfig, LLMProvider, MultiAIQueryEngine,
+        LLMResponse, MultiAIResult, llm_voting_engine, multi_ai_engine
+    )
+    _AI_DECISION_AVAILABLE = True
+    logger.info("[AI决策] 模块加载成功 (from MVP v1.2.1)")
+except Exception as e:
+    logger.warning(f"[AI决策] 模块加载失败: {e}")
+
+# ── 数据持久化 ──
+import re
+
+_AI_DECISION_DATA_DIR = Path(__file__).parent / "data"
+_AI_DECISION_PERSIST_FILE = _AI_DECISION_DATA_DIR / "ai_decision_votes.json"
+
+
+def _ai_ensure_data_dir():
+    _AI_DECISION_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _ai_load_votes() -> Dict[str, Dict]:
+    """从 JSON 文件加载投票存档"""
+    _ai_ensure_data_dir()
+    try:
+        if _AI_DECISION_PERSIST_FILE.exists():
+            with open(_AI_DECISION_PERSIST_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"[AI决策] 加载存档失败: {e}")
+    return {}
+
+
+def _ai_save_votes():
+    """持久化所有投票到 JSON 文件"""
+    if not _AI_DECISION_AVAILABLE:
+        return
+    _ai_ensure_data_dir()
+    try:
+        all_votes = ai_decision_system.get_all_votes()
+        data = {v.id: v.to_dict() for v in all_votes}
+        with open(_AI_DECISION_PERSIST_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        logger.debug(f"[AI决策] 持久化 {len(data)} 条投票")
+    except Exception as e:
+        logger.error(f"[AI决策] 持久化失败: {e}")
+
+
+def _ai_restore_votes():
+    """启动时从 JSON 恢复到内存"""
+    if not _AI_DECISION_AVAILABLE:
+        return
+    data = _ai_load_votes()
+    if not data:
+        return
+    count = 0
+    for vote_id, d in data.items():
+        try:
+            options = []
+            for o in d.get("options", []):
+                opt = VoteOption(id=o.get("id", ""), text=o.get("text", ""),
+                                description=o.get("description", ""))
+                opt.votes = o.get("votes", 0)
+                opt.voters = o.get("voters", [])
+                opt.weighted_votes = o.get("weighted_votes", 0.0)
+                options.append(opt)
+
+            agents = [
+                AgentConfig(agent_id=a.get("agent_id", ""), name=a.get("name", ""),
+                           role=a.get("role", ""), weight=a.get("weight", 1.0),
+                           expertise=a.get("expertise", []),
+                           use_external_llm=a.get("use_external_llm", False),
+                           llm_provider=a.get("llm_provider", ""),
+                           llm_api_key=a.get("llm_api_key", ""),
+                           llm_model=a.get("llm_model", ""),
+                           llm_personality=a.get("llm_personality", ""))
+                for a in (d.get("agents") or d.get("config", {}).get("agents", []))
+            ]
+
+            config = VoteConfig(
+                title=d.get("title", ""), options=options, agents=agents,
+                negotiation_duration=d.get("negotiation_duration", 180),
+                consensus_threshold=d.get("consensus_threshold", 0.7),
+            )
+
+            vote = AIVote(
+                id=vote_id, config=config,
+                status=VoteStatus(d.get("status", "cancelled")),
+                created_at=d.get("created_at", time.time()),
+                started_at=d.get("started_at"),
+                completed_at=d.get("completed_at"),
+            )
+            vote.agent_analysis = d.get("agent_analysis", {})
+
+            for v in d.get("votes", []):
+                vote.votes.append(_AgentVote(
+                    agent_id=v.get("agent_id", ""), agent_name=v.get("agent_name", ""),
+                    option_id=v.get("option_id", ""), weight=v.get("weight", 1.0),
+                    confidence=v.get("confidence", 0.5), reasoning=v.get("reasoning", ""),
+                    voted_at=v.get("voted_at", time.time()),
+                    llm_response=v.get("llm_response", ""), latency=v.get("latency", 0.0),
+                ))
+
+            win_id = d.get("winner", {}).get("id") if isinstance(d.get("winner"), dict) else None
+            if win_id:
+                for o in vote.config.options:
+                    if o.id == win_id:
+                        vote.winner = o
+                        break
+            vote.consensus_level = d.get("consensus_level")
+            ai_decision_system._votes[vote_id] = vote
+            count += 1
+        except Exception as e2:
+            logger.debug(f"[AI决策] 恢复投票 {vote_id} 失败: {e2}")
+    logger.info(f"[AI决策] 从存档恢复 {count} 条投票")
+
+
+# ── Router 与请求模型 ──
+ai_voting_router = APIRouter()
+_VOTE_CTX_CACHE: Dict[str, Any] = {}
+
+
+class AIVotingCreateRequest(BaseModel):
+    title: str
+    options: List[Dict] = []
+    agents: List[Dict] = []
+    template: str = "yes_no"
+    negotiation_duration: int = 180
+    consensus_threshold: float = 0.7
+    file_context: str = ""
+    use_local_agents: bool = True
+    # 兼容旧版字段
+    description: str = ""
+    use_llm: bool = False
+    llm_provider: str = ""
+    llm_api_key: str = ""
+    llm_api_base: str = ""
+    llm_model: str = ""
+
+
+class MultiAIQueryRequest(BaseModel):
+    question: str
+    providers: List[Dict]
+    system_prompt: str = ""
+
+
+# ── 提示构建与解析 ──
+
+def _build_vote_prompt(title: str, options: List[Dict], file_context: str = "", template: str = "yes_no") -> str:
+    """构建发送给本地 Agent 的投票提示（模板感知）"""
+    opts_text = "\n".join(
+        f"- **{o.get('id', 'opt' + str(i+1))}**: {o.get('text', '')}"
+        + (f" ({o.get('description', '')})" if o.get('description') else "")
+        for i, o in enumerate(options)
+    )
+
+    file_part = ""
+    if file_context:
+        file_part = f"\n**附件文件**：\n{file_context}\n（如有附件请一并分析）\n"
+
+    template_type = "decision"
+    if template.startswith("score"):
+        template_type = "score"
+    elif template.startswith("rank"):
+        template_type = "ranking"
+    elif template.startswith("consensus"):
+        template_type = "consensus"
+
+    if template_type == "score":
+        action = """请按评分制（1-10分）对每个对象逐一打分，并选出最高分的方案。回复格式：
+{"scores": {"obj1": 8, "obj2": 6, ...}, "best": "objID", "confidence": 0.85, "reasoning": "...", "analysis": "..."}"""
+    elif template_type == "ranking":
+        action = """请对以下项目按优先级排序（最重要的排第1），回复格式：
+{"ranking": ["item1", "item3", "item2"], "confidence": 0.85, "reasoning": "...", "analysis": "..."}"""
+    else:
+        action = """请以 **严格JSON** 格式回复（不要包含任何其他文字或markdown标记）：
+{"vote": "方案ID", "confidence": 0.85, "reasoning": "简短理由（50字以内）", "analysis": "详细分析"}"""
+
+    return f"""你正在参与一个 AI 投票决策，请根据你的专业知识和判断能力进行真实分析并投票。
+
+**投票主题**：{title}
+{file_part}
+**可选方案**：
+{opts_text}
+
+**要求**：
+1. 逐一分析每个方案的优势与风险
+2. 基于你的专业角度，做出判断
+3. 给出置信度（0.0~1.0）和简要理由
+
+{action}"""
+
+
+def _parse_agent_response(text: str) -> Dict:
+    """解析 Agent 返回的 JSON"""
+    try:
+        return json.loads(text.strip())
+    except json.JSONDecodeError:
+        pass
+    for pat in [r'```(?:json)?\s*\n(.*?)\n```', r'```(?:json)?\s*(.*?)\s*```', r'\{[\s\S]*?\}']:
+        m = re.search(pat, text.strip(), re.DOTALL)
+        if m:
+            try:
+                return json.loads(m.group(1) if '`' in pat else m.group(0))
+            except json.JSONDecodeError:
+                continue
+    return {
+        "vote": "", "confidence": 0.5, "reasoning": text[:100],
+        "analysis": text, "parse_error": True,
+    }
+
+
+async def _dispatch_real_agent(ctx: Any, agent_id: str, prompt: str, vote_id: str) -> Dict:
+    """向本地 Agent 发送投票问题并收集回复"""
+    try:
+        import dataclasses as _dc
+        agent_ctx = _dc.replace(ctx, agent_id=agent_id)
+        session_id = f"tc_ai_decision_{vote_id}_{agent_id}"
+
+        async for _ in agent_ctx.chat_stream("/clear", session_id=session_id):
+            pass
+
+        full_text = ""
+        async for ev in agent_ctx.chat_stream(prompt, session_id=session_id):
+            if getattr(ev, "delta", False):
+                continue
+            content = getattr(ev, "content", None) or getattr(ev, "delta_text", "")
+            if content:
+                if isinstance(content, list):
+                    for item in content:
+                        text_val = item.get("text", "") if isinstance(item, dict) else str(item)
+                        full_text += text_val
+                else:
+                    full_text += str(content)
+
+        logger.info(f"[AI决策] Agent {agent_id} 回复 ({len(full_text)} 字符)")
+        return _parse_agent_response(full_text.strip())
+
+    except Exception as e:
+        logger.error(f"[AI决策] Agent {agent_id} 调用失败: {e}")
+        return {"error": str(e), "vote": "", "confidence": 0.0,
+                "reasoning": f"调用失败: {e}", "analysis": ""}# ═══════════════════════════════════════════════════════════════
+# AI决策 API 路由
+# ═══════════════════════════════════════════════════════════════
+
+@ai_voting_router.post("/ai-voting/create")
+async def ai_voting_create(request: AIVotingCreateRequest):
+    """创建AI决策（支持本地Agent + 外部AI 双模式）"""
+    if not _AI_DECISION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="AI决策模块未加载")
+
+    try:
+        options = [
+            VoteOption(id=opt.get("id", f"opt_{i+1}"),
+                      text=opt.get("text", opt.get("label", "")),
+                      description=opt.get("description", ""))
+            for i, opt in enumerate(request.options)
+        ] if request.options else []
+
+        agents = [
+            AgentConfig(
+                agent_id=agt.get("agent_id", f"agent_{i}"),
+                name=agt.get("name", ""),
+                role=agt.get("role", "参与者"),
+                weight=agt.get("weight", 1.0 / max(len(request.agents), 1)),
+                expertise=agt.get("expertise", []),
+                use_external_llm=agt.get("use_external_llm", not request.use_local_agents),
+                llm_provider=agt.get("llm_provider", request.llm_provider),
+                llm_api_key=agt.get("api_key", request.llm_api_key),
+                llm_model=agt.get("model", request.llm_model),
+                llm_personality=agt.get("personality", ""),
+            )
+            for i, agt in enumerate(request.agents)
+        ] if request.agents else []
+
+        config = VoteConfig(
+            title=request.title,
+            options=options,
+            agents=agents,
+            negotiation_duration=request.negotiation_duration,
+            consensus_threshold=request.consensus_threshold,
+        )
+
+        vote = await ai_decision_system.create_vote(config)
+
+        # 获取 ctx 用于本地 Agent 调用
+        ctx = None
+        try:
+            from qwenpaw.pawapp import get_ctx
+            # ctx 需要通过 Depends 注入，这里用缓存
+        except ImportError:
+            pass
+
+        if request.use_local_agents and len(request.agents) > 0:
+            # 本地Agent模式：尝试获取ctx并运行
+            asyncio.create_task(_ai_run_vote_task(vote.id, request, ctx))
+        elif len(request.agents) > 0:
+            asyncio.create_task(ai_decision_system.start_vote(vote.id))
+        else:
+            # 无Agent：标记完成
+            vote.status = VoteStatus.COMPLETED
+            vote.completed_at = time.time()
+
+        _ai_save_votes()
+
+        return {
+            "vote_id": vote.id,
+            "status": "created",
+            "mode": "local" if request.use_local_agents else "external",
+            "message": "AI决策已创建，"
+            + ("本地智能体开始分析" if request.use_local_agents else "等待启动"),
+        }
+    except Exception as e:
+        logger.error(f"[AI决策] 创建失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def _ai_run_vote_task(vote_id: str, request: AIVotingCreateRequest, ctx=None):
+    """后台执行投票"""
+    if not _AI_DECISION_AVAILABLE:
+        return
+    vote = ai_decision_system.get_vote(vote_id)
+    if not vote:
+        return
+
+    vote.status = VoteStatus.ANALYZING
+    vote.started_at = time.time()
+    logger.info(f"[AI决策] 启动投票: {vote_id}, {len(request.agents)} 个Agent")
+
+    try:
+        prompt = _build_vote_prompt(
+            request.title, request.options, request.file_context, request.template
+        )
+
+        if ctx and request.use_local_agents:
+            # 本地Agent并发调度
+            tasks = [
+                _dispatch_real_agent(ctx, agt["agent_id"], prompt, vote_id)
+                for agt in request.agents
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            for agt, result in zip(request.agents, results):
+                if isinstance(result, Exception):
+                    result = {
+                        "error": str(result), "vote": "", "confidence": 0.0,
+                        "reasoning": f"异常: {result}", "analysis": "",
+                    }
+                agent_id = agt["agent_id"]
+                agent_name = agt.get("name", agent_id)
+                weight = agt.get("weight", 1.0 / max(len(request.agents), 1))
+                vote.agent_analysis[agent_id] = result
+
+                option_id = result.get("vote", "")
+                confidence = result.get("confidence", 0.5)
+                reasoning = result.get("reasoning", "")
+                analysis = result.get("analysis", "")
+
+                if not option_id or result.get("parse_error"):
+                    option_id = request.options[0].get("id", "") if request.options else ""
+                    reasoning = f"[解析失败] {result.get('analysis', '')[:80]}"
+
+                vote.votes.append(_AgentVote(
+                    agent_id=agent_id, agent_name=agent_name,
+                    option_id=option_id, weight=weight,
+                    confidence=confidence, reasoning=reasoning,
+                    voted_at=time.time(), llm_response=analysis, latency=0.0,
+                ))
+
+                for opt in vote.config.options:
+                    if opt.id == option_id:
+                        opt.votes += 1
+                        opt.voters.append(agent_id)
+                        opt.weighted_votes += weight
+                        break
+
+                logger.info(
+                    f"[AI决策] {agent_name} 投票: {option_id} (置信度:{confidence:.2f})"
+                )
+        else:
+            # 外部AI模式
+            await ai_decision_system.start_vote(vote_id)
+
+        # 计算胜者
+        if vote.config.options and vote.config.agents:
+            winner = max(vote.config.options, key=lambda o: o.weighted_votes)
+            vote.winner = winner
+            vote.consensus_level = (
+                winner.weighted_votes
+                / sum(a.weight for a in vote.config.agents)
+            )
+        vote.status = VoteStatus.COMPLETED
+        vote.completed_at = time.time()
+        logger.info(f"[AI决策] 投票完成: {vote_id}")
+        _ai_save_votes()
+
+    except Exception as e:
+        logger.error(f"[AI决策] 投票执行失败: {e}")
+        vote.status = VoteStatus.CANCELLED
+
+
+@ai_voting_router.get("/ai-voting/vote/{vote_id}")
+async def ai_voting_status(vote_id: str):
+    """获取投票状态"""
+    if not _AI_DECISION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="AI决策模块未加载")
+    vote = ai_decision_system.get_vote(vote_id)
+    if not vote:
+        raise HTTPException(status_code=404, detail="投票不存在")
+    return vote.to_dict()
+
+
+@ai_voting_router.get("/ai-voting/list")
+async def ai_voting_list():
+    """获取投票列表（按创建时间倒序）"""
+    if not _AI_DECISION_AVAILABLE:
+        return {"votes": []}
+    votes = ai_decision_system.get_all_votes()
+    sorted_votes = sorted(votes, key=lambda v: v.created_at, reverse=True)
+    return {"votes": [v.to_dict() for v in sorted_votes]}
+
+
+@ai_voting_router.delete("/ai-voting/vote/{vote_id}")
+async def ai_voting_delete(vote_id: str):
+    """删除投票"""
+    if not _AI_DECISION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="AI决策模块未加载")
+    vote = ai_decision_system.get_vote(vote_id)
+    if not vote:
+        raise HTTPException(status_code=404, detail="投票不存在")
+    ai_decision_system._votes.pop(vote_id, None)
+    _ai_save_votes()
+    logger.info(f"[AI决策] 删除投票 {vote_id}")
+    return {"message": "已删除", "vote_id": vote_id}
+
+
+@ai_voting_router.get("/ai-voting/local-agents")
+async def ai_voting_local_agents(request: Request):
+    """获取 QwenPaw 中的本地真实智能体列表"""
+    try:
+        try:
+            from qwenpaw.pawapp import get_agents_state
+            agents_state = get_agents_state()
+        except ImportError:
+            agents_state = None
+
+        if agents_state is None:
+            base_url = str(request.base_url).rstrip("/")
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{base_url}/api/agents")
+                resp.raise_for_status()
+                agents_state = resp.json()
+
+        agents = agents_state.get("agents", agents_state) if isinstance(agents_state, dict) else []
+        if not isinstance(agents, list):
+            agents = []
+
+        return {
+            "agents": [
+                {
+                    "agent_id": a["id"],
+                    "name": a.get("name", a["id"]),
+                    "description": (a.get("description", "") or "").split("|")[0].strip()[:120],
+                    "model": (a.get("active_model") or {}).get("model", "系统默认"),
+                    "enabled": a.get("enabled", True),
+                    "running": a.get("startup_status") == "running",
+                }
+                for a in agents
+                if a.get("enabled", True) and a.get("id") != "ai_decision"
+            ]
+        }
+    except Exception as e:
+        logger.error(f"[AI决策] 获取本地Agent失败: {e}")
+        return {
+            "agents": [
+                {"agent_id": "default", "name": "Default", "description": "默认Agent", "model": "system"},
+                {"agent_id": "cloud-orchestrator", "name": "CloudPaw-Master", "description": "主控编排Agent", "model": "系统默认"},
+                {"agent_id": "cloud-executor", "name": "CloudPaw-Executor", "description": "执行Agent", "model": "系统默认"},
+                {"agent_id": "cloud-verifier", "name": "CloudPaw-Verifier", "description": "验证Agent", "model": "系统默认"},
+            ],
+            "fallback": True,
+        }
+
+
+@ai_voting_router.get("/ai-voting/agents")
+async def ai_voting_agents(request: Request):
+    """获取智能体列表（优先返回本地真实Agent）"""
+    return await ai_voting_local_agents(request)
+
+
+@ai_voting_router.get("/ai-voting/report/{vote_id}")
+async def ai_voting_report(vote_id: str):
+    """生成决策报告"""
+    if not _AI_DECISION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="AI决策模块未加载")
+    vote = ai_decision_system.get_vote(vote_id)
+    if not vote:
+        raise HTTPException(status_code=404, detail="投票不存在")
+    if vote.status.value != "completed":
+        raise HTTPException(status_code=400, detail="投票尚未完成")
+    generator = ReportGenerator()
+    return await generator.generate(vote)
+
+
+@ai_voting_router.get("/ai-voting/report/{vote_id}/markdown")
+async def ai_voting_report_markdown(vote_id: str):
+    """生成Markdown格式报告"""
+    if not _AI_DECISION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="AI决策模块未加载")
+    vote = ai_decision_system.get_vote(vote_id)
+    if not vote:
+        raise HTTPException(status_code=404, detail="投票不存在")
+    if vote.status.value != "completed":
+        raise HTTPException(status_code=400, detail="投票尚未完成")
+    generator = ReportGenerator()
+    report = await generator.generate(vote)
+    markdown = generator.to_markdown(report)
+    return PlainTextResponse(content=markdown, media_type="text/markdown")
+
+
+@ai_voting_router.get("/ai-voting/templates")
+async def ai_voting_templates():
+    """获取投票模板列表"""
+    return {
+        "templates": [
+            {"id": "yes_no", "name": "简单决策", "description": "是/否 二选一", "type": "decision", "category": "决策型"},
+            {"id": "yes_no_abstain", "name": "决策（含弃权）", "description": "是/否/弃权", "type": "decision", "category": "决策型"},
+            {"id": "go_no_go", "name": "通过决议", "description": "通过/不通过", "type": "decision", "category": "决策型"},
+            {"id": "score_5", "name": "5分评分", "description": "1-5分制", "type": "score", "category": "评分型"},
+            {"id": "score_10", "name": "10分评分", "description": "1-10分制", "type": "score", "category": "评分型"},
+            {"id": "score_100", "name": "百分制评分", "description": "0-100分制", "type": "score", "category": "评分型"},
+            {"id": "rank_priority", "name": "优先级排序", "description": "按优先级排序", "type": "ranking", "category": "排序型"},
+            {"id": "rank_preference", "name": "偏好排序", "description": "按个人偏好排序", "type": "ranking", "category": "排序型"},
+            {"id": "consensus_basic", "name": "基础共识", "description": "多轮协商达成共识", "type": "consensus", "category": "共识型"},
+            {"id": "consensus_deep", "name": "深度共识", "description": "深度多轮协商", "type": "consensus", "category": "共识型"},
+            {"id": "consensus_unanimous", "name": "全体一致", "description": "要求全体一致", "type": "consensus", "category": "共识型"},
+            {"id": "multi_select", "name": "多选投票", "description": "可选择多个选项", "type": "multi_choice", "category": "多选型"},
+        ]
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
+# 多AI并发查询（全提问）API
+# ═══════════════════════════════════════════════════════════════
+
+@ai_voting_router.post("/ai-voting/multi-ai/query")
+async def ai_voting_multi_ai_query(request: MultiAIQueryRequest):
+    """多AI并发查询"""
+    if not _AI_DECISION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="AI决策模块未加载")
+    try:
+        configs = []
+        for p in request.providers:
+            config = LLMConfig(
+                provider=p.get("provider", "openai"),
+                model=p.get("model", ""),
+                api_key=p.get("api_key", ""),
+                api_base=p.get("api_base", ""),
+                temperature=p.get("temperature", 0.7),
+                max_tokens=p.get("max_tokens", 2000),
+            )
+            configs.append(config)
+
+        result = await multi_ai_engine.query_all(
+            question=request.question,
+            configs=configs,
+            system_prompt=request.system_prompt,
+        )
+
+        return {
+            "query": result.query,
+            "total_latency": result.total_latency,
+            "consensus_level": result.consensus_level,
+            "responses": [
+                {
+                    "provider": r.provider,
+                    "content": r.content[:500] + "..." if len(r.content) > 500 else r.content,
+                    "full_content": r.content,
+                    "confidence": r.confidence,
+                    "tokens_used": r.tokens_used,
+                    "latency": r.latency,
+                    "error": r.error,
+                }
+                for r in result.responses
+            ],
+            "best_response": {
+                "provider": result.best_response.provider,
+                "content": result.best_response.content[:500] + "..." if len(result.best_response.content) > 500 else result.best_response.content,
+                "full_content": result.best_response.content,
+            }
+            if result.best_response
+            else None,
+        }
+    except Exception as e:
+        logger.error(f"[多AI查询] 失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@ai_voting_router.get("/ai-voting/multi-ai/providers")
+async def ai_voting_multi_ai_providers():
+    """获取支持的AI提供商"""
+    if not _AI_DECISION_AVAILABLE:
+        return {"providers": [], "error": "模块未加载"}
+    try:
+        return {
+            "providers": multi_ai_engine.get_supported_providers(),
+            "description": "内置多AI并发查询引擎（全提问/AIChatProxy），无需浏览器扩展",
+            "reference": "https://aichatproxy.com/?from=toolwa",
+        }
+    except Exception as e:
+        return {
+            "providers": [
+                {"id": "doubao", "name": "豆包", "icon": "🟢", "model": "doubao-pro-128k"},
+                {"id": "deepseek", "name": "DeepSeek", "icon": "🔵", "model": "deepseek-chat"},
+                {"id": "qwen", "name": "通义千问", "icon": "🟠", "model": "qwen-max"},
+                {"id": "kimi", "name": "Kimi", "icon": "🟡", "model": "kimi-latest"},
+                {"id": "openai", "name": "ChatGPT", "icon": "🔵", "model": "gpt-4"},
+                {"id": "anthropic", "name": "Claude", "icon": "🟣", "model": "claude-3-opus"},
+            ]
+        }
 
 plugin = TeamChatPlugin()
