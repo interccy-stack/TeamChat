@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="TeamChat Email API",
     description="TeamChat邮箱系统独立后端服务",
-    version="5.3.0"
+    version="5.2.0"
 )
 
 # 配置CORS
@@ -61,7 +61,7 @@ async def root():
     """根路径 - 健康检查"""
     return {
         "service": "TeamChat Email Backend",
-        "version": "5.3.0",
+        "version": "5.2.0",
         "status": "running"
     }
 

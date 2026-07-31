@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""TeamChat 热重载模块 - v5.3.0
+"""TeamChat 热重载模块 - v5.2.1
 
 支持文件变更自动检测和插件热更新
 无需重启 QwenPaw 即可应用代码变更

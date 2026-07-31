@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-TeamChat 数据库连接池 v5.3.0
+TeamChat 数据库连接池 v5.2.3
 优化 SQLite 数据库访问性能
 """
 

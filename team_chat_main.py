@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""TeamChat Plugin Backend v5.3.0 — AI群聊文件上传下载
+"""TeamChat Plugin Backend v5.3.2 — 双注册模式 · AI决策历史关联
 
 修复:
   1. AI群聊支持文件上传/下载/预览
@@ -201,7 +201,7 @@ def _load_email_backend():
 # 配置常量
 # ============================================================
 
-CURRENT_VERSION = "5.3.0"
+CURRENT_VERSION = "5.3.2"
 DEFAULT_HOST_ID = "cloud-orchestrator"
 MAX_HISTORY = 200
 SESSION_KEEPALIVE_DAYS = 7
@@ -814,6 +814,11 @@ class BrowserManager:
             "uptime": int(time.time() - self.launch_time) if self.is_running else 0,
         }
 
+
+# ============================================================
+# AI投票路由（必须在build_router之前定义）
+# ============================================================
+ai_voting_router = APIRouter()
 
 # ============================================================
 # 构建 API 路由
@@ -3105,6 +3110,32 @@ def build_router():
                 status_code=500
             )
 
+    # ---- PawApp 入口页面 ----
+    @router.get("/app")
+    async def app_entry(request: Request):
+        """PawApp 应用栏目入口 - 返回嵌入页面"""
+        html_content = '''<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamChat</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        #root { width: 100%; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+        // PawApp 上下文检测
+        window.isPawApp = typeof window.paw !== 'undefined' || typeof window.QwenPaw !== 'undefined';
+        console.log('[TeamChat] PawApp mode:', window.isPawApp);
+    </script>
+</body>
+</html>'''
+        return HTMLResponse(content=html_content)
+
     return router
 
 
@@ -3447,7 +3478,6 @@ def _ai_restore_votes():
 
 
 # ── Router 与请求模型 ──
-ai_voting_router = APIRouter()
 _VOTE_CTX_CACHE: Dict[str, Any] = {}
 
 
@@ -3949,5 +3979,195 @@ async def ai_voting_multi_ai_providers():
                 {"id": "anthropic", "name": "Claude", "icon": "🟣", "model": "claude-3-opus"},
             ]
         }
+
+
+# ═══════════════════════════════════════════════════════════════
+# AI决策历史记录提取API
+# ═══════════════════════════════════════════════════════════════
+
+class ExtractDecisionRequest(BaseModel):
+    session_id: str = Field(..., description="会谈记录ID")
+    host_id: str = Field(..., description="主持人Agent ID")
+
+
+@ai_voting_router.post("/ai-voting/extract-from-history")
+async def ai_voting_extract_from_history(request: ExtractDecisionRequest):
+    """从历史会谈记录中提取决策信息"""
+    if not _AI_DECISION_AVAILABLE:
+        raise HTTPException(status_code=503, detail="AI决策模块未加载")
+
+    # 获取会谈记录
+    data = store.get(request.session_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="会谈记录不存在")
+
+    history = data.get("history", [])
+    if not history:
+        raise HTTPException(status_code=400, detail="会谈记录为空，无法提取决策")
+
+    # 构建提示词，让AI分析历史记录提取决策
+    prompt = """你是决策分析专家。请分析以下团队会谈记录，提取其中的关键决策信息。
+
+请按以下格式输出决策总结：
+
+【决策主题】
+（简明扼要地描述这个决策的核心问题，20字以内）
+
+【决策背景】
+（描述为什么需要做这个决策，当前面临的问题或挑战）
+
+【决策方案】
+（列出讨论中提到的各种方案或选择）
+
+【执行要点】
+1. （具体的执行步骤或行动项）
+2. （具体的执行步骤或行动项）
+
+【决策结果】
+（最终达成的共识或决定是什么）
+
+【影响评估】
+（高/中/低 - 这个决策对项目或团队的影响程度）
+
+【参与人员】
+（列出参与讨论的主要角色或Agent）
+
+=== 会谈记录 ===
+
+"""
+
+    # 添加历史记录
+    agent_names = set()
+    for h in history:
+        sender = h.get("sender_name", h.get("sender", "?"))
+        agent_names.add(sender)
+        prompt += f"[{sender}]: {h.get('content', '')}\n\n"
+
+    try:
+        # 调用主持人Agent进行分析
+        host_resp = await _call_agent_async(request.host_id, prompt)
+
+        # 解析AI返回的内容
+        decision_data = _parse_decision_from_ai_response(host_resp, list(agent_names))
+
+        # 生成决策ID
+        decision_id = f"decision_{request.session_id}_{int(time.time())}"
+
+        # 保存提取的决策记录
+        decision_record = {
+            "id": decision_id,
+            "session_id": request.session_id,
+            "title": decision_data.get("title", "未命名决策"),
+            "content": decision_data.get("content", ""),
+            "category": decision_data.get("category", "历史提取"),
+            "impact": decision_data.get("impact", "中"),
+            "status": "completed",
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "participants": list(agent_names),
+            "raw_ai_response": host_resp,
+        }
+
+        # 保存到决策记录存储
+        _save_decision_record(decision_record)
+
+        logger.info(f"[AI决策] 从历史记录提取决策成功: {decision_id}")
+
+        return {
+            "success": True,
+            "decision": decision_record,
+            "message": "决策提取成功"
+        }
+
+    except Exception as e:
+        logger.error(f"[AI决策] 从历史记录提取决策失败: {e}")
+        raise HTTPException(status_code=500, detail=f"决策提取失败: {str(e)}")
+
+
+def _parse_decision_from_ai_response(response: str, participants: list) -> dict:
+    """从AI响应中解析决策数据"""
+    result = {
+        "title": "历史会谈决策",
+        "content": response,
+        "category": "历史提取",
+        "impact": "中",
+    }
+
+    # 尝试提取决策主题
+    if "【决策主题】" in response:
+        lines = response.split("\n")
+        for i, line in enumerate(lines):
+            if "【决策主题】" in line and i + 1 < len(lines):
+                title = lines[i + 1].strip()
+                if title and not title.startswith("【"):
+                    result["title"] = title[:50]  # 限制长度
+                    break
+
+    # 尝试提取影响评估
+    if "【影响评估】" in response:
+        if "高" in response.split("【影响评估】")[-1][:20]:
+            result["impact"] = "高"
+        elif "低" in response.split("【影响评估】")[-1][:20]:
+            result["impact"] = "低"
+
+    # 尝试提取决策类别
+    if "技术" in response or "代码" in response or "架构" in response:
+        result["category"] = "技术决策"
+    elif "产品" in response or "功能" in response:
+        result["category"] = "产品决策"
+    elif "流程" in response or "规范" in response:
+        result["category"] = "流程决策"
+
+    return result
+
+
+# 决策记录存储文件
+_AI_DECISION_RECORDS_FILE = _AI_DECISION_DATA_DIR / "ai_decision_records.json"
+
+
+def _save_decision_record(record: dict):
+    """保存决策记录到文件"""
+    try:
+        records = []
+        if _AI_DECISION_RECORDS_FILE.exists():
+            with open(_AI_DECISION_RECORDS_FILE, "r", encoding="utf-8") as f:
+                records = json.load(f)
+
+        # 检查是否已存在相同session的决策，如果存在则更新
+        existing_idx = None
+        for i, r in enumerate(records):
+            if r.get("session_id") == record.get("session_id"):
+                existing_idx = i
+                break
+
+        if existing_idx is not None:
+            records[existing_idx] = record
+        else:
+            records.append(record)
+
+        with open(_AI_DECISION_RECORDS_FILE, "w", encoding="utf-8") as f:
+            json.dump(records, f, ensure_ascii=False, indent=2)
+
+    except Exception as e:
+        logger.error(f"[AI决策] 保存决策记录失败: {e}")
+
+
+@ai_voting_router.get("/ai-voting/decision-records")
+async def ai_voting_decision_records():
+    """获取所有从历史记录提取的决策"""
+    try:
+        if not _AI_DECISION_RECORDS_FILE.exists():
+            return {"records": []}
+
+        with open(_AI_DECISION_RECORDS_FILE, "r", encoding="utf-8") as f:
+            records = json.load(f)
+
+        # 按时间倒序
+        records.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+
+        return {"records": records}
+
+    except Exception as e:
+        logger.error(f"[AI决策] 获取决策记录失败: {e}")
+        return {"records": [], "error": str(e)}
 
 plugin = TeamChatPlugin()

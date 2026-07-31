@@ -1,7 +1,7 @@
 #!/bin/bash
 # TeamChat 热重载快速启动脚本
 
-echo "🚀 TeamChat v5.3.0 自动热更新"
+echo "🚀 TeamChat v5.2.1 自动热更新"
 echo "================================"
 
 # 获取插件目录

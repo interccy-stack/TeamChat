@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-TeamChat API 缓存模块 v5.3.0
+TeamChat API 缓存模块 v5.2.3
 提供 API 响应缓存，减少重复计算
 """
 

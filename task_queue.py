@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-TeamChat 异步任务队列 v5.3.0
+TeamChat 异步任务队列 v5.2.3
 支持文件上传、下载、AI处理等异步任务
 """
 
