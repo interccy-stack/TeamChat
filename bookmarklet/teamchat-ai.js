@@ -1,4 +1,4 @@
-// TeamChat AI 书签工具 v5.3.0
+// TeamChat AI 书签工具 v5.2.0
 // 用法：javascript:(function(){var s=document.createElement('script');s.src='http://localhost:8088/static/teamchat-ai.js';document.head.appendChild(s);})();
 
 (function() {
