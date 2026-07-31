@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AI投票系统 v5.3.0
+AI投票系统 v5.2.2
 TeamChat 子模块 - 纯智能体投票决策系统
 支持外调智能体（豆包、OpenAI、Claude等）
 """
@@ -19,7 +19,7 @@ except ImportError:
     LLMConfig = None
     LLMProvider = None
 
-__version__ = "5.3.0"
+__version__ = "5.2.2"
 __all__ = [
     'AIVotingSystem', 'VoteConfig', 'VoteStatus', 'VoteOption', 
     'AgentConfig', 'AIVote', 'NegotiationEngine', 'ReportGenerator',

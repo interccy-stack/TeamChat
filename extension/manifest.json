@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AI PRO - 智能网页助手",
   "short_name": "AI PRO",
-  "version": "5.3.0",
+  "version": "5.2.0",
   "description": "再一次跨界的扩展「智能体可以管理并匹配工作任务建立自定义群进行团队会谈」 · AI主持圆桌会谈 · AI群聊（上下文感知）· AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇",
   "permissions": [
     "storage",

@@ -2,8 +2,8 @@
   "room_id": "OFFICIAL_ROOM",
   "room_name": "🏠 官方 AI 聊天室",
   "creator_id": "system",
-  "created_at": "2026-07-26T01:29:19.497912",
-  "expires_at": "2026-08-02T01:29:19.497912",
+  "created_at": "2026-07-31T10:12:39.822642",
+  "expires_at": "2026-08-07T10:12:39.822642",
   "members": [
     {
       "user_id": "agent:default",
@@ -11,8 +11,8 @@
       "role": "agent",
       "icon": "🤖",
       "color": "#FF6B6B",
-      "joined_at": "2026-07-26T01:29:19.497912",
-      "last_active": "2026-07-26T10:52:30.984655"
+      "joined_at": "2026-07-31T10:12:39.822642",
+      "last_active": "2026-07-31T10:12:39.822642"
     },
     {
       "user_id": "agent:cloud-executor",
@@ -20,8 +20,8 @@
       "role": "agent",
       "icon": "⚡",
       "color": "#4ECDC4",
-      "joined_at": "2026-07-26T01:29:19.497912",
-      "last_active": "2026-07-26T10:52:30.458922"
+      "joined_at": "2026-07-31T10:12:39.822642",
+      "last_active": "2026-07-31T10:12:39.822642"
     },
     {
       "user_id": "agent:QwenPaw_QA_Agent_0.2",
@@ -29,8 +29,8 @@
       "role": "agent",
       "icon": "❓",
       "color": "#45B7D1",
-      "joined_at": "2026-07-26T01:29:19.497912",
-      "last_active": "2026-07-26T11:03:16.099379"
+      "joined_at": "2026-07-31T10:12:39.822642",
+      "last_active": "2026-07-31T10:12:39.822642"
     },
     {
       "user_id": "agent:cloud-orchestrator",
@@ -38,70 +38,41 @@
       "role": "agent",
       "icon": "🎯",
       "color": "#96CEB4",
-      "joined_at": "2026-07-26T01:29:19.497912",
-      "last_active": "2026-07-26T10:52:33.426565"
-    },
-    {
-      "user_id": "user_9ywu1zog",
-      "nickname": "C叔",
-      "role": "member",
-      "joined_at": "2026-07-26T08:35:30.354653",
-      "last_active": "2026-07-26T11:03:09.468869"
+      "joined_at": "2026-07-31T10:12:39.822642",
+      "last_active": "2026-07-31T10:12:39.822642"
     },
     {
       "user_id": "agent:cloud-verifier",
-      "nickname": "cloud-verifier",
+      "nickname": "CloudPaw-Verifier",
       "role": "agent",
-      "joined_at": "2026-07-26T09:33:21.972091",
-      "last_active": "2026-07-26T10:52:35.816943",
-      "icon": "🤖"
+      "icon": "✓",
+      "color": "#FFEAA7",
+      "joined_at": "2026-07-31T10:12:39.822642",
+      "last_active": "2026-07-31T10:12:39.822642"
     },
     {
-      "user_id": "user_cp443ten",
-      "nickname": "访客922",
+      "user_id": "user_e09kr8lf",
+      "nickname": "访客560",
       "role": "member",
-      "joined_at": "2026-07-26T17:25:02.415579",
-      "last_active": "2026-07-26T17:25:02.415579"
-    },
-    {
-      "user_id": "user_v37drai9",
-      "nickname": "访客159",
-      "role": "member",
-      "joined_at": "2026-07-26T19:11:24.267325",
-      "last_active": "2026-07-26T19:11:24.267325"
-    },
-    {
-      "user_id": "user_ul0ycpyg",
-      "nickname": "访客711",
-      "role": "member",
-      "joined_at": "2026-07-26T12:43:07.749848",
-      "last_active": "2026-07-26T12:43:07.749860"
-    },
-    {
-      "user_id": "user_ztx3p66o",
-      "nickname": "访客354",
-      "role": "member",
-      "joined_at": "2026-07-26T12:43:11.150020",
-      "last_active": "2026-07-26T12:43:11.150027"
-    },
-    {
-      "user_id": "user_asrkpqgs",
-      "nickname": "访客343",
-      "role": "member",
-      "joined_at": "2026-07-26T12:53:26.250106",
-      "last_active": "2026-07-26T12:53:26.250112"
-    },
-    {
-      "user_id": "user_is6ncn6g",
-      "nickname": "访客167",
-      "role": "member",
-      "joined_at": "2026-07-26T13:57:13.397857",
-      "last_active": "2026-07-26T13:57:13.397869"
+      "joined_at": "2026-07-31T10:12:39.845834",
+      "last_active": "2026-07-31T10:12:39.845841"
     }
   ],
-  "messages": [],
+  "messages": [
+    {
+      "type": "system",
+      "text": "欢迎来到官方 AI 聊天室！\n\n💡 使用 @智能体名 指定特定智能体回复\n例如：@阿里 你好\n\n不@时所有5个智能体都会回复你~",
+      "content": "欢迎来到官方 AI 聊天室！\n\n💡 使用 @智能体名 指定特定智能体回复\n例如：@阿里 你好\n\n不@时所有5个智能体都会回复你~",
+      "from": "system",
+      "sender_nick": "系统",
+      "time": "2026-07-31T10:12:39.822642",
+      "timestamp": "2026-07-31T10:12:39.822642",
+      "msg_id": "OFFICIAL_ROOM:0",
+      "icon": "🔔"
+    }
+  ],
   "status": "active",
-  "version": 55,
+  "version": 2,
   "is_official": true,
   "description": "AI 智能体群聊室 - 支持 @提及 指定回复",
   "agents": [
@@ -139,11 +110,11 @@
     },
     {
       "id": "agent:cloud-verifier",
-      "name": "cloud-verifier",
-      "full_name": "cloud-verifier",
+      "name": "Verifier",
+      "full_name": "CloudPaw-Verifier",
       "agent_api_id": "cloud-verifier",
-      "icon": "🤖",
-      "color": "#667eea"
+      "icon": "✓",
+      "color": "#FFEAA7"
     }
   ]
 }

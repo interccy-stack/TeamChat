@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AI决策系统 v5.3.0
+AI决策系统 v1.0.0
 独立插件 - 纯智能体投票决策系统
 内置多AI并发查询引擎（全提问/AIChatProxy）
 """
@@ -19,7 +19,7 @@ except ImportError:
     LLMConfig = None
     LLMProvider = None
 
-__version__ = "5.3.0"
+__version__ = "1.0.0"
 __all__ = [
     'AIVotingSystem', 'VoteConfig', 'VoteStatus', 'VoteOption', 
     'AgentConfig', 'AIVote', 'NegotiationEngine', 'ReportGenerator',

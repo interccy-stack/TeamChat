@@ -1,7 +1,7 @@
 /**
  * TeamChat AI群聊文件上传补丁
  * 动态注入文件上传功能到 AI群聊页面
- * @version 5.3.0
+ * @version 5.2.0
  */
 
 (function() {
@@ -204,7 +204,7 @@
     window.AIChatFileUpload = {
         init: initFileUpload,
         upload: uploadFile,
-        version: '5.3.0'
+        version: '5.2.0'
     };
     
     // 启动

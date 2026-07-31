@@ -3,10 +3,12 @@
  *  TeamChat Frontend v5.3.1 — 双注册模式 · AI决策历史关联
  *  【新增】双注册: 应用栏目 + 侧边栏
  *  【新增】AI决策历史关联: 从历史会谈提取决策案例
- *  【保留】AI投票按钮 TC扩展 | AI协作 | 🗳️AI投票
- *  CACHE_BUST: 20260731_0100_v16
+ *  【更新】AI决策按钮 TC扩展 | AI协作 | AI决策
+ *  CACHE_BUST: 20260731_0900_v20_AUTO_EXTRACT
  * ===================================================================
  */
+// FORCE_RELOAD: v20_AUTO_EXTRACT
+
 if(typeof window.getApiUrl==='undefined'&&window.QwenPaw&&window.QwenPaw.host&&window.QwenPaw.host.getApiUrl){window.getApiUrl=window.QwenPaw.host.getApiUrl;}
 
 // AI群聊样式优化
@@ -328,8 +330,8 @@ function _hiveFallback(addr){
 }
 
 (function () {
-  // TeamChat v5.2.0 - AI群聊文件管理
-  console.log('[TeamChat] v5.2.0 AI群聊文件管理 加载时间:', new Date().toLocaleString());
+  // TeamChat v5.3.1 - 双注册模式 · AI决策历史关联
+  console.log('[TeamChat] v5.3.1 加载时间:', new Date().toLocaleString());
   
   var s = document.createElement("style");
   s.textContent =
@@ -391,7 +393,20 @@ function _hiveFallback(addr){
     "@keyframes tcMainDrone{0%{left:-40px}100%{left:150px}}"+
 "@keyframes tcPigeonFly{0%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-8px) rotate(4deg)}50%{transform:translateY(-4px) rotate(-3deg)}75%{transform:translateY(-6px) rotate(2deg)}100%{transform:translateY(0) rotate(0deg)}}";
   document.head.appendChild(s);
-  var QP = window.QwenPaw; if (!QP) return;
+  // 放宽检查条件，只要求 QwenPaw 存在（参考 dual-registration SKILL）
+  if (!window.QwenPaw || !window.QwenPaw.host) {
+    console.error('[TeamChat] QwenPaw not ready');
+    return;
+  }
+  var QP = window.QwenPaw;
+  console.log('[TeamChat] QP initialized:', typeof QP, 'QP.host:', typeof QP.host);
+  
+  // 检查必要的 host API
+  if (!QP.host || !QP.host.React) {
+    console.error('[TeamChat] QP.host.React not available');
+    return;
+  }
+  
   var React = QP.host.React, antd = QP.host.antd, antdIcons = QP.host.antdIcons || {};
   var getApiUrl = QP.host.getApiUrl, getApiToken = QP.host.getApiToken;
   var e = React.createElement, useState = React.useState, useEffect = React.useEffect;
@@ -2671,12 +2686,12 @@ function TeamChatPage() {
     var _cv = useState(false), chuanView = _cv[0], setChuanView = _cv[1]
     var _av = useState(false), aimailView = _av[0], setAimailView = _av[1];var _am = useState("main"), aimailMode = _am[0], setAimailMode = _am[1];
     var _aig = useState(false), aiChatView = _aig[0], setAiChatView = _aig[1];var _et = useState("inbox"), emailTab = _et[0], setEmailTab = _et[1];var _ecs = useState([]), emailConfigs = _ecs[0], setEmailConfigs = _ecs[1];var _ca = useState("__all__"), currentAccount = _ca[0], setCurrentAccount = _ca[1];
-    var _vote = useState(false), aiVotingView = _vote[0], setAiVotingView = _vote[1];
-    var _voteTab = useState("list"), aiVotingTab = _voteTab[0], setAiVotingTab = _voteTab[1];
-    var _voteList = useState([]), aiVotingList = _voteList[0], setAiVotingList = _voteList[1];
-    var _voteLoading = useState(false), aiVotingLoading = _voteLoading[0], setAiVotingLoading = _voteLoading[1];
-    var _voteDetail = useState(null), aiVotingDetail = _voteDetail[0], setAiVotingDetail = _voteDetail[1];
-    var _voteTemplates = useState([]), aiVotingTemplates = _voteTemplates[0], setAiVotingTemplates = _voteTemplates[1];
+
+
+
+
+
+
   var _data = useState([]), emails = _data[0], setEmails = _data[1];
   var _page = useState(1), curPage = _page[0], setCurPage = _page[1];
   var _psize = useState(20), pageSize = _psize[0], setPageSize = _psize[1];
@@ -2757,15 +2772,13 @@ var _hiveTab = useState("friends"), hiveTab = _hiveTab[0], setHiveTab = _hiveTab
 var _showAddFriend = useState(false), showAddFriend = _showAddFriend[0], setShowAddFriend = _showAddFriend[1];
 var _newFriend = useState({name: "", email: ""}), newFriend = _newFriend[0], setNewFriend = _newFriend[1];
 var _hiveInput = useState(""), hiveInput = _hiveInput[0], setHiveInput = _hiveInput[1];
-var _attachedFiles = useState([]), attachedFiles = _attachedFiles[0], setAttachedFiles = _attachedFiles[1];;var _aiInput = useState(""), aiInput = _aiInput[0], setAiInput = _aiInput[1];
-var _aiResult = useState(""), aiResult = _aiResult[0], setAiResult = _aiResult[1];
-var _aiLoading = useState(false), aiLoading = _aiLoading[0], setAiLoading = _aiLoading[1];
-var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1]
+var _attachedFiles = useState([]), attachedFiles = _attachedFiles[0], setAttachedFiles = _attachedFiles[1];
   var _savingConfig = useState(false), savingConfig = _savingConfig[0], setSavingConfig = _savingConfig[1];
-  var _aiInput = useState(""), aiInput = _aiInput[0], setAiInput = _aiInput[1];
-  var _aiResult = useState(""), aiResult = _aiResult[0], setAiResult = _aiResult[1];
-  var _aiLoading = useState(false), aiLoading = _aiLoading[0], setAiLoading = _aiLoading[1];
-  var _aiMode = useState("optimize"), aiMode = _aiMode[0], setAiMode = _aiMode[1];
+  
+  // AI决策状态
+  var _aiDecisionView = useState(false), aiDecisionView = _aiDecisionView[0], setAiDecisionView = _aiDecisionView[1];
+  var _decisionRecords = useState([]), decisionRecords = _decisionRecords[0], setDecisionRecords = _decisionRecords[1];
+  var _decisionLoading = useState(false), decisionLoading = _decisionLoading[0], setDecisionLoading = _decisionLoading[1];
   
   // 全局AI副驾面板状态
   var _aiPanelOpen = useState(false), aiPanelOpen = _aiPanelOpen[0], setAiPanelOpen = _aiPanelOpen[1];
@@ -6323,136 +6336,99 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       );
     }
 
-if(aiVotingView) {
-      var _aiTab = useState("list"), aiTab = _aiTab[0], setAiTab = _aiTab[1];
-      var _aiVotes = useState([]), aiVotes = _aiVotes[0], setAiVotes = _aiVotes[1];
-      var _aiLoading = useState(true), aiLoading = _aiLoading[0], setAiLoading = _aiLoading[1];
-      var _aiTemplates = useState([]), aiTemplates = _aiTemplates[0], setAiTemplates = _aiTemplates[1];
-      var _aiLocalAgents = useState([]), aiLocalAgents = _aiLocalAgents[0], setAiLocalAgents = _aiLocalAgents[1];
-      var _aiDetailId = useState(null), aiDetailId = _aiDetailId[0], setAiDetailId = _aiDetailId[1];
-
-      var API_BASE = "/api/plugins/team_chat/ai-voting";
-
-      var fetchVotes = function() {
-        setAiLoading(true);
-        fetch(API_BASE + "/list")
-          .then(function(r) { return r.json(); })
-          .then(function(d) { setAiVotes(d.votes || []); setAiLoading(false); })
-          .catch(function() { setAiLoading(false); });
+// AI决策视图
+    if(aiDecisionView) {
+      // 默认保留案例
+      var defaultDecisionCase = {
+        id: "case-001",
+        title: "🎯 功能简化决策：放弃「全提问」功能",
+        content: "决策背景：AI决策插件的「全提问」功能因浏览器缓存文件损坏导致JS代码截断，多次修复无效。\n决策方案：放弃该功能及创建决策流程，改为从历史记录自动总结决策数据。\n执行要点：1) 明确界定保留范围（仅保留决策列表和详情查看）；2) 数据替代方案（用历史记录自动总结替代实时创建）；3) 界面同步更新（标题、标签、空状态文案反映功能变更）；4) 版本标记（v5.3.4「简化版」）。\n决策结果：系统从「创建+投票+查看」简化为仅「查看」，降低维护成本并提高稳定性。",
+        timestamp: "2026-07-28",
+        status: "completed",
+        category: "功能简化",
+        impact: "高"
       };
-
-      var fetchTemplates = function() {
-        fetch(API_BASE + "/templates")
-          .then(function(r) { return r.json(); })
-          .then(function(d) { setAiTemplates(d.templates || []); })
-          .catch(function() {});
-      };
-
-      var fetchLocalAgents = function() {
-        fetch(API_BASE + "/local-agents")
-          .then(function(r) { return r.json(); })
-          .then(function(d) { setAiLocalAgents(d.agents || []); })
-          .catch(function() {});
-      };
-
-      var handleDelete = function(id) {
-        fetch(API_BASE + "/vote/" + id, { method: "DELETE" })
-          .then(function(r) { return r.json(); })
-          .then(function() { message.success("已删除"); fetchVotes(); })
-          .catch(function() { message.error("删除失败"); });
-      };
-
-      useEffect(function() {
-        fetchVotes();
-        fetchTemplates();
-        fetchLocalAgents();
-        // 5s 自动刷新
-        var iv = setInterval(fetchVotes, 5000);
-        return function() { clearInterval(iv); };
-      }, []);
-
-      // ── 投票列表Tab ──
-      if (aiTab === "list") {
-        return e("div", { style: { padding: "20px", background: "#f5f7fa", minHeight: "100vh" } },
-          // 顶栏
-          e("div", { style: { display: "flex", alignItems: "center", marginBottom: "20px", justifyContent: "space-between" } },
-            e("div", { style: { display: "flex", alignItems: "center", gap: "12px" } },
-              e("button", { onClick: function() { setAiVotingView(false); }, style: { background: "#52c41a", border: "none", color: "white", padding: "8px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "14px" } }, "← 返回"),
-              e("h2", { style: { margin: 0, color: "#1a1a2e" } }, "AI决策"),
-              e(Tag, { color: "green" }, "v2.0 · 本地Agent投票")
+      
+      // 从会谈历史记录中提取决策案例
+      var extractedCases = [];
+      if (hist && hist.length > 0) {
+        // 分析历史消息，提取决策相关信息
+        var decisionKeywords = ['决策', '投票', '选择', '方案', '决定', '结论', '结果', '放弃', '保留', '简化'];
+        var decisionMessages = hist.filter(function(msg) {
+          if (!msg || !msg.content) return false;
+          var content = msg.content.toLowerCase();
+          return decisionKeywords.some(function(kw) { return content.indexOf(kw) !== -1; });
+        });
+        
+        if (decisionMessages.length > 0) {
+          // 提取决策主题
+          var topicMatch = decisionMessages[0].content.match(/[\u4e00-\u9fa5]{2,20}(?:决策|投票|选择|方案)/);
+          var topic = topicMatch ? topicMatch[0] : '会谈决策';
+          
+          // 提取关键内容
+          var summary = decisionMessages.slice(0, 3).map(function(m) {
+            return m.content.substring(0, 100) + (m.content.length > 100 ? '...' : '');
+          }).join('\n');
+          
+          extractedCases.push({
+            id: "case-" + Date.now(),
+            title: "🗣️ " + topic + "（来自会谈记录）",
+            content: "决策背景：从历史会谈记录中提取\n关键讨论：\n" + summary + "\n\n参与智能体：" + (ags.filter(function(a){return a&&a.agent_id;}).map(function(a){return a.name||a.agent_id;}).join('、')||'系统') + "\n决策来源：会谈历史自动总结",
+            timestamp: new Date().toISOString().split('T')[0],
+            status: "completed",
+            category: "会谈决策",
+            impact: "中"
+          });
+        }
+      }
+      
+      // 合并所有记录：默认案例 + 提取的案例
+      var allRecords = [defaultDecisionCase].concat(extractedCases);
+      
+      return e("div",{style:{padding:"20px",background:"linear-gradient(135deg, #f5f7fa 0%, #e8f5e9 100%)",color:"#333",minHeight:"100vh"}},
+        e("div",{style:{display:"flex",alignItems:"center",marginBottom:"20px"}},
+          e("button",{onClick:function(){setAiDecisionView(false);},style:{background:"#10b981",border:"none",color:"white",padding:"8px 16px",borderRadius:"8px",cursor:"pointer",marginRight:"12px"}},"← 返回"),
+          e("h2",{style:{margin:0,color:"#10b981"}},"🎯 AI决策记录")
+        ),
+        e("div",{style:{background:"white",borderRadius:"12px",padding:"20px",boxShadow:"0 2px 8px rgba(0,0,0,0.1)"}},
+          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
+            e("div",null,
+              e("h3",{style:{margin:0,color:"#333"}},"历史决策记录"),
+              e("p",{style:{margin:"4px 0 0 0",fontSize:"12px",color:"#666"}},"📚 决策数据来源于历史记录自动总结（已提取 " + extractedCases.length + " 条会谈决策）")
             ),
-            e("div", { style: { display: "flex", gap: "8px" } },
-              e(Button, { type: "primary", style: { background: "#52c41a", borderColor: "#52c41a" }, onClick: function() { setAiTab("create"); } }, "+ 创建决策"),
-              e(Button, { onClick: function() { setAiTab("multiai"); } }, "🌐 全提问")
-            )
+            e("button",{onClick:function(){alert("从历史记录重新生成决策总结...");window.location.reload();},style:{background:"#10b981",border:"none",color:"white",padding:"8px 16px",borderRadius:"6px",cursor:"pointer"}},"🔄 重新总结")
           ),
-          // 主卡片
-          e("div", { style: { background: "white", borderRadius: "12px", padding: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" } },
-            e(window.AIDecisionListComponent, {
-              votes: aiVotes,
-              loading: aiLoading,
-              onView: function(id) { setAiDetailId(id); setAiTab("detail"); },
-              onDelete: handleDelete
+          e("div",null,
+            allRecords.map(function(record){
+              var isDefaultCase = record.id === "case-001";
+              var isExtracted = record.id.indexOf("case-") !== -1 && !isDefaultCase;
+              return e("div",{key:record.id,style:{padding:"16px",borderBottom:"1px solid #eee",background:isDefaultCase?"#ecfdf5":isExtracted?"#eff6ff":"#fafafa",borderRadius:"8px",marginBottom:"12px",border:isDefaultCase?"2px solid #10b981":isExtracted?"2px solid #3b82f6":"none"}},
+                e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}},
+                  e("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+                    e("span",{style:{fontWeight:"bold",color:isDefaultCase?"#047857":isExtracted?"#1d4ed8":"#333"}},record.title),
+                    isDefaultCase?e("span",{style:{background:"#10b981",color:"white",padding:"2px 8px",borderRadius:"4px",fontSize:"11px",fontWeight:"bold"}},"📌 保留案例"):null,
+                    isExtracted?e("span",{style:{background:"#3b82f6",color:"white",padding:"2px 8px",borderRadius:"4px",fontSize:"11px",fontWeight:"bold"}},"🤖 自动提取"):null
+                  ),
+                  e("span",{style:{fontSize:"12px",color:"#999"}},record.timestamp)
+                ),
+                e("div",{style:{display:"flex",gap:"8px",marginBottom:"8px"}},
+                  e("span",{style:{display:"inline-block",padding:"2px 8px",borderRadius:"4px",fontSize:"11px",background:"#e0e7ff",color:"#4338ca"}},record.category || "未分类"),
+                  e("span",{style:{display:"inline-block",padding:"2px 8px",borderRadius:"4px",fontSize:"11px",background:record.impact==="高"?"#fee2e2":record.impact==="中"?"#fef3c7":"#d1fae5",color:record.impact==="高"?"#991b1b":record.impact==="中"?"#92400e":"#065f46"}},"影响: " + (record.impact || "低"))
+                ),
+                e("p",{style:{margin:0,color:"#666",fontSize:"14px",lineHeight:"1.6",whiteSpace:"pre-wrap"}},record.content),
+                e("div",{style:{marginTop:"8px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                  e("span",{style:{display:"inline-block",padding:"4px 8px",borderRadius:"4px",fontSize:"12px",background:record.status==="completed"?"#d1fae5":"#fef3c7",color:record.status==="completed"?"#065f46":"#92400e"}},record.status==="completed"?"✅ 已完成":"⏳ 进行中")
+                )
+              );
             })
           ),
-          // 底部引用
-          e("div", { style: { marginTop: "20px", padding: "16px", background: "linear-gradient(135deg,#f6ffed,#e6f7ff)", borderRadius: "10px", textAlign: "center", border: "1px dashed #52c41a" } },
-            e("div", { style: { fontSize: "14px", color: "#666", fontStyle: "italic" } },
-              "有时，选择比努力重要",
-              e("span", { style: { marginLeft: "8px", fontSize: "12px", color: "#999" } }, "—— 参考 "),
-              e("a", { href: "https://aichatproxy.com/?from=toolwa", target: "_blank", rel: "noopener noreferrer", style: { color: "#52c41a", textDecoration: "none", fontSize: "12px" } }, "AIChatProxy")
-            )
+          e("div",{style:{marginTop:"20px",padding:"12px",background:"#f3f4f6",borderRadius:"8px",fontSize:"12px",color:"#6b7280"}},
+            e("p",{style:{margin:0}},"💡 提示：AI决策功能基于历史会谈记录自动总结生成。保留案例为系统预设的功能简化决策模式示例。自动提取的案例来自当前会谈历史中的决策相关讨论。")
           )
-        );
-      }
-
-      // ── 创建决策Tab ──
-      if (aiTab === "create") {
-        return e("div", { style: { padding: "20px", background: "#f5f7fa", minHeight: "100vh" } },
-          e("div", { style: { display: "flex", alignItems: "center", marginBottom: "20px", gap: "12px" } },
-            e("button", { onClick: function() { setAiVotingView(false); }, style: { background: "#52c41a", border: "none", color: "white", padding: "8px 16px", borderRadius: "8px", cursor: "pointer" } }, "← 返回"),
-            e("button", { onClick: function() { setAiTab("list"); }, style: { background: "#1890ff", border: "none", color: "white", padding: "8px 16px", borderRadius: "8px", cursor: "pointer" } }, "📋 决策列表"),
-            e("h2", { style: { margin: 0, color: "#1a1a2e" } }, "创建AI决策")
-          ),
-          e("div", { style: { background: "white", borderRadius: "12px", padding: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" } },
-            e(window.AIDecisionCreateComponent, {
-              templates: aiTemplates,
-              localAgents: aiLocalAgents,
-              onCreated: function() { fetchVotes(); setAiTab("list"); },
-              onCancel: function() { setAiTab("list"); }
-            })
-          )
-        );
-      }
-
-      // ── 详情Tab ──
-      if (aiTab === "detail") {
-        return e("div", { style: { padding: "20px", background: "#f5f7fa", minHeight: "100vh" } },
-          e("div", { style: { background: "white", borderRadius: "12px", padding: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" } },
-            e(window.AIDecisionDetailComponent, {
-              voteId: aiDetailId,
-              onBack: function() { setAiDetailId(null); setAiTab("list"); },
-              onDelete: handleDelete
-            })
-          )
-        );
-      }
-
-      // ── 多AI查询Tab ──
-      if (aiTab === "multiai") {
-        return e("div", { style: { padding: "20px", background: "#f5f7fa", minHeight: "100vh" } },
-          e("div", { style: { display: "flex", alignItems: "center", marginBottom: "20px", gap: "12px" } },
-            e("button", { onClick: function() { setAiVotingView(false); }, style: { background: "#52c41a", border: "none", color: "white", padding: "8px 16px", borderRadius: "8px", cursor: "pointer" } }, "← 返回"),
-            e("button", { onClick: function() { setAiTab("list"); }, style: { background: "#1890ff", border: "none", color: "white", padding: "8px 16px", borderRadius: "8px", cursor: "pointer" } }, "📋 决策列表")
-          ),
-          e("div", { style: { background: "white", borderRadius: "12px", padding: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" } },
-            e(window.AIDecisionMultiAIComponent, {})
-          )
-        );
-      }
+        )
+      );
     }
-return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
-      e("div",{style:{display:"flex",flexDirection:"row",height:"100%",fontFamily:"system-ui, sans-serif"}},
+
       e("div",{style:{flex:1,display:"flex",flexDirection:"column",position:"relative",overflow:"hidden",background:uiTheme==="day"?"#fefefe":"#12121a"}},
       /* ---- 🎬 一闪广告 ---- */
       adV?e("div",{style:{position:"absolute",top:0,left:0,right:0,zIndex:1000,display:"flex",justifyContent:"center",paddingTop:60,pointerEvents:"none"}},
@@ -6477,7 +6453,7 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
           ),
           e("a",{href:"https://platform.agentscope.io/plugins/team_chat",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#1890ff",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"TC扩展"),
           e("a",{href:"https://nightly.paw.msgbyte.com/invite/rj9iBh5Y",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#667eea",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"AI协作"),
-          e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setAiVotingView(true);},style:{fontSize:13,fontWeight:"bold",color:"#52c41a",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"AI投票"),
+          e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setAiDecisionView(true);},style:{fontSize:13,fontWeight:"bold",color:"#10b981",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"AI决策"),
           // 主界面动画区域（右上角）
           e("div",{style:{position:"relative",width:320,height:120,marginLeft:"auto",borderRadius:8,overflow:"hidden"},onMouseMove:function(ev){var r=ev.currentTarget.getBoundingClientRect();setHoverX(ev.clientX-r.left);setHoverY(ev.clientY-r.top);setHoverShow(true)},onMouseLeave:function(){setHoverShow(false)}},
             hoverShow&&e("div",{style:{position:"absolute",left:hoverX+8,top:hoverY-20,background:"rgba(0,0,0,0.75)",color:"#ffd700",padding:"2px 8px",borderRadius:"4px",fontSize:"12px",fontWeight:"bold",fontFamily:"monospace",pointerEvents:"none",whiteSpace:"nowrap",zIndex:999}},"115886"),
@@ -7081,7 +7057,7 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
           )
         ))
       ),
-      e(Modal,{title:"📖 TeamChat v5.2.0 说明文档",open:readmeV,onCancel:function(){setReadmeV(false);},footer:null,width:800,style:{maxHeight:"80vh"}},
+      e(Modal,{title:"📖 TeamChat v5.3.1 说明文档",open:readmeV,onCancel:function(){setReadmeV(false);},footer:null,width:800,style:{maxHeight:"80vh"}},
         e("div",{style:{maxHeight:"60vh",overflow:"auto",padding:"0 8px",fontFamily:"monospace",fontSize:12,whiteSpace:"pre-wrap",lineHeight:1.6}},readmeC||t("loading"))
       ),
       // ⌨ 快捷键面板
@@ -7105,68 +7081,76 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
   // ═══════════════════════════════════════════════════════════
   
   var PLUGIN_ID = "team_chat";
-  var h = React.createElement;
+  var h2 = React.createElement;
   
-  // 1. 应用栏目注册 (App Center)
-  if (QP.registerRoutes) {
-    try {
-      QP.registerRoutes(PLUGIN_ID, [{
-        path: "/apps/team_chat",
-        component: TeamChatPage,
-        label: "TeamChat",
-        icon: "💬",
-        priority: 100
-      }]);
-      console.info("[TeamChat] registered via registerRoutes (App Center)");
-    } catch (e) {
-      console.warn("[TeamChat] registerRoutes failed:", e);
+  console.log('[TeamChat] Registration check - QP:', typeof QP, 'TeamChatPage:', typeof TeamChatPage, 'registerRoutes:', typeof QP.registerRoutes, 'menu.add:', typeof QP.menu && QP.menu.add, 'route.add:', typeof QP.route && QP.route.add);
+  
+  // 确保 TeamChatPage 已定义（函数声明已提升）
+  if (typeof TeamChatPage === 'function') {
+    // 1. 应用栏目注册 (App Center)
+    if (QP.registerRoutes) {
+      try {
+        QP.registerRoutes(PLUGIN_ID, [{
+          path: "/apps/team_chat",
+          component: TeamChatPage,
+          label: "TeamChat",
+          icon: "💬",
+          priority: 100
+        }]);
+        console.info("[TeamChat] registered via registerRoutes (App Center)");
+      } catch (e) {
+        console.warn("[TeamChat] registerRoutes failed:", e);
+      }
     }
-  }
-  
-  // 2. 新版侧边栏菜单 (QwenPaw 2.0)
-  if (QP.menu && QP.menu.add) {
-    try {
-      QP.menu.add(PLUGIN_ID, {
-        id: PLUGIN_ID + ".menu",
-        location: "primary.settings",
-        label: "TeamChat v5.3.1",
-        icon: function() {
-          return h("span", { style: { fontSize: 18 } }, "💬");
-        },
-        route: PLUGIN_ID + ".home",
-        order: 50
-      });
-      console.info("[TeamChat] registered via menu.add (Sidebar)");
-    } catch (e) {
-      console.warn("[TeamChat] menu.add failed:", e);
+    
+    // 2. 新版侧边栏菜单 (QwenPaw 2.0) - 注意：第二个参数是数组
+    if (QP.menu && QP.menu.add) {
+      try {
+        QP.menu.add(PLUGIN_ID, [{
+          id: PLUGIN_ID + ".menu",
+          location: "primary.settings",
+          label: "TeamChat v5.3.1",
+          icon: function() {
+            return h2("span", { style: { fontSize: 18 } }, "💬");
+          },
+          route: PLUGIN_ID + ".home",
+          order: 50
+        }]);
+        console.info("[TeamChat] registered via menu.add (Sidebar)");
+      } catch (e) {
+        console.warn("[TeamChat] menu.add failed:", e);
+      }
     }
-  }
-  
-  // 3. 新版侧边栏路由 (QwenPaw 2.0)
-  if (QP.route && QP.route.add) {
-    try {
-      QP.route.add(PLUGIN_ID, {
-        id: PLUGIN_ID + ".home",
-        path: "/plugin/team_chat",
-        component: TeamChatPage
-      });
-      console.info("[TeamChat] registered via route.add (Sidebar Route)");
-    } catch (e) {
-      console.warn("[TeamChat] route.add failed:", e);
+    
+    // 3. 新版侧边栏路由 (QwenPaw 2.0) - 注意：第二个参数是数组
+    if (QP.route && QP.route.add) {
+      try {
+        QP.route.add(PLUGIN_ID, [{
+          id: PLUGIN_ID + ".home",
+          path: "/plugin/team_chat",
+          component: TeamChatPage
+        }]);
+        console.info("[TeamChat] registered via route.add (Sidebar Route)");
+      } catch (e) {
+        console.warn("[TeamChat] route.add failed:", e);
+      }
     }
-  }
-  
-  // 4. 兼容旧版路由 (保留向后兼容)
-  if (QP.registerRoutes) {
-    try {
-      QP.registerRoutes(PLUGIN_ID, [{
-        path: "/plugin/plugins/team_chat/meeting",
-        component: TeamChatPage,
-        label: t("newMeeting"),
-        icon: "团",
-        priority: 100
-      }]);
-    } catch (e) {}
+    
+    // 4. 兼容旧版路由 (保留向后兼容)
+    if (QP.registerRoutes) {
+      try {
+        QP.registerRoutes(PLUGIN_ID, [{
+          path: "/plugin/plugins/team_chat/meeting",
+          component: TeamChatPage,
+          label: t("newMeeting"),
+          icon: "团",
+          priority: 100
+        }]);
+      } catch (e) {}
+    }
+  } else {
+    console.error('[TeamChat] TeamChatPage not defined, registration skipped');
+    console.log('[TeamChat] QP available:', typeof QP, 'QP.registerRoutes:', typeof QP.registerRoutes);
   }
 })();
 function saveContact() {

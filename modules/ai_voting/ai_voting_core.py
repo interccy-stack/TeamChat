@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AI投票系统核心模块 v5.3.0
+AI投票系统核心模块 v5.2.2
 支持外调智能体（豆包、OpenAI、Claude等）
 """
 
