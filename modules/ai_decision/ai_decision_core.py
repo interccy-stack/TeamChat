@@ -101,40 +101,77 @@ class AIVote:
             pass
     
     def to_dict(self) -> Dict:
-        return {
-            "id": self.id,
-            "title": self.config.title,
-            "status": self.status.value,
-            "created_at": self.created_at,
-            "started_at": self.started_at,
-            "completed_at": self.completed_at,
-            "options": [
-                {"id": o.id, "text": o.text, "description": o.description,
-                 "votes": o.votes, "voters": o.voters, "weighted_votes": o.weighted_votes}
-                for o in self.config.options
-            ],
-            "agents": [
-                {"agent_id": a.agent_id, "name": a.name, "role": a.role,
-                 "weight": a.weight, "expertise": a.expertise,
-                 "use_external_llm": a.use_external_llm, "llm_provider": a.llm_provider}
-                for a in self.config.agents
-            ],
-            "votes": [
-                {"agent_id": v.agent_id, "agent_name": v.agent_name,
-                 "option_id": v.option_id, "weight": v.weight,
-                 "confidence": v.confidence, "reasoning": v.reasoning,
-                 "voted_at": v.voted_at, "latency": v.latency}
-                for v in self.votes
-            ],
-            "consensus_level": self.consensus_level,
-            "winner": {"id": self.winner.id, "text": self.winner.text} if self.winner else None,
-            "negotiation_history": [
-                {"round_number": r.round_number, "agent_id": r.agent_id,
-                 "agent_name": r.agent_name, "opinion": r.opinion,
-                 "timestamp": r.timestamp}
-                for r in self.negotiation_history
-            ] if self.negotiation_history else []
-        }
+        """转换为字典"""
+        try:
+            # 安全处理 winner
+            winner_dict = None
+            if self.winner is not None:
+                try:
+                    winner_id = getattr(self.winner, 'id', None)
+                    winner_text = getattr(self.winner, 'text', None)
+                    if winner_id is not None and winner_text is not None:
+                        winner_dict = {"id": winner_id, "text": winner_text}
+                except Exception:
+                    pass
+
+            # 安全处理 negotiation_history
+            negotiation_list = []
+            if self.negotiation_history:
+                for r in self.negotiation_history:
+                    try:
+                        if hasattr(r, '__dict__'):
+                            negotiation_list.append({
+                                "round_number": getattr(r, 'round_number', 0),
+                                "agent_id": getattr(r, 'agent_id', ''),
+                                "agent_name": getattr(r, 'agent_name', ''),
+                                "opinion": getattr(r, 'opinion', ''),
+                                "timestamp": getattr(r, 'timestamp', 0)
+                            })
+                        elif isinstance(r, dict):
+                            negotiation_list.append(r)
+                    except Exception:
+                        pass
+
+            return {
+                "id": self.id,
+                "title": self.config.title if self.config else "",
+                "status": self.status.value if hasattr(self.status, 'value') else str(self.status),
+                "created_at": self.created_at,
+                "started_at": self.started_at,
+                "completed_at": self.completed_at,
+                "options": [
+                    {"id": getattr(o, 'id', ''), "text": getattr(o, 'text', ''), "description": getattr(o, 'description', ''),
+                     "votes": getattr(o, 'votes', 0), "voters": getattr(o, 'voters', []),
+                     "weighted_votes": getattr(o, 'weighted_votes', 0.0)}
+                    for o in (self.config.options if self.config else [])
+                ],
+                "agents": [
+                    {"agent_id": a.agent_id, "name": a.name, "role": a.role,
+                     "weight": a.weight, "expertise": a.expertise,
+                     "use_external_llm": a.use_external_llm, "llm_provider": a.llm_provider}
+                    for a in (self.config.agents if self.config else [])
+                ],
+                "votes": [
+                    {"agent_id": v.agent_id, "agent_name": v.agent_name,
+                     "option_id": v.option_id, "weight": v.weight,
+                     "confidence": v.confidence, "reasoning": v.reasoning,
+                     "voted_at": v.voted_at, "latency": v.latency,
+                     "llm_response": v.llm_response}
+                    for v in self.votes
+                ],
+                "consensus_level": self.consensus_level,
+                "winner": winner_dict,
+                "negotiation_history": negotiation_list
+            }
+        except Exception as e:
+            logger.error(f"[AI决策] to_dict 失败: {e}")
+            return {
+                "id": getattr(self, 'id', 'unknown'),
+                "title": "加载失败",
+                "status": "error",
+                "created_at": getattr(self, 'created_at', 0),
+                "error": str(e)
+            }
 
 
 class AIVotingSystem:
@@ -181,41 +218,52 @@ class AIVotingSystem:
         logger.info(f"[AI决策] 分析完成")
     
     async def _agent_analyze(self, agent: AgentConfig, vote: AIVote) -> dict:
-        if agent.use_external_llm:
-            # 优先尝试 QwenPaw 桥接（无需 API Key）
-            try:
-                from .llm_engine import qp_bridge
-                if qp_bridge.available and not agent.llm_api_key:
-                    logger.info(f"[AI决策] {agent.name} 使用 QwenPaw 桥接分析")
-                    vote_info = {
-                        "title": vote.config.title, "description": "",
-                        "options": [{"id": o.id, "text": o.text, "description": o.description}
-                                  for o in vote.config.options]
-                    }
-                    response = await qp_bridge.analyze(
-                        role=agent.role or agent.name,
-                        expertise=agent.expertise,
-                        vote_info=vote_info
-                    )
-                    if response.content and not response.error:
-                        parsed = self._parse_bridge_response(response.content)
-                        return {
-                            "scores": parsed.get("scores", {}),
-                            "preference": parsed.get("preference", vote.config.options[0].id),
-                            "confidence": parsed.get("confidence", 0.8),
-                            "reasoning": parsed.get("reasoning", f"基于{agent.role}的专业判断"),
-                            "llm_response": response.content,
-                            "latency": response.latency,
-                            "tokens_used": response.tokens_used,
-                            "bridge_provider": response.provider
-                        }
-                    else:
-                        logger.warning(f"[AI决策] QwenPaw桥接失败 ({agent.name}): {response.error}")
-            except Exception as e:
-                logger.warning(f"[AI决策] QwenPaw桥接异常 ({agent.name}): {e}")
+        """智能体分析 - 优先使用本地QwenPaw智能体"""
+        # 优先尝试 QwenPaw 桥接（调用本地真实Agent，无需 API Key）
+        try:
+            from .llm_engine import qp_bridge
+            logger.info(f"[AI决策] {agent.name} 尝试 QwenPaw 桥接，可用状态: {qp_bridge.available}")
             
-            # 回退：直接 API 调用（需要 API Key）
-            if vote._llm_engine and agent.llm_api_key:
+            vote_info = {
+                "title": vote.config.title, "description": "",
+                "options": [{"id": o.id, "text": o.text, "description": o.description}
+                          for o in vote.config.options]
+            }
+            
+            response = await qp_bridge.analyze(
+                role=agent.role or agent.name,
+                expertise=agent.expertise,
+                vote_info=vote_info
+            )
+            
+            logger.info(f"[AI决策] {agent.name} 桥接响应: provider={response.provider}, "
+                       f"error={response.error}, content长度={len(response.content) if response.content else 0}")
+            
+            if response.content and not response.error:
+                parsed = self._parse_bridge_response(response.content)
+                
+                # 检查解析结果
+                if "error" in parsed:
+                    logger.warning(f"[AI决策] {agent.name} JSON解析失败: {parsed.get('error')}")
+                else:
+                    logger.info(f"[AI决策] {agent.name} 本地智能体分析成功，provider={response.provider}")
+                    return {
+                        "scores": parsed.get("scores", {}),
+                        "preference": parsed.get("preference", vote.config.options[0].id if vote.config.options else ""),
+                        "confidence": parsed.get("confidence", 0.8),
+                        "reasoning": parsed.get("reasoning", f"基于{agent.role}的专业判断"),
+                        "llm_response": response.content,
+                        "latency": response.latency,
+                        "tokens_used": response.tokens_used,
+                        "bridge_provider": response.provider
+                    }
+            else:
+                logger.warning(f"[AI决策] QwenPaw桥接失败 ({agent.name}): {response.error}")
+        except Exception as e:
+            logger.warning(f"[AI决策] QwenPaw桥接异常 ({agent.name}): {e}", exc_info=True)
+        
+        # 回退：外部 API 调用（需要 API Key）
+        if agent.use_external_llm and vote._llm_engine and agent.llm_api_key:
                 try:
                     from .llm_engine import LLMConfig
                     logger.info(f"[AI决策] {agent.name} 使用 {agent.llm_provider} 直接分析")
@@ -240,18 +288,21 @@ class AIVotingSystem:
                         result = json.loads(response.content)
                         return {
                             "scores": result.get("scores", {}),
-                            "preference": result.get("preference", vote.config.options[0].id),
+                            "preference": result.get("preference", vote.config.options[0].id if vote.config.options else ""),
                             "confidence": result.get("confidence", 0.8),
                             "reasoning": result.get("reasoning", f"基于{agent.role}的专业判断"),
                             "llm_response": response.content,
                             "latency": response.latency,
                             "tokens_used": response.tokens_used
                         }
+                    else:
+                        logger.warning(f"[AI决策] {agent.name} 外部LLM返回错误: {response.error}")
                 except Exception as e:
-                    logger.error(f"[AI决策] {agent.name} LLM异常: {e}")
+                    logger.error(f"[AI决策] {agent.name} 外部LLM异常: {e}")
         
         # 最终回退：模拟分析
-        return self._mock_analyze(agent, vote)
+        fallback_reason = "本地智能体和外部LLM均不可用"
+        return self._mock_analyze(agent, vote, fallback_reason)
     
     def _parse_bridge_response(self, content: str) -> dict:
         """解析桥接响应JSON"""
@@ -269,19 +320,35 @@ class AIVotingSystem:
                         pass
         return {"error": "parse_failed"}
     
-    def _mock_analyze(self, agent: AgentConfig, vote: AIVote) -> dict:
+    def _mock_analyze(self, agent: AgentConfig, vote: AIVote, reason: str = "LLM API不可用") -> dict:
+        """模拟分析 - 当真实LLM调用失败时使用"""
         import random
         time.sleep(0.1)
         scores = {}
         for option in vote.config.options:
             scores[option.id] = random.uniform(0.5, 0.95)
         best_option = max(scores, key=scores.get)
+        
+        # 生成模拟的LLM回复，明确标记为模拟
+        mock_response = json.dumps({
+            "scores": scores,
+            "preference": best_option,
+            "confidence": scores[best_option],
+            "reasoning": f"基于{agent.role}的专业判断，{best_option}方案更符合要求",
+            "analysis": f"【模拟数据】{reason}。Agent {agent.name} 基于角色 '{agent.role}' 生成了模拟分析。"
+        }, ensure_ascii=False)
+        
+        logger.info(f"[AI决策] {agent.name} 使用模拟分析: {reason}")
+        
         return {
             "scores": scores,
             "preference": best_option,
             "confidence": scores[best_option],
             "reasoning": f"基于{agent.role}的专业判断，{best_option}方案更符合要求",
-            "llm_response": "", "latency": 0.1, "tokens_used": 0
+            "llm_response": mock_response,
+            "latency": 0.1,
+            "tokens_used": 0,
+            "is_mock": True
         }
     
     async def _phase_negotiation(self, vote: AIVote):

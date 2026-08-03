@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI投票系统 - 界面演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .demo-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .demo-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        /* 投票卡片样式 */
+        .vote-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 16px;
+            color: white;
+            margin: 12px 0;
+        }
+        
+        .vote-card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .vote-card-status {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 12px;
+        }
+        
+        .vote-options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .vote-option-tag {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            font-size: 13px;
+        }
+        
+        .vote-card-footer {
+            margin-top: 12px;
+            font-size: 12px;
+            opacity: 0.8;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        /* 结果卡片样式 */
+        .result-card {
+            background: #f6ffed;
+            border: 1px solid #52c41a;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+        
+        .result-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #52c41a;
+            margin-bottom: 8px;
+        }
+        
+        .result-winner {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .result-consensus {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+        
+        .result-option {
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .result-option-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        
+        .result-option-name {
+            font-weight: 500;
+        }
+        
+        .result-option-votes {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-fill.winner {
+            background: linear-gradient(90deg, #52c41a, #73d13d);
+        }
+        
+        /* 群聊消息样式 */
+        .chat-message {
+            display: flex;
+            margin-bottom: 12px;
+        }
+        
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            margin-right: 12px;
+        }
+        
+        .chat-content {
+            flex: 1;
+        }
+        
+        .chat-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        
+        .chat-name {
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .chat-time {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .chat-text {
+            color: #333;
+            line-height: 1.5;
+        }
+        
+        /* 创建投票表单样式 */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+        
+        .agent-list {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .agent-tag {
+            padding: 6px 12px;
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .agent-tag.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        /* 协商对话样式 */
+        .negotiation-timeline {
+            padding: 16px;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+        
+        .negotiation-item {
+            display: flex;
+            margin-bottom: 12px;
+        }
+        
+        .negotiation-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            margin-right: 12px;
+        }
+        
+        .negotiation-content {
+            flex: 1;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .negotiation-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        
+        .negotiation-name {
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        .negotiation-time {
+            font-size: 11px;
+            color: #999;
+        }
+        
+        .negotiation-text {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .consensus-bar {
+            margin-top: 16px;
+            padding: 12px;
+            background: #e6f7ff;
+            border-radius: 8px;
+        }
+        
+        .consensus-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .consensus-progress {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .consensus-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #52c41a, #73d13d);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗳️ AI投票系统 - 界面演示</h1>
+        
+        <!-- 场景1: 群聊中自动创建的投票卡片 -->
+        <div class="demo-section">
+            <h2>💬 场景1: AI群聊中的投票卡片</h2>
+            <p style="color: #666; margin-bottom: 15px;">当智能体在群聊中说"发起投票"时，系统自动创建并显示投票卡片</p>
+            
+            <!-- 群聊消息 -->
+            <div class="chat-message">
+                <div class="chat-avatar">🤖</div>
+                <div class="chat-content">
+                    <div class="chat-header">
+                        <span class="chat-name">架构专家</span>
+                        <span class="chat-time">10:30</span>
+                    </div>
+                    <div class="chat-text">大家来投票决定吧，方案一用微服务、方案二用单体架构、方案三用混合架构</div>
+                </div>
+            </div>
+            
+            <!-- 自动创建的投票卡片 -->
+            <div class="vote-card">
+                <div class="vote-card-title">🗳️ 选择最佳技术架构</div>
+                <div class="vote-card-status">🤖 AI智能体正在协商投票中...</div>
+                <div class="vote-options">
+                    <span class="vote-option-tag">微服务架构</span>
+                    <span class="vote-option-tag">单体架构</span>
+                    <span class="vote-option-tag">混合架构</span>
+                </div>
+                <div class="vote-card-footer">
+                    <span>参与智能体: 架构专家, 性能专家, 安全专家, 成本专家, 运维专家</span>
+                    <span style="cursor: pointer; text-decoration: underline;">查看详情 →</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 场景2: 投票结果卡片 -->
+        <div class="demo-section">
+            <h2>✅ 场景2: 投票结果展示</h2>
+            <p style="color: #666; margin-bottom: 15px;">投票完成后，自动在群聊中显示结果卡片</p>
+            
+            <div class="result-card">
+                <div class="result-header">✅ 投票完成</div>
+                <div class="result-winner">🏆 获胜方案：单体架构</div>
+                <div class="result-consensus">🤝 共识度：80%</div>
+                
+                <div class="result-option">
+                    <div class="result-option-header">
+                        <span class="result-option-name">🥇 单体架构</span>
+                        <span class="result-option-votes">2票 (50%)</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill winner" style="width: 50%;"></div>
+                    </div>
+                </div>
+                
+                <div class="result-option">
+                    <div class="result-option-header">
+                        <span class="result-option-name">🥈 微服务架构</span>
+                        <span class="result-option-votes">2票 (30%)</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 30%;"></div>
+                    </div>
+                </div>
+                
+                <div class="result-option">
+                    <div class="result-option-header">
+                        <span class="result-option-name">🥉 混合架构</span>
+                        <span class="result-option-votes">1票 (20%)</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 20%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 场景3: 创建投票表单 -->
+        <div class="demo-section">
+            <h2>📝 场景3: 手动创建投票</h2>
+            <p style="color: #666; margin-bottom: 15px;">用户可以通过UI手动创建投票</p>
+            
+            <div class="form-group">
+                <label class="form-label">📋 投票主题</label>
+                <input type="text" class="form-input" value="选择最佳技术架构" placeholder="输入投票主题">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">📝 投票选项</label>
+                <input type="text" class="form-input" value="微服务架构" style="margin-bottom: 8px;">
+                <input type="text" class="form-input" value="单体架构" style="margin-bottom: 8px;">
+                <input type="text" class="form-input" value="混合架构">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">🤖 参与智能体（点击选择）</label>
+                <div class="agent-list">
+                    <span class="agent-tag selected">✓ 架构专家</span>
+                    <span class="agent-tag selected">✓ 性能专家</span>
+                    <span class="agent-tag selected">✓ 安全专家</span>
+                    <span class="agent-tag">成本专家</span>
+                    <span class="agent-tag selected">✓ 运维专家</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">⏱️ 协商时长</label>
+                <select class="form-select">
+                    <option>1分钟</option>
+                    <option selected>3分钟</option>
+                    <option>5分钟</option>
+                    <option>10分钟</option>
+                </select>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-secondary">取消</button>
+                <button class="btn btn-primary">发起AI投票</button>
+            </div>
+        </div>
+        
+        <!-- 场景4: 协商过程展示 -->
+        <div class="demo-section">
+            <h2>💬 场景4: AI协商过程</h2>
+            <p style="color: #666; margin-bottom: 15px;">实时展示智能体之间的协商对话</p>
+            
+            <div class="negotiation-timeline">
+                <div class="negotiation-item">
+                    <div class="negotiation-avatar">🤖</div>
+                    <div class="negotiation-content">
+                        <div class="negotiation-header">
+                            <span class="negotiation-name">架构专家</span>
+                            <span class="negotiation-time">10:31:15</span>
+                        </div>
+                        <div class="negotiation-text">我认为微服务架构更适合，因为可以独立扩展各个服务...</div>
+                    </div>
+                </div>
+                
+                <div class="negotiation-item">
+                    <div class="negotiation-avatar">🤖</div>
+                    <div class="negotiation-content">
+                        <div class="negotiation-header">
+                            <span class="negotiation-name">运维专家</span>
+                            <span class="negotiation-time">10:31:45</span>
+                        </div>
+                        <div class="negotiation-text">微服务的运维复杂度较高，建议考虑单体架构...</div>
+                    </div>
+                </div>
+                
+                <div class="negotiation-item">
+                    <div class="negotiation-avatar">🤖</div>
+                    <div class="negotiation-content">
+                        <div class="negotiation-header">
+                            <span class="negotiation-name">性能专家</span>
+                            <span class="negotiation-time">10:32:10</span>
+                        </div>
+                        <div class="negotiation-text">混合架构可以平衡性能和扩展性，我建议选择这个方案...</div>
+                    </div>
+                </div>
+                
+                <div class="consensus-bar">
+                    <div class="consensus-label">
+                        <span>🤝 共识度</span>
+                        <span>65%</span>
+                    </div>
+                    <div class="consensus-progress">
+                        <div class="consensus-fill" style="width: 65%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 功能说明 -->
+        <div class="demo-section">
+            <h2>📖 功能说明</h2>
+            <div style="line-height: 1.8; color: #333;">
+                <p><strong>🗳️ AI投票系统</strong> 是TeamChat的子模块，支持以下功能：</p>
+                <ul style="margin: 15px 0; padding-left: 20px;">
+                    <li><strong>自动触发：</strong>智能体在群聊中说"发起投票"自动创建</li>
+                    <li><strong>纯AI参与：</strong>只有智能体参与投票，人类仅观察</li>
+                    <li><strong>AI协商：</strong>智能体之间讨论后投票</li>
+                    <li><strong>动态权重：</strong>每次投票可配置权重</li>
+                    <li><strong>决策报告：</strong>自动生成AI分析总结</li>
+                </ul>
+                <p><strong>使用方式：</strong></p>
+                <ol style="margin: 15px 0; padding-left: 20px;">
+                    <li>在AI群聊中，智能体说"发起投票"</li>
+                    <li>系统自动解析投票内容</li>
+                    <li>邀请相关智能体参与</li>
+                    <li>智能体分析 → 协商 → 投票</li>
+                    <li>显示结果和决策报告</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

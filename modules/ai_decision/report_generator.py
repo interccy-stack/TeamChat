@@ -63,7 +63,8 @@ class ReportGenerator:
         options = []
         for i, option in enumerate(vote.config.options):
             supporters = [{"agent_id": v.agent_id, "agent_name": v.agent_name,
-                          "weight": v.weight, "confidence": v.confidence}
+                          "weight": v.weight, "confidence": v.confidence,
+                          "reasoning": v.reasoning, "llm_response": v.llm_response}
                          for v in vote.votes if v.option_id == option.id]
             total_weight = sum(s["weight"] for s in supporters)
             avg_confidence = sum(s["confidence"] for s in supporters) / len(supporters) if supporters else 0
@@ -104,9 +105,11 @@ class ReportGenerator:
         disagreements = engine._identify_disagreements(vote, vote.negotiation_history)
         detailed = []
         for d in disagreements:
-            support_reasons = [{"agent": v.agent_name, "reason": v.reasoning}
+            support_reasons = [{"agent": v.agent_name, "reason": v.reasoning, 
+                               "llm_response": v.llm_response}
                              for v in vote.votes if v.option_id == d["option_id"]]
-            oppose_reasons = [{"agent": v.agent_name, "reason": f"选择了其他方案"}
+            oppose_reasons = [{"agent": v.agent_name, "reason": f"选择了其他方案",
+                              "llm_response": v.llm_response}
                             for v in vote.votes if v.option_id != d["option_id"]]
             detailed.append({
                 "option_id": d["option_id"], "option_text": d["option_text"],

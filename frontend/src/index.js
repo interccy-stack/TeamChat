@@ -1,9 +1,12 @@
 /**
- * TeamChat Frontend v5.2.2
+ * TeamChat Frontend v5.3.6
  * 修复: QP.plugin.getMediaUrl 渲染崩盘，加安全守卫
  * 新增: AI协作横幅点击跳转链接 https://nightly.paw.msgbyte.com/invite/rj9iBh5Y
  * 新增: 热重载支持 - 文件变更自动刷新
  * 新增: 鸟巢图片替换空状态提示
+ * 新增: AI决策历史关联 - 从历史会谈提取决策案例
+ * 修复: AI决策视图渲染位置，现在正确显示为独立页面
+ * 修复: 删除重复侧边栏菜单，统一显示"新会谈"
  */
 
 // 热重载支持 - 检测后端变更
@@ -157,6 +160,12 @@
     var _ti = useState(0), themeIdx = _ti[0], setThemeIdx = _ti[1];
     var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
     var _rc = useState(""), readmeC = _rc[0], setReadmeC = _rc[1];
+    // ---- 昵称修改 ----
+    var _nicknameModalVisible = useState(false), nicknameModalVisible = _nicknameModalVisible[0], setNicknameModalVisible = _nicknameModalVisible[1];
+    var _nickname = useState(""), nickname = _nickname[0], setNickname = _nickname[1];
+    var _selectedIcon = useState("👤"), selectedIcon = _selectedIcon[0], setSelectedIcon = _selectedIcon[1];
+    // ---- 笔记本 ----
+    var _notebookVisible = useState(false), notebookVisible = _notebookVisible[0], setNotebookVisible = _notebookVisible[1];
     // ---- 轻音乐 ----
     var _mu = useState(false), musicOn = _mu[0], setMusicOn = _mu[1];
     var _rp = useState(false), replayV = _rp[0], setReplayV = _rp[1];
@@ -268,6 +277,16 @@
         var avs = d.avatars||{};
         if (avs.human) { setHumanAvatarId("custom"); setHumanAvatarUrl(avs.human); }
       }).catch(function(){});
+    }, []);
+
+    // 加载已存储的昵称和图标
+    useEffect(function () {
+      try {
+        var savedNickname = localStorage.getItem("teamchat_nickname");
+        var savedIcon = localStorage.getItem("teamchat_icon");
+        if (savedNickname) setNickname(savedNickname);
+        if (savedIcon) setSelectedIcon(savedIcon);
+      } catch (e) {}
     }, []);
 
     var handleRestoreAvatar = useCallback(function () {
@@ -687,10 +706,13 @@
           e(Switch,{checked:bs,onChange:setBs,size:"small"}), e(Text,{strong:true,style:{fontSize:14}},"🧠 头脑风暴"),
           bs?e(InputNumber,{min:2,max:5,value:rds,onChange:setRds,size:"small",style:{width:45}}):null,
           e(Button,{icon:e(antdIcons.HistoryOutlined||null),size:"middle",onClick:loadSess,style:{fontWeight:"bold",fontSize:14}},"📂 历史会谈"),
+          e(Button,{size:"middle",type:"primary",onClick:function(){setNicknameModalVisible(true);},style:{fontWeight:"bold",fontSize:14}},selectedIcon+" "+(nickname||"修改昵称")),
           e(Popover,{content:e("div",{style:{padding:4}},e("div",null,e(Text,{style:{fontSize:11}},"🖥 IP: "),e(Text,{code:true,style:{fontSize:11}},sysIp||"---")),e("div",null,e(Text,{style:{fontSize:11}},"🕐 "+clock))),trigger:"hover"},
             e(Text,{style:{fontSize:16,cursor:"default"}},"🕐")
           ),
-          e("a",{href:"https://platform.agentscope.io/plugins/team_chat",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#1890ff",textDecoration:"none",cursor:"pointer"}},"TeamChat版本更新")
+          e("a",{href:"https://platform.agentscope.io/plugins/team_chat",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#1890ff",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"TC扩展"),
+          e("a",{href:"https://nightly.paw.msgbyte.com/invite/rj9iBh5Y",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#667eea",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"AI协作"),
+          e("a",{href:"#/plugin/team-chat/ai-voting-page",style:{fontSize:13,fontWeight:"bold",color:"#52c41a",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"AI决策")
         ),
         e("div",{style:{marginBottom:4}},
           agLd?e(Spin,{size:"small",style:{marginLeft:8}}):
@@ -749,6 +771,7 @@
           e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
             e(Space,null,
               e(Text,{type:"secondary",style:{fontSize:11}},"Enter 发送 · Shift+Enter 换行"),
+              e(Button,{size:"small",icon:"📓",onClick:function(){setNotebookVisible(true);}},"笔记本"),
               e(Button,{size:"small",icon:"🎤",danger:list,onClick:startVoice,disabled:ld},list?"聆听中...":"语音"),
               e(Button,{size:"small",icon:"📎",disabled:ld,onClick:function () { if (fiRf.current) fiRf.current.click(); }},"附件"),
               e("input",{ref:fiRf,type:"file",accept:".txt,.md,.json,.py,.js,.html,.css,.xml,.csv,.log,.yaml,.yml",onChange:handleFile,style:{display:"none"}}),
@@ -985,9 +1008,264 @@
       ),
       e(Modal,{title:"📖 TeamChat v5.2.0 说明文档",open:readmeV,onCancel:function(){setReadmeV(false);},footer:null,width:800,style:{maxHeight:"80vh"}},
         e("div",{style:{maxHeight:"60vh",overflow:"auto",padding:"0 8px",fontFamily:"monospace",fontSize:12,whiteSpace:"pre-wrap",lineHeight:1.6}},readmeC||"加载中...")
-      )
+      ),
+      /* ---- 昵称修改模态窗口 ---- */
+      e(Modal,{
+        title: e("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+          e("span", null, "✏️"),
+          e("span", null, "修改昵称")
+        ),
+        open: nicknameModalVisible,
+        onCancel: function() { setNicknameModalVisible(false); },
+        footer: e("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8 } },
+          e(Button, { onClick: function() { setNicknameModalVisible(false); } }, "取消"),
+          e(Button, { type: "primary", onClick: function() {
+            try {
+              localStorage.setItem("teamchat_nickname", nickname);
+              localStorage.setItem("teamchat_icon", selectedIcon);
+              message.success("昵称已保存");
+              setNicknameModalVisible(false);
+            } catch (e) {
+              message.error("保存失败");
+            }
+          } }, "保存")
+        ),
+        width: 500
+      },
+        e("div", { style: { padding: "8px 0" } },
+          e("div", { style: { textAlign: "center", marginBottom: 24, padding: 16, background: "#f5f5f5", borderRadius: 8 } },
+            e("div", { style: { fontSize: 48, marginBottom: 8 } }, selectedIcon),
+            e("div", { style: { fontSize: 16, fontWeight: "bold", color: "#333" } }, nickname || "请输入昵称"),
+            e("div", { style: { fontSize: 12, color: "#999", marginTop: 4 } }, "预览效果")
+          ),
+          e("div", { style: { marginBottom: 20 } },
+            e("div", { style: { fontWeight: "bold", marginBottom: 8, color: "#333" } }, "昵称"),
+            e(Input, {
+              value: nickname,
+              onChange: function(ev) { setNickname(ev.target.value); },
+              placeholder: "请输入您的昵称",
+              maxLength: 20,
+              showCount: true,
+              size: "large"
+            })
+          ),
+          e("div", { style: { marginBottom: 16 } },
+            e("div", { style: { fontWeight: "bold", marginBottom: 12, color: "#333" } }, "选择图标"),
+            e("div", { style: { display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 8, maxHeight: 200, overflow: "auto", padding: 8, background: "#fafafa", borderRadius: 8 } },
+              ["👤","👨","👩","👨‍💼","👩‍💼","👨‍💻","👩‍💻","👨‍🔬","👩‍🔬","👨‍🎨","👩‍🎨","🧑","🧑‍💼","🧑‍💻","🧑‍🔬","🧑‍🎨","🧑‍🚀","🧑‍⚕️","🧑‍🏫","🧑‍🌾","🤖","👽","👾","🎃","🤠","😎","🤓","🧐","🤔","🤨","🦁","🐯","🐻","🐨","🐼","🐸","🦊","🐰","🐹","🐱","🐶","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞"].map(function(opt, idx) {
+                return e("div", {
+                  key: idx,
+                  onClick: function() { setSelectedIcon(opt); },
+                  style: {
+                    fontSize: 24,
+                    textAlign: "center",
+                    padding: "8px 4px",
+                    cursor: "pointer",
+                    borderRadius: 6,
+                    border: selectedIcon === opt ? "2px solid #1890ff" : "2px solid transparent",
+                    background: selectedIcon === opt ? "#e6f7ff" : "transparent",
+                    transition: "all 0.2s"
+                  }
+                }, opt);
+              })
+            )
+          )
+        )
+      ),
+      /* ---- 笔记本浮动窗口 ---- */
+      notebookVisible ? e("div", {
+        style: {
+          position: "fixed",
+          left: 100,
+          top: 80,
+          width: 700,
+          height: 500,
+          zIndex: 1000,
+          background: "#fff",
+          borderRadius: 8,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+          border: "1px solid #d9d9d9",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden"
+        }
+      },
+        e("div", {
+          style: {
+            padding: "8px 12px",
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between"
+          }
+        },
+          e("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+            e("span", { style: { fontSize: 16 } }, "📓"),
+            e("span", { style: { fontWeight: "bold" } }, "笔记本")
+          ),
+          e(Button, {
+            type: "text",
+            size: "small",
+            style: { color: "#fff" },
+            onClick: function() { setNotebookVisible(false); }
+          }, "✕")
+        ),
+        e("div", {
+          style: {
+            padding: "8px 12px",
+            background: "#f5f5f5",
+            borderBottom: "1px solid #e8e8e8",
+            display: "flex",
+            gap: 8,
+            alignItems: "center"
+          }
+        },
+          e(Button, { size: "small", onClick: function() {
+            try {
+              var content = prompt("请输入笔记内容:");
+              if (content) {
+                var saved = localStorage.getItem("teamchat_notebook_content") || "";
+                localStorage.setItem("teamchat_notebook_content", saved + "\n" + new Date().toLocaleString() + ": " + content);
+                message.success("已保存到笔记本");
+              }
+            } catch (e) {}
+          } }, "📝 快速记录"),
+          e(Button, { size: "small", onClick: function() {
+            try {
+              localStorage.removeItem("teamchat_notebook_content");
+              message.success("已清空笔记本");
+            } catch (e) {}
+          } }, "🗑️ 清空"),
+          e("div", { style: { flex: 1 } }),
+          e(Text, { type: "secondary", style: { fontSize: 12 } }, "点击菜单栏 📓 笔记本 可再次打开")
+        ),
+        e(TextArea, {
+          defaultValue: (function() {
+            try { return localStorage.getItem("teamchat_notebook_content") || ""; } catch (e) { return ""; }
+          })(),
+          onChange: function(ev) {
+            try {
+              localStorage.setItem("teamchat_notebook_content", ev.target.value);
+            } catch (e) {}
+          },
+          placeholder: "在这里记录您的想法...\n支持 Markdown 语法",
+          style: {
+            flex: 1,
+            border: "none",
+            borderRadius: 0,
+            resize: "none",
+            fontSize: 14,
+            lineHeight: "1.6",
+            padding: 16,
+            fontFamily: "'Consolas', 'Monaco', 'Courier New', monospace"
+          }
+        })
+      ) : null
     ));
   }
 
   QP.registerRoutes("team_chat",[{path:"/plugin/team-chat/meeting",component:TeamChatPage,label:"新会谈",icon:"团",priority:100}]);
+
+  // ========== AI决策页面 - 加载完整版模块 ==========
+  // 动态加载完整版AIVotingPage模块（支持动画和专家配置）
+  var AIVotingPageLoader = function() {
+    var loaded = useState(false)[0];
+    var setLoaded = useState(false)[1];
+    var FullComponent = useState(null)[0];
+    var setFullComponent = useState(null)[1];
+    var loadError = useState(null)[0];
+    var setLoadError = useState(null)[1];
+
+    useEffect(function() {
+      if (window.AIVotingPage) {
+        setFullComponent(window.AIVotingPage);
+        setLoaded(true);
+        return;
+      }
+      // 动态加载完整版模块
+      var script = document.createElement('script');
+      script.src = '/api/plugins/team_chat/static/AIVotingPage.module.js';
+      script.async = true;
+      script.onload = function() {
+        if (window.AIVotingPage) {
+          setFullComponent(window.AIVotingPage);
+          setLoaded(true);
+        } else {
+          setLoadError('模块加载失败');
+          setLoaded(true);
+        }
+      };
+      script.onerror = function() {
+        setLoadError('无法加载模块文件');
+        setLoaded(true);
+      };
+      document.head.appendChild(script);
+    }, []);
+
+    if (!loaded) {
+      return e('div', { style: { padding: 40, textAlign: 'center' } }, [
+        e(Spin, { size: 'large' }),
+        e('p', { style: { marginTop: 16, color: '#666' } }, '正在加载AI决策模块...')
+      ]);
+    }
+    if (loadError || !FullComponent) {
+      // 降级显示简化版
+      return e(AIVotingPageSimple);
+    }
+    return e(FullComponent);
+  };
+
+  // 简化版（降级用）
+  var AIVotingPageSimple = function() {
+    var activeTab = useState('list')[0];
+    var setActiveTab = useState('list')[1];
+    var votes = useState([])[0];
+    var setVotes = useState([])[1];
+    var loading = useState(true)[0];
+    var setLoading = useState(true)[1];
+    useEffect(function() {
+      fetch('/api/plugins/team_chat/ai-voting/list')
+        .then(function(r) { return r.json(); })
+        .then(function(data) { setVotes(data.votes || []); setLoading(false); })
+        .catch(function(err) { console.error('[AI投票] 加载失败:', err); setLoading(false); });
+    }, []);
+    var columns = [
+      { title: '投票主题', dataIndex: 'title', key: 'title' },
+      { title: '状态', dataIndex: 'status', key: 'status', render: function(status) {
+        var colors = { 'created': 'default', 'analyzing': 'processing', 'negotiating': 'warning', 'voting': 'blue', 'completed': 'success', 'cancelled': 'error' };
+        var texts = { 'created': '已创建', 'analyzing': '分析中', 'negotiating': '协商中', 'voting': '投票中', 'completed': '已完成', 'cancelled': '已取消' };
+        return e(Tag, { color: colors[status] || 'default' }, texts[status] || status);
+      }},
+      { title: '参与智能体', dataIndex: 'agents', key: 'agents', render: function(agents) { return (agents || []).length + '个'; } },
+      { title: '共识度', dataIndex: 'consensus_level', key: 'consensus', render: function(level) { return level ? (level * 100).toFixed(0) + '%' : '-'; } }
+    ];
+    return e('div', { style: { padding: 24 } }, [
+      e('div', { style: { marginBottom: 24 } }, [
+        e('h1', { style: { margin: 0 } }, '🗳️ AI投票'),
+        e('p', { style: { color: '#666', marginTop: 8 } }, '纯智能体投票决策系统，AI自主协商，人类发起和观察')
+      ]),
+      e(Tabs, { activeKey: activeTab, onChange: setActiveTab }, [
+        e(Tabs.TabPane, { tab: '📋 投票列表', key: 'list' },
+          e(Card, null, loading ? e(Spin, { style: { display: 'block', textAlign: 'center', padding: 40 } }) :
+            votes.length === 0 ? e(Empty, { description: '暂无投票' }) :
+            e(antd.Table, { columns: columns, dataSource: votes, rowKey: 'id' }))),
+        e(Tabs.TabPane, { tab: '⏳ 进行中', key: 'active' }, e(Card, null, e(Empty, { description: '暂无进行中的投票' }))),
+        e(Tabs.TabPane, { tab: '✅ 已完成', key: 'completed' }, e(Card, null, e(Empty, { description: '暂无已完成的投票' })))
+      ])
+    ]);
+  };
+
+  // 先注册简化版路由（立即可用）
+  QP.registerRoutes("team_chat", [{path: "/plugin/team-chat/ai-voting-page", component: AIVotingPageLoader, label: "AI决策", icon: "🎯", priority: 90}]);
+
+  // 同时尝试预加载完整版模块
+  setTimeout(function() {
+    if (!window.AIVotingPage) {
+      var preload = document.createElement('script');
+      preload.src = '/api/plugins/team_chat/static/AIVotingPage.module.js';
+      preload.async = true;
+      document.head.appendChild(preload);
+    }
+  }, 2000);
 })();

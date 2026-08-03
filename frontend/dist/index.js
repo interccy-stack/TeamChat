@@ -1,11 +1,10 @@
 /**
  * ===================================================================
- *  TeamChat Frontend v5.3.2 — 双注册模式 · AI决策历史关联
+ *  TeamChat Frontend v5.3.6 — 双注册模式 · AI决策历史关联
  *  【新增】双注册: 应用栏目 + 侧边栏
  *  【新增】AI决策历史关联: 从历史会谈提取决策案例
- *  【更新】AI决策按钮 TC扩展 | AI协作 | AI决策
- *  【修复】AI决策视图渲染位置，现在正确显示为独立页面
- *  CACHE_BUST: 20260731_1100_v23_CLEAN_FIX
+ *  【保留】AI决策按钮 TC扩展 | AI协作 | 🗳️AI决策
+ *  CACHE_BUST: 20260803_0100_v1
  * ===================================================================
  */
 if(typeof window.getApiUrl==='undefined'&&window.QwenPaw&&window.QwenPaw.host&&window.QwenPaw.host.getApiUrl){window.getApiUrl=window.QwenPaw.host.getApiUrl;}
@@ -329,8 +328,8 @@ function _hiveFallback(addr){
 }
 
 (function () {
-  // TeamChat v5.2.0 - AI群聊文件管理
-  console.log('[TeamChat] v5.2.0 AI群聊文件管理 加载时间:', new Date().toLocaleString());
+  // TeamChat v5.3.6 - AI群聊文件管理
+  console.log('[TeamChat] v5.3.6 AI群聊文件管理 加载时间:', new Date().toLocaleString());
   
   var s = document.createElement("style");
   s.textContent =
@@ -1738,7 +1737,7 @@ function ChuanChuanPage(_p) {
             e("div",null,e("strong",null,"📢 公共频道")," — 插件开发、创意建议、云端讨论"),
             e("div",null,e("strong",null,"💬 话题讨论")," — 留言墙、好物分享、心音疗愈"),
             e("div",null,e("strong",null,"🎮 互动功能")," — 土豆游戏、番茄钟、工具哇"),
-            e("div",null,e("strong",null,"🔗 加入方式")," — ",e("a",{href:"https://nightly.paw.msgbyte.com/invite/cHcE5-8q",target:"_blank",style:{color:"#FF9800",textDecoration:"underline"}},"点击加入云端协作"))
+            e("div",null,e("strong",null,"🔗 加入方式")," — ",e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();if(window.teamChatBrowser){window.teamChatBrowser.setUrl('https://nightly.paw.msgbyte.com/invite/cHcE5-8q');window.teamChatBrowser.setTitle('AI协作');window.teamChatBrowser.setShow(true);window.teamChatBrowser.setMinimized(false);}else{window.open('https://nightly.paw.msgbyte.com/invite/cHcE5-8q','_blank');}},style:{color:"#FF9800",textDecoration:"underline",cursor:"pointer"}},"点击加入云端协作"))
           )
         )
       ):null,
@@ -2673,12 +2672,18 @@ function TeamChatPage() {
     var _av = useState(false), aimailView = _av[0], setAimailView = _av[1];var _am = useState("main"), aimailMode = _am[0], setAimailMode = _am[1];
     var _aig = useState(false), aiChatView = _aig[0], setAiChatView = _aig[1];var _et = useState("inbox"), emailTab = _et[0], setEmailTab = _et[1];var _ecs = useState([]), emailConfigs = _ecs[0], setEmailConfigs = _ecs[1];var _ca = useState("__all__"), currentAccount = _ca[0], setCurrentAccount = _ca[1];
     var _vote = useState(false), aiVotingView = _vote[0], setAiVotingView = _vote[1];
+    // AI决策状态（移到顶层以符合Hooks规则）
+    var _aiTab = useState("list"), aiTab = _aiTab[0], setAiTab = _aiTab[1];
+    var _aiVotes = useState([]), aiVotes = _aiVotes[0], setAiVotes = _aiVotes[1];
+    var _aiLoading = useState(true), aiLoading = _aiLoading[0], setAiLoading = _aiLoading[1];
+    var _aiTemplates = useState([]), aiTemplates = _aiTemplates[0], setAiTemplates = _aiTemplates[1];
+    var _aiLocalAgents = useState([]), aiLocalAgents = _aiLocalAgents[0], setAiLocalAgents = _aiLocalAgents[1];
+    var _aiDetailId = useState(null), aiDetailId = _aiDetailId[0], setAiDetailId = _aiDetailId[1];
     var _voteTab = useState("list"), aiVotingTab = _voteTab[0], setAiVotingTab = _voteTab[1];
     var _voteList = useState([]), aiVotingList = _voteList[0], setAiVotingList = _voteList[1];
     var _voteLoading = useState(false), aiVotingLoading = _voteLoading[0], setAiVotingLoading = _voteLoading[1];
     var _voteDetail = useState(null), aiVotingDetail = _voteDetail[0], setAiVotingDetail = _voteDetail[1];
     var _voteTemplates = useState([]), aiVotingTemplates = _voteTemplates[0], setAiVotingTemplates = _voteTemplates[1];
-    var _decision = useState(false), aiDecisionView = _decision[0], setAiDecisionView = _decision[1];
   var _data = useState([]), emails = _data[0], setEmails = _data[1];
   var _page = useState(1), curPage = _page[0], setCurPage = _page[1];
   var _psize = useState(20), pageSize = _psize[0], setPageSize = _psize[1];
@@ -5456,6 +5461,16 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
     var musicRef = useRef(null);
     var volRf = useRef(function(){ try { return parseFloat(localStorage.getItem("teamchat_music_vol")||"0.5"); } catch(e) { return 0.5; } }());
     useEffect(function(){ volRf.current = musicVol; }, [musicVol]);
+    
+    // AI决策数据加载（移到顶层以符合Hooks规则）
+    useEffect(function() {
+      if (!aiVotingView) return;
+      aiVotingFetchVotes();
+      aiVotingFetchTemplates();
+      aiVotingFetchLocalAgents();
+      var iv = setInterval(aiVotingFetchVotes, 5000);
+      return function() { clearInterval(iv); };
+    }, [aiVotingView]);
     var toggleMusic = useCallback(function (targetIdx) {
       if (musicRef.current) {
         musicRef.current.stopped = true; clearTimeout(musicRef.current.timer); musicRef.current.osc.forEach(function(o){try{o.stop();}catch(e){}}); musicRef.current=null; setMusicOn(false); return;
@@ -5649,6 +5664,34 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
     // =================== Layout / Main Render ===================
   var paginationBar = function(tab) { return e("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",padding:"12px 0",gap:"10px",borderTop:"1px solid #e0e0e0",marginTop:"12px"}}, e("span",{style:{fontSize:"12px",color:"#333"}},"共 " + totalEmails + " 封 · 每页 " + pageSize), e("button",{onClick:function(){goPage(tab,1);},disabled:curPage<=1,style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage<=1?"default":"pointer",opacity:curPage<=1?0.4:1,fontSize:"12px"}},"首页"), e("button",{onClick:function(){goPage(tab,curPage-1);},disabled:curPage<=1,style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage<=1?"default":"pointer",opacity:curPage<=1?0.4:1,fontSize:"12px"}},"上一页"), e("span",{style:{fontSize:"13px",color:"#333"}},curPage + " / " + Math.max(1,Math.ceil(totalEmails/pageSize))), e("button",{onClick:function(){goPage(tab,curPage+1);},disabled:curPage>=Math.ceil(totalEmails/pageSize),style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage>=Math.ceil(totalEmails/pageSize)?"default":"pointer",opacity:curPage>=Math.ceil(totalEmails/pageSize)?0.4:1,fontSize:"12px"}},"下一页"), e("button",{onClick:function(){goPage(tab,Math.ceil(totalEmails/pageSize));},disabled:curPage>=Math.ceil(totalEmails/pageSize),style:{padding:"4px 12px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",cursor:curPage>=Math.ceil(totalEmails/pageSize)?"default":"pointer",opacity:curPage>=Math.ceil(totalEmails/pageSize)?0.4:1,fontSize:"12px"}},"末页"), e("select",{value:pageSize,onChange:function(ev){onPageSizeChange(tab,parseInt(ev.target.value));},style:{padding:"4px 8px",borderRadius:"4px",border:"1px solid #ccc",background:"#f5f5f5",color:"#333",fontSize:"12px",cursor:"pointer"}}, e("option",{value:10},"10"), e("option",{value:20},"20"), e("option",{value:50},"50"), e("option",{value:100},"100"))); };
 
+    
+    // AI决策数据获取函数（移到顶层以符合Hooks规则）
+    var AI_VOTING_API_BASE = "/api/plugins/team_chat/ai-voting";
+    var aiVotingFetchVotes = function() {
+      setAiLoading(true);
+      fetch(AI_VOTING_API_BASE + "/list")
+        .then(function(r) { return r.json(); })
+        .then(function(d) { setAiVotes(d.votes || []); setAiLoading(false); })
+        .catch(function() { setAiLoading(false); });
+    };
+    var aiVotingFetchTemplates = function() {
+      fetch(AI_VOTING_API_BASE + "/templates")
+        .then(function(r) { return r.json(); })
+        .then(function(d) { setAiTemplates(d.templates || []); })
+        .catch(function() {});
+    };
+    var aiVotingFetchLocalAgents = function() {
+      fetch(AI_VOTING_API_BASE + "/local-agents")
+        .then(function(r) { return r.json(); })
+        .then(function(d) { setAiLocalAgents(d.agents || []); })
+        .catch(function() {});
+    };
+    var aiVotingHandleDelete = function(id) {
+      fetch(AI_VOTING_API_BASE + "/vote/" + id, { method: "DELETE" })
+        .then(function(r) { return r.json(); })
+        .then(function() { message.success("已删除"); aiVotingFetchVotes(); })
+        .catch(function() { message.error("删除失败"); });
+    };
     if(chuanView) return e(ChuanChuanPage,{onBack:function(){setChuanView(false);}});
     if(aiChatView) {
       var AIGroupChat = window.AIGroupChatPage;
@@ -5657,228 +5700,6 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
       } else {
         return e('div',{style:{padding:'20px',textAlign:'center'}},'AI群聊模块加载中...');
       }
-    }
-    // AI决策视图
-    if(aiDecisionView) {
-      // 决策记录数据存储在window对象中，避免使用useState
-      if(!window._aiDecisionRecords){
-        window._aiDecisionRecords = [{
-          id: "case-001",
-          title: "🎯 功能简化决策：放弃「全提问」功能",
-          content: "决策背景：AI决策插件的「全提问」功能因浏览器缓存文件损坏导致JS代码截断，多次修复无效。\n决策方案：放弃该功能及创建决策流程，改为从历史记录自动总结决策数据。\n执行要点：1) 明确界定保留范围（仅保留决策列表和详情查看）；2) 数据替代方案（用历史记录自动总结替代实时创建）；3) 界面同步更新（标题、标签、空状态文案反映功能变更）；4) 版本标记（v5.3.4「简化版」）。\n决策结果：系统从「创建+投票+查看」简化为仅「查看」，降低维护成本并提高稳定性。",
-          timestamp: "2026-07-28",
-          status: "completed",
-          category: "功能简化",
-          impact: "高",
-          isDefault: true
-        }];
-      }
-
-      // 自动加载决策记录（只加载一次）
-      if(!window._aiDecisionLoaded){
-        window._aiDecisionLoaded = true;
-        apiGet("/ai-voting/decision-records").then(function(r){
-          if(r && r.records && r.records.length > 0){
-            // 合并API返回的记录和默认记录
-            window._aiDecisionRecords = r.records.concat(window._aiDecisionRecords);
-            // 触发重新渲染
-            if(window._aiDecisionForceUpdate) window._aiDecisionForceUpdate();
-          }
-        }).catch(function(e){
-          console.error("[AI决策] 加载记录失败:", e);
-        });
-      }
-
-      // 加载会谈列表
-      var loadSessionsForDecision = function(){
-        window._aiDecisionSessionsLoading = true;
-        window._aiDecisionMessage = {type: "info", text: "⏳ 正在加载会谈列表..."};
-        if(window._aiDecisionForceUpdate) window._aiDecisionForceUpdate();
-
-        apiGet("/sessions").then(function(r){
-          window._aiDecisionSessionsLoading = false;
-          if(r && r.sessions){
-            window._aiDecisionSessions = r.sessions;
-            window._aiDecisionShowSessionSelector = true;
-            window._aiDecisionMessage = null;
-          }else{
-            window._aiDecisionMessage = {type: "error", text: "❌ 加载会谈列表失败: 没有可用的会谈记录"};
-          }
-          if(window._aiDecisionForceUpdate) window._aiDecisionForceUpdate();
-        }).catch(function(e){
-          window._aiDecisionSessionsLoading = false;
-          console.error("[AI决策] 加载会谈列表失败:", e);
-          window._aiDecisionMessage = {type: "error", text: "❌ 加载会谈列表失败: " + (e.message || "网络错误")};
-          if(window._aiDecisionForceUpdate) window._aiDecisionForceUpdate();
-        });
-      };
-
-      // 选择会谈并提取决策
-      var selectSessionAndExtract = function(session){
-        window._aiDecisionShowSessionSelector = false;
-        window._aiDecisionExtracting = true;
-        window._aiDecisionMessage = {type: "info", text: "⏳ 正在分析会谈记录并提取决策..."};
-        if(window._aiDecisionForceUpdate) window._aiDecisionForceUpdate();
-
-        apiPost("/ai-voting/extract-from-history", {
-          session_id: session.session_id,
-          host_id: session.host_id || "default"
-        }).then(function(r){
-          window._aiDecisionExtracting = false;
-          if(r && r.success && r.decision){
-            window._aiDecisionRecords.unshift(r.decision);
-            window._aiDecisionMessage = {type: "success", text: "✅ 决策提取成功！主题: " + r.decision.title};
-            // 3秒后清除消息
-            setTimeout(function(){
-              window._aiDecisionMessage = null;
-              if(window._aiDecisionForceUpdate) window._aiDecisionForceUpdate();
-            }, 3000);
-            if(window._aiDecisionForceUpdate) window._aiDecisionForceUpdate();
-          }else{
-            window._aiDecisionMessage = {type: "error", text: "❌ 决策提取失败: " + (r.message || "未知错误")};
-            if(window._aiDecisionForceUpdate) window._aiDecisionForceUpdate();
-          }
-        }).catch(function(e){
-          window._aiDecisionExtracting = false;
-          console.error("[AI决策] 提取失败:", e);
-          window._aiDecisionMessage = {type: "error", text: "❌ 决策提取失败: " + (e.message || "网络错误")};
-          if(window._aiDecisionForceUpdate) window._aiDecisionForceUpdate();
-        });
-      };
-
-      // 获取当前记录
-      var records = window._aiDecisionRecords || [];
-      var isExtracting = window._aiDecisionExtracting || false;
-      var message = window._aiDecisionMessage || null;
-
-      // 清除消息的函数
-      var clearMessage = function(){
-        window._aiDecisionMessage = null;
-        if(window._aiDecisionForceUpdate) window._aiDecisionForceUpdate();
-      };
-
-      return e("div",{style:{padding:"20px",background:"linear-gradient(135deg, #f5f7fa 0%, #e8f5e9 100%)",color:"#333",minHeight:"100vh"}},
-        e("div",{style:{display:"flex",alignItems:"center",marginBottom:"20px"}},
-          e("button",{onClick:function(){setAiDecisionView(false);},style:{background:"#10b981",border:"none",color:"white",padding:"8px 16px",borderRadius:"8px",cursor:"pointer",marginRight:"12px"}},"← 返回"),
-          e("h2",{style:{margin:0,color:"#10b981"}},"🎯 AI决策记录")
-        ),
-        e("div",{style:{background:"white",borderRadius:"12px",padding:"20px",boxShadow:"0 2px 8px rgba(0,0,0,0.1)"}},
-          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
-            e("div",null,
-              e("h3",{style:{margin:0,color:"#333"}},"历史决策记录"),
-              e("p",{style:{margin:"4px 0 0 0",fontSize:"12px",color:"#666"}},"📚 共 " + records.length + " 条决策记录")
-            ),
-            e("div",{style:{display:"flex",gap:"8px"}},
-              e("button",{
-                onClick:loadSessionsForDecision,
-                disabled:isExtracting || window._aiDecisionSessionsLoading,
-                style:{
-                  background:(isExtracting || window._aiDecisionSessionsLoading)?"#9ca3af":"#10b981",
-                  border:"none",
-                  color:"white",
-                  padding:"8px 16px",
-                  borderRadius:"6px",
-                  cursor:(isExtracting || window._aiDecisionSessionsLoading)?"not-allowed":"pointer",
-                  opacity:(isExtracting || window._aiDecisionSessionsLoading)?0.7:1
-                }
-              },(isExtracting || window._aiDecisionSessionsLoading)?"⏳ 加载中...":"🔄 从历史提取")
-            )
-          ),
-          // 内置消息提示
-          message?e("div",{
-            style:{
-              marginBottom:"16px",
-              padding:"12px 16px",
-              borderRadius:"8px",
-              fontSize:"14px",
-              display:"flex",
-              alignItems:"center",
-              justifyContent:"space-between",
-              background:message.type === "success"?"#d1fae5":message.type === "error"?"#fee2e2":"#dbeafe",
-              color:message.type === "success"?"#065f46":message.type === "error"?"#991b1b":"#1e40af",
-              border:"1px solid " + (message.type === "success"?"#a7f3d0":message.type === "error"?"#fecaca":"#bfdbfe")
-            }
-          },
-            e("span",null,message.text),
-            e("button",{
-              onClick:clearMessage,
-              style:{
-                background:"transparent",
-                border:"none",
-                color:"inherit",
-                cursor:"pointer",
-                fontSize:"18px",
-                padding:"0 4px",
-                marginLeft:"8px"
-              }
-            },"×")
-          ):null,
-          // 会谈选择器
-          window._aiDecisionShowSessionSelector?e("div",{style:{marginBottom:"16px",padding:"16px",background:"#f0f9ff",borderRadius:"8px",border:"1px solid #bae6fd"}},
-            e("h4",{style:{margin:"0 0 12px 0",color:"#0369a1"}},"📋 选择会谈记录"),
-            e("p",{style:{margin:"0 0 8px 0",fontSize:"12px",color:"#666"}},"点击会谈记录进行决策提取："),
-            !window._aiDecisionSessions || window._aiDecisionSessions.length === 0?e("p",{style:{color:"#999"}},"暂无会谈记录"):null,
-            window._aiDecisionSessions?e("div",{style:{maxHeight:"200px",overflow:"auto"}},
-              window._aiDecisionSessions.map(function(s){
-                return e("div",{
-                  key:s.session_id,
-                  onClick:function(){selectSessionAndExtract(s);},
-                  style:{
-                    padding:"10px 12px",
-                    marginBottom:"8px",
-                    background:"white",
-                    borderRadius:"6px",
-                    cursor:"pointer",
-                    border:"1px solid #e5e7eb",
-                    transition:"all 0.2s"
-                  },
-                  onMouseEnter:function(e){e.target.style.background="#f3f4f6";e.target.style.borderColor="#10b981";},
-                  onMouseLeave:function(e){e.target.style.background="white";e.target.style.borderColor="#e5e7eb";}
-                },
-                  e("div",{style:{fontWeight:"bold",color:"#333",marginBottom:"4px"}},s.host_name || "未命名会谈"),
-                  e("div",{style:{fontSize:"12px",color:"#666"}},"💬 " + s.message_count + " 条消息 · " + new Date(s.updated_at * 1000).toLocaleString()),
-                  s.last_message?e("div",{style:{fontSize:"11px",color:"#999",marginTop:"4px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.last_message):null
-                );
-              })
-            ):null,
-            e("button",{
-              onClick:function(){window._aiDecisionShowSessionSelector = false;if(window._aiDecisionForceUpdate) window._aiDecisionForceUpdate();},
-              style:{marginTop:"12px",background:"#6b7280",border:"none",color:"white",padding:"6px 12px",borderRadius:"4px",cursor:"pointer",fontSize:"12px"}
-            },"取消")
-          ):null,
-          e("div",null,
-            records.length === 0?e("div",{style:{textAlign:"center",padding:"40px",color:"#666"}},
-              e("p",null,"暂无决策记录"),
-              e("p",{style:{fontSize:"12px"}},"点击「从历史提取」从会谈记录中生成决策")
-            ):null,
-            records.map(function(record, idx){
-              var isDefault = record.isDefault || record.id === "case-001";
-              var isExtracted = record.category === "历史提取" || record.category === "AI提取";
-              return e("div",{key:record.id + idx,style:{padding:"16px",borderBottom:"1px solid #eee",background:isDefault?"#ecfdf5":"#fafafa",borderRadius:"8px",marginBottom:"12px",border:isDefault?"2px solid #10b981":"none"}},
-                e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}},
-                  e("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
-                    e("span",{style:{fontWeight:"bold",color:isDefault?"#047857":"#333"}},record.title),
-                    isDefault?e("span",{style:{background:"#10b981",color:"white",padding:"2px 8px",borderRadius:"4px",fontSize:"11px",fontWeight:"bold"}},"📌 保留案例"):null,
-                    isExtracted?e("span",{style:{background:"#3b82f6",color:"white",padding:"2px 8px",borderRadius:"4px",fontSize:"11px"}},"🤖 AI提取"):null
-                  ),
-                  e("span",{style:{fontSize:"12px",color:"#999"}},record.timestamp)
-                ),
-                e("div",{style:{display:"flex",gap:"8px",marginBottom:"8px"}},
-                  e("span",{style:{display:"inline-block",padding:"2px 8px",borderRadius:"4px",fontSize:"11px",background:"#e0e7ff",color:"#4338ca"}},record.category || "未分类"),
-                  e("span",{style:{display:"inline-block",padding:"2px 8px",borderRadius:"4px",fontSize:"11px",background:record.impact==="高"?"#fee2e2":record.impact==="中"?"#fef3c7":"#d1fae5",color:record.impact==="高"?"#991b1b":record.impact==="中"?"#92400e":"#065f46"}},"影响: " + (record.impact || "低"))
-                ),
-                e("p",{style:{margin:0,color:"#666",fontSize:"14px",lineHeight:"1.6",whiteSpace:"pre-wrap",maxHeight:"200px",overflow:"auto"}},record.content),
-                record.participants && record.participants.length > 0?e("div",{style:{marginTop:"8px",fontSize:"11px",color:"#6b7280"}},
-                  "参与: " + record.participants.join("、 ")
-                ):null
-              );
-            })
-          ),
-          e("div",{style:{marginTop:"20px",padding:"12px",background:"#f3f4f6",borderRadius:"8px",fontSize:"12px",color:"#6b7280"}},
-            e("p",{style:{margin:0}},"💡 提示：AI决策功能基于历史会谈记录自动总结生成。点击「从历史提取」选择会谈记录并生成决策总结。")
-          )
-        )
-      );
     }
   // AI邮箱主视图
     if(aimailView && aimailMode === "main") return e("div",{style:{padding:"20px",textAlign:"center",background:"linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%)",color:"#333",minHeight:"100vh"}},
@@ -6548,52 +6369,7 @@ var _rm = useState(false), readmeV = _rm[0], setReadmeV = _rm[1];
     }
 
 if(aiVotingView) {
-      var _aiTab = useState("list"), aiTab = _aiTab[0], setAiTab = _aiTab[1];
-      var _aiVotes = useState([]), aiVotes = _aiVotes[0], setAiVotes = _aiVotes[1];
-      var _aiLoading = useState(true), aiLoading = _aiLoading[0], setAiLoading = _aiLoading[1];
-      var _aiTemplates = useState([]), aiTemplates = _aiTemplates[0], setAiTemplates = _aiTemplates[1];
-      var _aiLocalAgents = useState([]), aiLocalAgents = _aiLocalAgents[0], setAiLocalAgents = _aiLocalAgents[1];
-      var _aiDetailId = useState(null), aiDetailId = _aiDetailId[0], setAiDetailId = _aiDetailId[1];
-
-      var API_BASE = "/api/plugins/team_chat/ai-voting";
-
-      var fetchVotes = function() {
-        setAiLoading(true);
-        fetch(API_BASE + "/list")
-          .then(function(r) { return r.json(); })
-          .then(function(d) { setAiVotes(d.votes || []); setAiLoading(false); })
-          .catch(function() { setAiLoading(false); });
-      };
-
-      var fetchTemplates = function() {
-        fetch(API_BASE + "/templates")
-          .then(function(r) { return r.json(); })
-          .then(function(d) { setAiTemplates(d.templates || []); })
-          .catch(function() {});
-      };
-
-      var fetchLocalAgents = function() {
-        fetch(API_BASE + "/local-agents")
-          .then(function(r) { return r.json(); })
-          .then(function(d) { setAiLocalAgents(d.agents || []); })
-          .catch(function() {});
-      };
-
-      var handleDelete = function(id) {
-        fetch(API_BASE + "/vote/" + id, { method: "DELETE" })
-          .then(function(r) { return r.json(); })
-          .then(function() { message.success("已删除"); fetchVotes(); })
-          .catch(function() { message.error("删除失败"); });
-      };
-
-      useEffect(function() {
-        fetchVotes();
-        fetchTemplates();
-        fetchLocalAgents();
-        // 5s 自动刷新
-        var iv = setInterval(fetchVotes, 5000);
-        return function() { clearInterval(iv); };
-      }, []);
+      // AI决策状态和函数已移到组件顶层
 
       // ── 投票列表Tab ──
       if (aiTab === "list") {
@@ -6606,8 +6382,7 @@ if(aiVotingView) {
               e(Tag, { color: "green" }, "v2.0 · 本地Agent投票")
             ),
             e("div", { style: { display: "flex", gap: "8px" } },
-              e(Button, { type: "primary", style: { background: "#52c41a", borderColor: "#52c41a" }, onClick: function() { setAiTab("create"); } }, "+ 创建决策"),
-              e(Button, { onClick: function() { setAiTab("multiai"); } }, "🌐 全提问")
+              e(Button, { type: "primary", style: { background: "#52c41a", borderColor: "#52c41a" }, onClick: function() { setAiTab("create"); } }, "+ 创建决策")
             )
           ),
           // 主卡片
@@ -6616,7 +6391,7 @@ if(aiVotingView) {
               votes: aiVotes,
               loading: aiLoading,
               onView: function(id) { setAiDetailId(id); setAiTab("detail"); },
-              onDelete: handleDelete
+              onDelete: aiVotingHandleDelete
             })
           ),
           // 底部引用
@@ -6642,7 +6417,7 @@ if(aiVotingView) {
             e(window.AIDecisionCreateComponent, {
               templates: aiTemplates,
               localAgents: aiLocalAgents,
-              onCreated: function() { fetchVotes(); setAiTab("list"); },
+              onCreated: function() { aiVotingFetchVotes(); setAiTab("list"); },
               onCancel: function() { setAiTab("list"); }
             })
           )
@@ -6656,24 +6431,13 @@ if(aiVotingView) {
             e(window.AIDecisionDetailComponent, {
               voteId: aiDetailId,
               onBack: function() { setAiDetailId(null); setAiTab("list"); },
-              onDelete: handleDelete
+              onDelete: aiVotingHandleDelete
             })
           )
         );
       }
 
-      // ── 多AI查询Tab ──
-      if (aiTab === "multiai") {
-        return e("div", { style: { padding: "20px", background: "#f5f7fa", minHeight: "100vh" } },
-          e("div", { style: { display: "flex", alignItems: "center", marginBottom: "20px", gap: "12px" } },
-            e("button", { onClick: function() { setAiVotingView(false); }, style: { background: "#52c41a", border: "none", color: "white", padding: "8px 16px", borderRadius: "8px", cursor: "pointer" } }, "← 返回"),
-            e("button", { onClick: function() { setAiTab("list"); }, style: { background: "#1890ff", border: "none", color: "white", padding: "8px 16px", borderRadius: "8px", cursor: "pointer" } }, "📋 决策列表")
-          ),
-          e("div", { style: { background: "white", borderRadius: "12px", padding: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" } },
-            e(window.AIDecisionMultiAIComponent, {})
-          )
-        );
-      }
+      // ── 多AI查询Tab 已禁用 ──
     }
 return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
       e("div",{style:{display:"flex",flexDirection:"row",height:"100%",fontFamily:"system-ui, sans-serif"}},
@@ -6699,9 +6463,9 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
           e(Popover,{content:e("div",{style:{padding:4}},e("div",null,e(Text,{style:{fontSize:11}},"🖥 IP: "),e(Text,{code:true,style:{fontSize:11}},sysIp||"---")),e("div",null,e(Text,{style:{fontSize:11}},"🕐 "+clock))),trigger:"hover"},
             e(Text,{style:{fontSize:16,cursor:"default"}},"🕐")
           ),
-          e("a",{href:"https://platform.agentscope.io/plugins/team_chat",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#1890ff",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"TC扩展"),
-          e("a",{href:"https://nightly.paw.msgbyte.com/invite/rj9iBh5Y",target:"_blank",rel:"noopener noreferrer",style:{fontSize:13,fontWeight:"bold",color:"#667eea",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"AI协作"),
-          e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setAiDecisionView(true);},style:{fontSize:13,fontWeight:"bold",color:"#52c41a",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"AI决策"),
+          e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();if(window.teamChatBrowser){window.teamChatBrowser.setUrl('https://platform.agentscope.io/plugins/team_chat');window.teamChatBrowser.setTitle('TC扩展');window.teamChatBrowser.setShow(true);window.teamChatBrowser.setMinimized(false);}else{window.open('https://platform.agentscope.io/plugins/team_chat','_blank');}},style:{fontSize:13,fontWeight:"bold",color:"#1890ff",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"TC扩展"),
+          e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();if(window.teamChatBrowser){window.teamChatBrowser.setUrl('https://nightly.paw.msgbyte.com/invite/rj9iBh5Y');window.teamChatBrowser.setTitle('AI协作');window.teamChatBrowser.setShow(true);window.teamChatBrowser.setMinimized(false);}else{window.open('https://nightly.paw.msgbyte.com/invite/rj9iBh5Y','_blank');}},style:{fontSize:13,fontWeight:"bold",color:"#667eea",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"AI协作"),
+          e("a",{href:"javascript:void(0)",onClick:function(ev){ev.preventDefault();setAiVotingView(true);},style:{fontSize:13,fontWeight:"bold",color:"#52c41a",textDecoration:"none",cursor:"pointer",transition:"transform 0.2s",display:"inline-block"},onMouseEnter:function(e){e.target.style.transform="scale(1.5)"},onMouseLeave:function(e){e.target.style.transform="scale(1)"}},"AI决策"),
           // 主界面动画区域（右上角）
           e("div",{style:{position:"relative",width:320,height:120,marginLeft:"auto",borderRadius:8,overflow:"hidden"},onMouseMove:function(ev){var r=ev.currentTarget.getBoundingClientRect();setHoverX(ev.clientX-r.left);setHoverY(ev.clientY-r.top);setHoverShow(true)},onMouseLeave:function(){setHoverShow(false)}},
             hoverShow&&e("div",{style:{position:"absolute",left:hoverX+8,top:hoverY-20,background:"rgba(0,0,0,0.75)",color:"#ffd700",padding:"2px 8px",borderRadius:"4px",fontSize:"12px",fontWeight:"bold",fontFamily:"monospace",pointerEvents:"none",whiteSpace:"nowrap",zIndex:999}},"115886"),
@@ -7305,7 +7069,7 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
           )
         ))
       ),
-      e(Modal,{title:"📖 TeamChat v5.2.0 说明文档",open:readmeV,onCancel:function(){setReadmeV(false);},footer:null,width:800,style:{maxHeight:"80vh"}},
+      e(Modal,{title:"📖 TeamChat v5.3.6 说明文档",open:readmeV,onCancel:function(){setReadmeV(false);},footer:null,width:800,style:{maxHeight:"80vh"}},
         e("div",{style:{maxHeight:"60vh",overflow:"auto",padding:"0 8px",fontFamily:"monospace",fontSize:12,whiteSpace:"pre-wrap",lineHeight:1.6}},readmeC||t("loading"))
       ),
       // ⌨ 快捷键面板
@@ -7325,7 +7089,7 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
   }
 
   // ═══════════════════════════════════════════════════════════
-  // TeamChat v5.3.2 - 双注册模式 (应用栏目 + 侧边栏)
+  // TeamChat v5.3.6 - 双注册模式 (应用栏目 + 侧边栏)
   // ═══════════════════════════════════════════════════════════
   
   var PLUGIN_ID = "team_chat";
@@ -7347,24 +7111,10 @@ return e(ErrorBoundary,{fallbackName:"TeamChat 主页面"},
     }
   }
   
-  // 2. 新版侧边栏菜单 (QwenPaw 2.0) - 已禁用，只保留应用栏目
-  // if (QP.menu && QP.menu.add) {
-  //   try {
-  //     QP.menu.add(PLUGIN_ID, {
-  //       id: PLUGIN_ID + ".menu",
-  //       location: "primary.settings",
-  //       label: "TeamChat v5.3.2",
-  //       icon: function() {
-  //         return h("span", { style: { fontSize: 18 } }, "💬");
-  //       },
-  //       route: PLUGIN_ID + ".home",
-  //       order: 50
-  //     });
-  //     console.info("[TeamChat] registered via menu.add (Sidebar)");
-  //   } catch (e) {
-  //     console.warn("[TeamChat] menu.add failed:", e);
-  //   }
-  // }
+  // 2. 新版侧边栏菜单 (QwenPaw 2.0)
+  // 注意：侧边栏菜单由 frontend/src/index.js 中的 QP.registerRoutes 注册
+  // 这里不再重复注册，避免显示两个菜单项
+  // 保留的菜单项：label: "新会谈", icon: "团"
   
   // 3. 新版侧边栏路由 (QwenPaw 2.0)
   if (QP.route && QP.route.add) {
@@ -10658,6 +10408,32 @@ window.TeamChatEmail.editAICronJob = function() {
         localStorage.setItem('teamchat_ai_nickname', newNickname);
         return newNickname;
       });
+      // 昵称编辑状态
+      var [showNicknameEdit, setShowNicknameEdit] = useState(false);
+      var [editingNickname, setEditingNickname] = useState('');
+      // 清空消息确认框状态
+      var [showClearConfirm, setShowClearConfirm] = useState(false);
+      // 内置浏览器状态
+      var [showBrowser, setShowBrowser] = useState(false);
+      var [browserUrl, setBrowserUrl] = useState('');
+      var [browserTitle, setBrowserTitle] = useState('');
+      var [browserMinimized, setBrowserMinimized] = useState(false);
+      var [browserPosition, setBrowserPosition] = useState({x: 0, y: 0});
+      var [isDragging, setIsDragging] = useState(false);
+      var [dragOffset, setDragOffset] = useState({x: 0, y: 0});
+      var browserRef = useRef(null);
+      // 将浏览器控制函数挂载到 window，供全局访问
+      // 使用 ref 确保只设置一次
+      var browserApiRef = useRef(null);
+      if (!browserApiRef.current) {
+        browserApiRef.current = {
+          setUrl: setBrowserUrl,
+          setTitle: setBrowserTitle,
+          setShow: setShowBrowser,
+          setMinimized: setBrowserMinimized
+        };
+        window.teamChatBrowser = browserApiRef.current;
+      }
       var messagesEndRef = useRef(null);
       var messagesContainerRef = useRef(null);
       var [unreadCount, setUnreadCount] = useState(0);
@@ -10729,10 +10505,15 @@ window.TeamChatEmail.editAICronJob = function() {
       
       // 加载系统可用智能体列表
       function loadSystemAgents() {
+        console.log('[AIChat] 开始加载系统智能体列表...');
         aiChatApiGet('/agents')
           .then(function(data) {
+            console.log('[AIChat] 系统智能体API响应:', data);
             if (data.success && data.agents) {
+              console.log('[AIChat] 设置systemAgents, 数量:', data.agents.length, '智能体:', data.agents.map(function(a) { return a.name; }).join(', '));
               setSystemAgents(data.agents);
+            } else {
+              console.error('[AIChat] API返回数据无效:', data);
             }
           })
           .catch(function(err) { console.error('[AIChat] 加载系统智能体失败:', err); });
@@ -11349,16 +11130,77 @@ window.TeamChatEmail.editAICronJob = function() {
               } 
             }, 
               '👤', 
-              e('span', { 
+              // 昵称编辑输入框
+              showNicknameEdit ? e('div', { 
+                style: { display: 'flex', alignItems: 'center', gap: '8px' }
+              },
+                e('input', {
+                  value: editingNickname,
+                  onChange: function(e) { setEditingNickname(e.target.value); },
+                  placeholder: '输入新昵称',
+                  maxLength: 20,
+                  style: {
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid rgba(255,255,255,0.5)',
+                    background: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    fontSize: '13px',
+                    width: '120px'
+                  },
+                  onKeyDown: function(e) {
+                    if (e.key === 'Enter') {
+                      var newNick = editingNickname.trim();
+                      if (newNick && newNick !== nickname) {
+                        newNick = newNick.substring(0, 20);
+                        setNickname(newNick);
+                        localStorage.setItem('teamchat_ai_nickname', newNick);
+                        message.success('✅ 昵称已修改为: ' + newNick);
+                      }
+                      setShowNicknameEdit(false);
+                    } else if (e.key === 'Escape') {
+                      setShowNicknameEdit(false);
+                    }
+                  }
+                }),
+                e('button', {
+                  onClick: function() {
+                    var newNick = editingNickname.trim();
+                    if (newNick && newNick !== nickname) {
+                      newNick = newNick.substring(0, 20);
+                      setNickname(newNick);
+                      localStorage.setItem('teamchat_ai_nickname', newNick);
+                      message.success('✅ 昵称已修改为: ' + newNick);
+                    }
+                    setShowNicknameEdit(false);
+                  },
+                  style: {
+                    padding: '4px 8px',
+                    background: 'rgba(255,255,255,0.3)',
+                    border: '1px solid rgba(255,255,255,0.5)',
+                    borderRadius: '4px',
+                    color: 'white',
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }
+                }, '✓'),
+                e('button', {
+                  onClick: function() { setShowNicknameEdit(false); },
+                  style: {
+                    padding: '4px 8px',
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '4px',
+                    color: 'white',
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }
+                }, '✕')
+              ) : e('span', { 
                 style: { cursor: 'pointer', borderBottom: '1px dashed rgba(255,255,255,0.5)' },
                 onClick: function() {
-                  var newNickname = prompt('修改你的昵称（当前: ' + nickname + '）:', nickname);
-                  if (newNickname && newNickname.trim() && newNickname !== nickname) {
-                    newNickname = newNickname.trim().substring(0, 20);
-                    setNickname(newNickname);
-                    localStorage.setItem('teamchat_ai_nickname', newNickname);
-                    message.success('✅ 昵称已修改为: ' + newNickname);
-                  }
+                  setEditingNickname(nickname);
+                  setShowNicknameEdit(true);
                 }
               }, nickname)
             ),
@@ -11569,32 +11411,221 @@ window.TeamChatEmail.editAICronJob = function() {
               onMouseEnter: function(e) { e.currentTarget.style.background='#fff1f0'; e.currentTarget.style.color='#ff4d4f'; },
               onMouseLeave: function(e) { e.currentTarget.style.background='#f5f5f5'; e.currentTarget.style.color='#666'; },
               onClick: function() {
-                if (confirm('确定要清空当前群聊的所有消息吗？')) {
-                  fetch(getApiUrl('/plugins/team_chat/ai-chat/messages/clear'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ room_id: 'OFFICIAL_ROOM', user_id: userId })
-                  }).then(function(r) { 
-                    if (!r.ok) {
-                      throw new Error('HTTP ' + r.status + ': ' + r.statusText);
-                    }
-                    return r.json(); 
-                  }).then(function(data) {
-                    if (data.success) {
-                      message.success('✅ 已清空消息');
-                      setMessages([]);
-                      loadMessages();
-                    } else {
-                      message.error('❌ 清空失败: ' + (data.error || '未知错误'));
-                    }
-                  }).catch(function(err) {
-                    console.error('[AIChat] 清空消息失败:', err);
-                    message.error('❌ 清空错误: ' + err.message);
-                  });
-                }
+                setShowClearConfirm(true);
               }
             }, '🗑️', '清空')
           ),
+          // 清空消息确认弹窗
+          showClearConfirm ? e('div', {
+            style: {
+              position: 'fixed',
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 99999
+            },
+            onClick: function(e) { if (e.target === e.currentTarget) setShowClearConfirm(false); }
+          },
+            e('div', {
+              style: {
+                background: 'white',
+                borderRadius: '12px',
+                padding: '24px',
+                width: '360px',
+                maxWidth: '90vw',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+              }
+            }, [
+              e('div', { style: { fontSize: '16px', fontWeight: 'bold', marginBottom: '12px', color: '#333' } }, '⚠️ 确认清空'),
+              e('div', { style: { fontSize: '14px', color: '#666', marginBottom: '20px', lineHeight: '1.5' } }, '确定要清空当前群聊的所有消息吗？\n此操作不可恢复。'),
+              e('div', { style: { display: 'flex', gap: '12px', justifyContent: 'flex-end' } }, [
+                e('button', {
+                  onClick: function() { setShowClearConfirm(false); },
+                  style: {
+                    padding: '8px 16px',
+                    border: '1px solid #d9d9d9',
+                    borderRadius: '6px',
+                    background: 'white',
+                    color: '#666',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }
+                }, '取消'),
+                e('button', {
+                  onClick: function() {
+                    setShowClearConfirm(false);
+                    fetch(getApiUrl('/plugins/team_chat/ai-chat/messages/clear'), {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ room_id: 'OFFICIAL_ROOM', user_id: userId })
+                    }).then(function(r) { 
+                      if (!r.ok) {
+                        throw new Error('HTTP ' + r.status + ': ' + r.statusText);
+                      }
+                      return r.json(); 
+                    }).then(function(data) {
+                      if (data.success) {
+                        message.success('✅ 已清空消息');
+                        setMessages([]);
+                        loadMessages();
+                      } else {
+                        message.error('❌ 清空失败: ' + (data.error || '未知错误'));
+                      }
+                    }).catch(function(err) {
+                      console.error('[AIChat] 清空消息失败:', err);
+                      message.error('❌ 清空错误: ' + err.message);
+                    });
+                  },
+                  style: {
+                    padding: '8px 16px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: '#ff4d4f',
+                    color: 'white',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }
+                }, '确定清空')
+              ])
+            ])
+          ) : null,
+          // 内置浏览器组件
+          showBrowser && !browserMinimized ? e('div', {
+            ref: browserRef,
+            style: {
+              position: 'fixed',
+              top: browserPosition.y || '5%',
+              left: browserPosition.x || '10%',
+              width: '80%',
+              height: '75%',
+              background: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              zIndex: 99999,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              border: '1px solid #e0e0e0'
+            },
+            onMouseDown: function(e) {
+              if (e.target === browserRef.current || e.target.tagName === 'DIV') {
+                setIsDragging(true);
+                var rect = browserRef.current.getBoundingClientRect();
+                setDragOffset({x: e.clientX - rect.left, y: e.clientY - rect.top});
+              }
+            }
+          }, [
+            // 浏览器标题栏
+            e('div', {
+              style: {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                color: 'white',
+                cursor: isDragging ? 'grabbing' : 'grab',
+                userSelect: 'none'
+              },
+              onMouseDown: function(e) {
+                setIsDragging(true);
+                var rect = browserRef.current.getBoundingClientRect();
+                setDragOffset({x: e.clientX - rect.left, y: e.clientY - rect.top});
+              },
+              onMouseMove: function(e) {
+                if (isDragging && browserRef.current) {
+                  var newX = e.clientX - dragOffset.x;
+                  var newY = e.clientY - dragOffset.y;
+                  setBrowserPosition({x: newX, y: newY});
+                  browserRef.current.style.left = newX + 'px';
+                  browserRef.current.style.top = newY + 'px';
+                }
+              },
+              onMouseUp: function() {
+                setIsDragging(false);
+              },
+              onMouseLeave: function() {
+                setIsDragging(false);
+              }
+            }, [
+              e('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, [
+                e('span', { style: { fontSize: '16px' } }, '🌐'),
+                e('span', { style: { fontSize: '14px', fontWeight: 'bold' } }, browserTitle || '内置浏览器')
+              ]),
+              e('div', { style: { display: 'flex', gap: '8px' } }, [
+                // 最小化按钮
+                e('button', {
+                  onClick: function() { setBrowserMinimized(true); },
+                  style: {
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }
+                }, '−'),
+                // 关闭按钮
+                e('button', {
+                  onClick: function() { setShowBrowser(false); },
+                  style: {
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }
+                }, '✕')
+              ])
+            ]),
+            // iframe 内容区
+            e('div', { style: { flex: 1, overflow: 'hidden' } },
+              e('iframe', {
+                src: browserUrl,
+                style: {
+                  width: '100%',
+                  height: '100%',
+                  border: 'none'
+                },
+                sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups'
+              })
+            )
+          ]) : null,
+          // 最小化后的浏览器按钮
+          showBrowser && browserMinimized ? e('div', {
+            onClick: function() { setBrowserMinimized(false); },
+            style: {
+              position: 'fixed',
+              bottom: '20px',
+              right: '20px',
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #667eea, #764ba2)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(102,126,234,0.4)',
+              zIndex: 99999,
+              fontSize: '24px'
+            }
+          }, '🌐') : null,
           // 输入框和发送按钮
           e('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-end' } },
             e(Input.TextArea, {
@@ -11846,7 +11877,7 @@ window.TeamChatEmail.editAICronJob = function() {
             e('div', { style: { borderTop: '1px solid #e8e8e8', paddingTop: '16px' } },
               e('div', { style: { fontSize: '13px', fontWeight: 'bold', color: '#333', marginBottom: '12px' } }, '➕ 添加新智能体'),
               // 系统智能体下拉选择
-              systemAgents.length > 0 ? e('div', { style: { marginBottom: '12px' } },
+              (console.log('[AIChat] 渲染系统智能体下拉, systemAgents数量:', systemAgents.length, '内容:', systemAgents), systemAgents.length > 0) ? e('div', { style: { marginBottom: '12px' } },
                 e('div', { style: { fontSize: '12px', color: '#666', marginBottom: '8px' } }, '选择系统智能体 (' + systemAgents.length + '个):'),
                 e('select', {
                   value: agentForm.agent_api_id,
@@ -11870,6 +11901,7 @@ window.TeamChatEmail.editAICronJob = function() {
                 },
                   e('option', { value: '' }, '请选择智能体...'),
                   systemAgents.map(function(sysAgent) {
+                    console.log('[AIChat] 渲染option:', sysAgent.name, sysAgent.agent_api_id || sysAgent.id);
                     return e('option', { 
                       key: sysAgent.id || sysAgent.agent_api_id,
                       value: sysAgent.agent_api_id || sysAgent.id
@@ -11967,18 +11999,18 @@ window.TeamChatEmail.editAICronJob = function() {
     // 将 AIGroupChatPage 暴露到全局，供 TeamChat 主代码使用
     window.AIGroupChatPage = AIGroupChatPage;
     
-    // 注册路由 - 已禁用侧边栏菜单，只保留应用栏目
-    // if (QP.menu && QP.menu.add && QP.route && QP.route.add) {
-    //   QP.menu.add('team_chat', [
-    //     { id: 'team_chat.ai_group', location: 'primary.team_chat', label: '🤖 AI 群聊', icon: '💬', route: 'team_chat.ai_group', order: 10 }
-    //   ]);
-    //   QP.route.add('team_chat', [
-    //     { id: 'team_chat.ai_group', path: '/plugin/team_chat/ai_group', component: AIGroupChatPage }
-    //   ]);
-    //   console.log('[AIChat] AI群聊模块已注册');
-    // } else {
-    //   console.warn('[AIChat] QwenPaw API 不可用，无法注册路由');
-    // }
+    // 注册路由
+    if (QP.menu && QP.menu.add && QP.route && QP.route.add) {
+      QP.menu.add('team_chat', [
+        { id: 'team_chat.ai_group', location: 'primary.team_chat', label: '🤖 AI 群聊', icon: '💬', route: 'team_chat.ai_group', order: 10 }
+      ]);
+      QP.route.add('team_chat', [
+        { id: 'team_chat.ai_group', path: '/plugin/team_chat/ai_group', component: AIGroupChatPage }
+      ]);
+      console.log('[AIChat] AI群聊模块已注册');
+    } else {
+      console.warn('[AIChat] QwenPaw API 不可用，无法注册路由');
+    }
   }
   
   // 启动
@@ -12169,7 +12201,7 @@ window.TeamChatEmail.editAICronJob = function() {
         e('div', null,
           e('div', { style: { fontSize: 13, fontWeight: 600, marginBottom: 4 } }, '决策模板'),
           e('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
-            (templates || []).slice(0, 8).map(function(t) {
+            (templates || []).slice(0, 20).map(function(t) {
               var isActive = form.template === t.id;
               return e('div', {
                 key: t.id,
@@ -12181,11 +12213,24 @@ window.TeamChatEmail.editAICronJob = function() {
                 }
               }, (isActive ? '✓ ' : '') + t.name);
             })
-          )
+          ),
+          // 显示选中模板的提示信息
+          (function() {
+            var selectedTemplate = (templates || []).find(function(t) { return t.id === form.template; });
+            if (selectedTemplate && selectedTemplate.prompt_guide) {
+              return e('div', { style: { marginTop: 10, padding: 10, background: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: 6, fontSize: 11, color: '#096dd9', lineHeight: 1.6 } },
+                e('div', { style: { fontWeight: 600, marginBottom: 4 } }, '💡 输入提示'),
+                selectedTemplate.prompt_guide.split('\n').map(function(line, i) {
+                  return e('div', { key: i, style: { marginBottom: 2 } }, line);
+                })
+              );
+            }
+            return null;
+          })()
         ),
         // 选择本地智能体（核心）
         e('div', { style: { marginTop: 8, padding: 16, background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 10 } },
-          e('div', { style: { fontSize: 14, fontWeight: 700, marginBottom: 8, color: '#389e0d' } }, '🤖 选择本地真实Agent（至少1个）'),
+          e('div', { style: { fontSize: 14, fontWeight: 700, marginBottom: 8, color: '#389e0d' } }, '🤖 选择本地真实Agent的大脑语言模型（至少1个）'),
           e('div', { style: { fontSize: 11, color: '#888', marginBottom: 12 } }, '选择QwenPaw中的真实智能体参与决策，每个Agent将根据自身角色进行独立分析并投票'),
           (localAgents || []).length === 0 ? 
             e('div', { style: { textAlign: 'center', padding: 20, color: '#bbb' } }, '正在加载Agent列表...') :
@@ -12199,13 +12244,15 @@ window.TeamChatEmail.editAICronJob = function() {
                   padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
                   border: '2px solid ' + (isSelected ? '#52c41a' : '#e8e8e8'),
                   background: isSelected ? '#f6ffed' : '#fff',
-                  transition: 'all 0.2s', minWidth: 120,
+                  transition: 'all 0.2s', minWidth: 140,
                 }
               },
                 e('div', { style: { fontSize: 13, fontWeight: 600 } }, 
                   (isSelected ? '✓ ' : '○ ') + (agent.name || agent.agent_id)),
                 e('div', { style: { fontSize: 10, color: '#888', marginTop: 2 } },
-                  (agent.description || '').substring(0, 40))
+                  (agent.description || '').substring(0, 35)),
+                e('div', { style: { fontSize: 9, color: '#52c41a', marginTop: 3, fontStyle: 'italic' } },
+                  '🧠 ' + (agent.model || '系统默认').split('/').pop().substring(0, 25))
               );
             })
           ),
@@ -12333,6 +12380,14 @@ window.TeamChatEmail.editAICronJob = function() {
                   ),
                   e(Tag, { color: 'blue' }, v.option_id)
                 ),
+                // 显示LLM完整回复
+                v.llm_response ? e('div', { style: { marginTop: 8 } },
+                  e('div', { style: { fontSize: 11, color: '#1890ff', marginBottom: 4, fontWeight: 500 } }, '🤖 LLM完整回复：'),
+                  e('div', { style: { fontSize: 11, color: '#333', background: '#f0f5ff', padding: 10, borderRadius: 4, maxHeight: 200, overflow: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.6, border: '1px solid #d6e4ff' } },
+                    v.llm_response
+                  )
+                ) : 
+                // 如果没有llm_response，显示reasoning
                 v.reasoning ? e('div', { style: { fontSize: 12, color: '#555', marginTop: 4, background: '#fafafa', padding: 8, borderRadius: 4 } },
                   v.reasoning
                 ) : null

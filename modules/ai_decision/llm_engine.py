@@ -776,16 +776,118 @@ class QwenPawProviderBridge:
     
     async def analyze(self, role: str, expertise: List[str], 
                      vote_info: Dict) -> LLMResponse:
-        """通过 QwenPaw 提供商进行智能体分析
+        """通过 QwenPaw 本地智能体API进行智能体分析
         
-        Args:
-            role: 智能体角色
-            expertise: 专业领域
-            vote_info: 投票信息（含 title, description, options）
-        
-        Returns:
-            LLMResponse: 分析结果
+        优先调用本地配置的智能体，而不是外部LLM API
         """
+        import httpx
+        import os
+        
+        start_time = time.time()
+        
+        try:
+            # 构建提示词
+            prompt = self._build_analysis_prompt(role, expertise, vote_info)
+            
+            # 获取QwenPaw API地址
+            qp_api_base = os.environ.get("QWENPAW_API_URL", "http://127.0.0.1:8088")
+            
+            # 查找可用的智能体
+            agent_id = None
+            agent_name = None
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    resp = await client.get(f"{qp_api_base}/api/agents")
+                    if resp.status_code == 200:
+                        agents = resp.json().get("agents", [])
+                        logger.info(f"[QwenPaw桥接] 找到 {len(agents)} 个智能体")
+                        
+                        # 策略1: 尝试匹配角色名称（如CloudPaw-Master匹配cloud-orchestrator）
+                        role_lower = role.lower().replace(" ", "-").replace("_", "-")
+                        for agent in agents:
+                            agent_id_check = agent.get("id", "").lower()
+                            agent_name_check = agent.get("name", "").lower()
+                            if role_lower in agent_id_check or role_lower in agent_name_check:
+                                agent_id = agent.get("id")
+                                agent_name = agent.get("name")
+                                logger.info(f"[QwenPaw桥接] 角色匹配成功: {role} -> {agent_name} ({agent_id})")
+                                break
+                        
+                        # 策略2: 如果没找到，使用第一个可用智能体（通常是主控）
+                        if not agent_id and agents:
+                            agent_id = agents[0].get("id")
+                            agent_name = agents[0].get("name")
+                            logger.info(f"[QwenPaw桥接] 使用默认智能体: {agent_name} ({agent_id})")
+            except Exception as e:
+                logger.warning(f"[QwenPaw桥接] 查找智能体失败: {e}")
+            
+            if not agent_id:
+                logger.warning(f"[QwenPaw桥接] 未找到可用智能体，回退到ProviderManager")
+                return await self._analyze_via_provider(role, expertise, vote_info, start_time)
+            
+            # 调用本地智能体API - 使用正确的 QwenPaw 2.0 API
+            logger.info(f"[QwenPaw桥接] 调用本地智能体: {agent_name} ({agent_id})")
+            
+            # 生成唯一session_id
+            session_id = f"ai_decision_{agent_id}_{int(time.time() * 1000)}"
+            
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                # QwenPaw 2.0 /api/console/chat 使用 input 格式
+                payload = {
+                    "input": [{"role": "user", "content": [{"type": "text", "text": prompt}]}],
+                    "channel": "console",
+                    "session_id": session_id,
+                }
+                
+                resp = await client.post(
+                    f"{qp_api_base}/api/console/chat",
+                    json=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "X-Agent-Id": agent_id,
+                    }
+                )
+                resp.raise_for_status()
+                
+                # 处理流式响应
+                content = ""
+                async for line in resp.aiter_lines():
+                    if line.startswith("data: "):
+                        try:
+                            data = json.loads(line[6:])
+                            chunk_content = data.get("content", "") or data.get("delta_text", "")
+                            if chunk_content:
+                                if isinstance(chunk_content, list):
+                                    for item in chunk_content:
+                                        text_val = item.get("text", "") if isinstance(item, dict) else str(item)
+                                        content += text_val
+                                else:
+                                    content += str(chunk_content)
+                        except json.JSONDecodeError:
+                            continue
+                
+                latency = time.time() - start_time
+                
+                logger.info(f"[QwenPaw桥接] 智能体 {agent_name} 响应成功，长度: {len(content)}")
+                
+                # 解析 JSON 响应
+                parsed = self._parse_json_response(content)
+                
+                return LLMResponse(
+                    content=content,
+                    confidence=parsed.get("confidence", 0.8),
+                    tokens_used=0,  # QwenPaw不返回token使用量
+                    latency=latency,
+                    provider=f"local_agent:{agent_id}"
+                )
+                
+        except Exception as e:
+            logger.warning(f"[QwenPaw桥接] 本地智能体调用失败，回退到ProviderManager: {e}")
+            return await self._analyze_via_provider(role, expertise, vote_info, start_time)
+    
+    async def _analyze_via_provider(self, role: str, expertise: List[str], 
+                                    vote_info: Dict, start_time: float) -> LLMResponse:
+        """通过ProviderManager调用外部LLM（回退方案）"""
         if not self._available:
             return LLMResponse(
                 content="", 
@@ -793,14 +895,11 @@ class QwenPawProviderBridge:
                 provider="qwenpaw_bridge"
             )
         
-        start_time = time.time()
         model_cfg = self._resolve_model(role)
         
         try:
-            # 构建提示词
             prompt = self._build_analysis_prompt(role, expertise, vote_info)
             
-            # 获取 provider 和 chat model
             provider = self._pm.get_provider(model_cfg["provider"])
             if not provider:
                 return LLMResponse(
@@ -811,7 +910,6 @@ class QwenPawProviderBridge:
             
             chat_model = provider.get_chat_model_instance(model_cfg["model"])
             
-            # 调用模型
             from agentscope.message import Msg, TextBlock
             msgs = [
                 Msg(role="system", content=[TextBlock(
@@ -822,7 +920,6 @@ class QwenPawProviderBridge:
             
             result = await chat_model(msgs)
             
-            # 处理流式响应
             content = ""
             if hasattr(result, '__aiter__'):
                 async for chunk in result:
@@ -840,8 +937,6 @@ class QwenPawProviderBridge:
                 content = str(result)
             
             latency = time.time() - start_time
-            
-            # 解析 JSON 响应
             parsed = self._parse_json_response(content)
             
             return LLMResponse(
@@ -853,7 +948,7 @@ class QwenPawProviderBridge:
             )
             
         except Exception as e:
-            logger.error(f"[QwenPaw桥接] 分析失败 ({role}): {e}")
+            logger.error(f"[QwenPaw桥接] ProviderManager分析失败 ({role}): {e}")
             return LLMResponse(
                 content="",
                 error=str(e),
@@ -863,55 +958,93 @@ class QwenPawProviderBridge:
     
     def _build_analysis_prompt(self, role: str, expertise: List[str], 
                                vote_info: Dict) -> str:
-        """构建分析提示词"""
+        """构建分析提示词 - 优化版，更适合QwenPaw智能体"""
         options_str = "\n".join([
             f"  - {opt.get('id', f'opt{i+1}')}: {opt.get('text', opt.get('label', ''))}"
-            f" ({opt.get('description', '')})"
             for i, opt in enumerate(vote_info.get("options", []))
         ])
         
-        return f"""你是一位专业的{role}，拥有{', '.join(expertise)}方面的丰富经验。
+        # 获取选项ID列表用于示例
+        option_ids = [opt.get('id', f'opt{i+1}') for i, opt in enumerate(vote_info.get("options", []))]
+        example_scores = ', '.join([f'"{oid}": 0.{80+i*5}' for i, oid in enumerate(option_ids[:2])])
+        
+        return f"""请以专业{role}的身份，对以下议题进行分析和投票。
 
-请对以下投票主题进行深度专业分析：
+【议题】
+{vote_info.get('title', '')}
 
-主题：{vote_info.get('title', '')}
-描述：{vote_info.get('description', '')}
-
-候选方案：
+【选项】
 {options_str}
 
-请从你的专业角度（{', '.join(expertise)}）逐一分析每个方案的优缺点，给出评分和倾向。
-输出必须是严格的JSON格式（不要包含markdown代码块标记）：
+【你的任务】
+1. 分析每个选项的优缺点
+2. 给每个选项打分（0.0-1.0）
+3. 选择你最倾向的选项
+4. 说明理由
+
+【输出格式】
+必须返回严格的JSON，不要包含markdown代码块：
 {{
-    "scores": {{"选项ID": 0.85, "另一个ID": 0.60}},
-    "preference": "最倾向的选项ID",
+    "scores": {{{example_scores}}},
+    "preference": "{option_ids[0] if option_ids else 'yes'}",
     "confidence": 0.85,
-    "reasoning": "详细的分析理由，体现你的专业视角"
+    "reasoning": "基于专业分析，给出选择理由"
 }}"""
     
     def _parse_json_response(self, content: str) -> Dict:
-        """解析 JSON 响应"""
+        """解析 JSON 响应 - 增强容错"""
+        content = content.strip()
+        
+        # 尝试直接解析
         try:
             return json.loads(content)
         except json.JSONDecodeError:
             pass
         
+        # 尝试提取JSON代码块
         patterns = [
             r'```json\s*\n(.*?)\n```',
             r'```\s*\n(.*?)\n```',
-            r'\{[\s\S]*\}'
+            r'```(.*?)```',
         ]
         
         for pattern in patterns:
             match = re.search(pattern, content, re.DOTALL)
             if match:
                 try:
-                    return json.loads(match.group(1) if '`' in pattern else match.group(0))
+                    extracted = match.group(1).strip()
+                    return json.loads(extracted)
                 except:
                     pass
         
-        logger.warning(f"[QwenPaw桥接] 无法解析JSON响应")
-        return {"error": "无法解析响应", "raw_content": content[:500]}
+        # 尝试查找第一个{和最后一个}之间的内容
+        try:
+            start = content.find('{')
+            end = content.rfind('}')
+            if start != -1 and end != -1 and end > start:
+                return json.loads(content[start:end+1])
+        except:
+            pass
+        
+        # 尝试修复常见的JSON格式问题
+        try:
+            # 移除可能的BOM标记
+            content_clean = content.encode('utf-8').decode('utf-8-sig')
+            # 替换单引号为双引号
+            content_clean = content_clean.replace("'", '"')
+            return json.loads(content_clean)
+        except:
+            pass
+        
+        logger.warning(f"[QwenPaw桥接] 无法解析JSON响应，返回原始内容")
+        return {
+            "error": "无法解析JSON",
+            "raw_content": content[:500],
+            "scores": {},
+            "preference": "",
+            "confidence": 0.5,
+            "reasoning": content[:200] if content else "解析失败"
+        }
 
 
 # 全局桥接实例
