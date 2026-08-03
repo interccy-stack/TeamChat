@@ -1,34 +1,42 @@
 {
-    "id": "team_chat",
-    "name": "TeamChat",
-    "version": "5.3.2",
-    "description": "TeamChat v5.3.2 — 双注册模式 · AI决策历史关联「智能体可以管理并匹配工作任务建立自定义群进行团队会谈」 · AI决策系统(基于历史记录二次总结)  · AI主持圆桌会谈 · AI群聊 · AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇",
-    "author": "0+1+2≠3 Team 115886",
-    "type": "app",
-    "qwenpaw_version": {
-        "min": "1.0.0",
-        "max": "2.1.0"
+  "id": "team_chat",
+  "name": "TeamChat",
+  "version": "5.3.6",
+  "description": "TeamChat v5.3.6  —  双注册模式 · AI决策· AI主持圆桌会谈 · AI群聊 · AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇",
+  "author": "0+1+2≠3 Team 115886",
+  "type": "app",
+  "qwenpaw_version": {
+    "min": "1.0.0",
+    "max": "2.9.0"
+  },
+  "description_i18n": {
+    "zh-CN": "TeamChat v5.3.6  —  双注册模式 · AI决策· AI主持圆桌会谈 · AI群聊·  AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇",
+    "en-US": "TeamChat v5.3.6 — Dual Registration · AI Decision · AI-hosted Roundtable Discussion · AI Group Chat (Context-aware) · AI Avatar · AI PRO Browser Extension · AI Collaboration Platform · AI Email · Industrial-grade Nest Email System · Multi-tab · Roundtable Animation · PPT Playback · File Rack · Light Music · Onboarding Guide · Chuanchuan Channel · Channel Broadcasting Station · Original Author AI · Chuanchuan Hub"
+  },
+  "meta": {
+    "pawapp": {
+      "icon": "💬",
+      "category": "productivity",
+      "entry_page": "/apps/team_chat",
+      "launch_scope": "page"
     },
-    "description_i18n": {
-        "zh-CN": "TeamChat v5.3.2 — 双注册模式 · AI决策历史关联「智能体可以管理并匹配工作任务建立自定义群进行团队会谈」 · AI决策系统(基于历史记录二次总结) · AI主持圆桌会谈 · AI群聊（上下文感知）· AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇 ",
-        "en-US": "TeamChat v5.3.2 — Dual Registration · AI Decision History Linked: Agents Can Manage and Match Work Tasks, Create Custom Groups for Team Meetings AI Decision System (Secondary Summary of History) AI-hosted Roundtable Discussion AI Group Chat (Context-aware) AI Avatar AI PRO Browser Extension AI Collaboration Platform AI Email Industrial-grade Nest Email System Multi-tab Roundtable Animation PPT Playback File Rack Light Music Onboarding Guide Chuanchuan Channel Channel Broadcasting Station Original Author AI Chuanchuan Hub"
-    },
-    "menu": null,
-    "meta": {
-        "pawapp": {
-            "icon": "💬",
-            "category": "productivity",
-            "entry_page": "/apps/team_chat",
-            "launch_scope": "page"
-        },
-        "permissions": {
-            "chat": true,
-            "storage": true
-        }
-    },
-    "entry": {
-        "backend": "team_chat_main.py",
-        "frontend": "frontend/dist/index.js"
-    },
-    "dependencies": ["playwright>=1.40.0"]
+    "permissions": {
+      "chat": true,
+      "storage": true
+    }
+  },
+  "entry": {
+    "backend": "team_chat_main.py",
+    "frontend": "frontend/dist/index.js"
+  },
+  "dependencies": [
+    "playwright>=1.40.0"
+  ],
+  "plugin_id": "team_chat",
+  "menu": {
+    "label": "TeamChat",
+    "icon": "🔧",
+    "description": "TeamChat v5.3.6  —  双注册模式 · AI决策· AI主持圆桌会谈 · AI群聊· AI分身 · AI PRO浏览器扩展 · AI协作平台 · AI邮箱 · 工业级巢邮箱系统 · 多标签 · 圆桌动画 · PPT回放 · 头脑风暴 · 文件架 · 轻音乐 · 新手引导 · 串串频道 · 频道广播站 · 原创作者AI · 串串汇",
+    "location": "primary.settings"
+  }
 }

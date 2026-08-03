@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""TeamChat Plugin Backend v5.3.2 — 双注册模式 · AI决策历史关联
+"""TeamChat Plugin Backend v5.3.6 — 双注册模式 · AI决策历史关联
 
 修复:
   1. AI群聊支持文件上传/下载/预览
@@ -53,6 +53,16 @@ async def _run_in_thread(func, *args, **kwargs):
     return await asyncio.wrap_future(future)
 
 logger = logging.getLogger("qwenpaw.team_chat")
+
+# ── 尝试导入官方智能体管理工具 ──
+_OFFICIAL_AGENT_API_AVAILABLE = False
+try:
+    from qwenpaw.agents.tools.agent_management import list_agents_data
+    _OFFICIAL_AGENT_API_AVAILABLE = True
+    logger.info("[Agent] 官方智能体管理工具已加载")
+except ImportError:
+    logger.warning("[Agent] 官方智能体管理工具不可用，使用 HTTP API 回退")
+
 # 邮箱后端
 import sys
 import importlib.util
@@ -201,7 +211,7 @@ def _load_email_backend():
 # 配置常量
 # ============================================================
 
-CURRENT_VERSION = "5.3.2"
+CURRENT_VERSION = "5.3.6"
 DEFAULT_HOST_ID = "cloud-orchestrator"
 MAX_HISTORY = 200
 SESSION_KEEPALIVE_DAYS = 7
@@ -209,6 +219,42 @@ SESSION_MAX = 1000
 
 # 插件目录
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 已安装版本标记文件：register() 据此判断 升级 / 跳过 / 降级
+# 说明：QwenPaw 的 api 未暴露“查询已注册插件版本”的接口，故用本地标记文件
+#       记录本插件上次成功注册的版本号，作为后续 register() 比较的依据。
+INSTALLED_VERSION_FILE = os.path.join(CURRENT_DIR, "data", ".installed_version")
+
+
+def _parse_version(v):
+    """将 'v5.3.3' / '5.3.3' / '5.3.3-beta' 解析为 (5, 3, 3) 元组，便于比较大小"""
+    if not v:
+        return (0, 0, 0)
+    s = str(v).strip().lstrip("vV")
+    nums = []
+    for part in s.split("."):
+        dig = "".join(ch for ch in part if ch.isdigit())
+        nums.append(int(dig) if dig else 0)
+    nums = (nums + [0, 0, 0])[:3]
+    return tuple(nums)
+
+
+def _read_installed_version():
+    """读取上次成功注册后记录的版本号；不存在则返回 None（视为首次安装）"""
+    try:
+        with open(INSTALLED_VERSION_FILE, "r", encoding="utf-8") as f:
+            return json.load(f).get("version")
+    except Exception:
+        return None
+
+
+def _write_installed_version():
+    """注册成功后持久化当前版本号，作为后续 register() 比较的依据"""
+    # 【永久修复】禁用版本守卫文件写入，避免每次重启都跳过注册
+    # 原版本守卫机制导致：注册成功→写入文件→下次重启→发现文件→版本相同→跳过注册→路由全部404
+    # 现在改为：每次重启都正常注册，确保路由始终可用
+    pass
+
 
 # LLM 配置文件路径
 LLM_CONFIG_PATH = os.path.join(CURRENT_DIR, "llm_config.json")
@@ -298,9 +344,15 @@ class SessionStore:
         for fname in os.listdir(self.data_dir):
             if fname.endswith(".json"):
                 sid = fname[:-5]
+                # 只加载有效的会话文件（排除 ai_decision_*.json 等非会话文件）
+                if sid.startswith("ai_decision"):
+                    continue
                 try:
                     with open(os.path.join(self.data_dir, fname), "r", encoding="utf-8") as f:
-                        self._sessions[sid] = json.load(f)
+                        data = json.load(f)
+                        # 只加载字典类型的会话数据
+                        if isinstance(data, dict):
+                            self._sessions[sid] = data
                 except Exception:
                     pass
 
@@ -358,87 +410,125 @@ class AgentCache:
         return self._agents
 
     async def _refresh(self):
+        """刷新智能体列表 - 兼容云端版和桌面版 QwenPaw"""
         async with self._lock:
             now = time.time()
             if now - self._last_refresh <= 30:
                 return
+            
             try:
-                # ── 三层兜底获取 QwenPaw API 地址 ──
-                # L1: 官方 read_last_api（内部 API，QwenPaw 版本升级可能变，有 ImportError 保护）
-                # L2: 直接读 ~/.qwenpaw/config.json（内部文件路径，同上保护）
-                # L3: 环境变量 QWENPAW_BASE_URL 或默认 127.0.0.1:56411
-                base = None
-                try:
-                    from qwenpaw.config.utils import read_last_api  # 内部 API，兼容 QwenPaw 1.x/2.0
-                    last = read_last_api()
-                    if last:
-                        host, port = last
-                        base = f"http://{host}:{port}"
-                        logger.debug(f"AgentCache: Using QwenPaw API at {base}")
-                    else:
-                        logger.warning("AgentCache: read_last_api() returned None")
-                except ImportError as e:
-                    logger.warning(f"AgentCache: read_last_api 不可用 (QwenPaw 版本可能已变更): {e}")
-                except Exception as e:
-                    logger.warning(f"AgentCache: read_last_api 调用失败: {e}")
-                
-                if not base:
-                    try:
-                        config_path = os.path.join(os.path.expanduser("~"), ".qwenpaw", "config.json")
-                        if os.path.exists(config_path):
-                            with open(config_path, "r", encoding="utf-8") as f:
-                                cfg = json.load(f)
-                            last_api = cfg.get("last_api", {})
-                            host = last_api.get("host", "")
-                            port = last_api.get("port", 0)
-                            if host and port:
-                                base = f"http://{host}:{port}"
-                                logger.info(f"AgentCache: 从 config.json 读取地址: {base}")
-                    except Exception as cfg_err:
-                        logger.warning(f"AgentCache: 读取 config.json 失败: {cfg_err}")
-                
-                if not base:
-                    base = os.environ.get("QWENPAW_BASE_URL", "http://127.0.0.1:56411")
-                    logger.info(f"AgentCache: Using fallback base URL: {base}")
+                # 获取 QwenPaw API 基础 URL（兼容云端和桌面）
+                base_urls = await self._get_qwenpaw_base_urls()
                 
                 headers = {"Content-Type": "application/json"}
                 if api_key := os.environ.get("QWENPAW_API_KEY"):
                     headers["Authorization"] = f"Bearer {api_key}"
                 
-                url = f"{base}/api/agents"
-                logger.debug(f"AgentCache: Fetching agents from {url}")
+                # 尝试所有可能的 URL
+                for base in base_urls:
+                    try:
+                        url = f"{base}/api/agents"
+                        logger.debug(f"AgentCache: Trying {url}")
+                        
+                        async with httpx.AsyncClient(timeout=httpx.Timeout(5.0), trust_env=False) as client:
+                            resp = await client.get(url, headers=headers)
+                            if resp.status_code == 200:
+                                data = resp.json()
+                                raw = data.get("agents", [])
+                                result = []
+                                for a in raw:
+                                    if not isinstance(a, dict):
+                                        continue
+                                    aid = a.get("id", "")
+                                    result.append({
+                                        "agent_id": aid,
+                                        "name": a.get("name", aid),
+                                        "description": a.get("description", ""),
+                                        "model": a.get("model", ""),
+                                        "workspace_dir": a.get("workspace_dir", ""),
+                                        "enabled": a.get("enabled", True),
+                                        "is_host": aid == DEFAULT_HOST_ID,
+                                        "teamchat_enabled": True,
+                                    })
+                                self._agents = result
+                                self._last_refresh = now
+                                logger.info(f"AgentCache: Successfully loaded {len(result)} agents from {url}")
+                                return  # 成功后直接返回
+                            else:
+                                logger.debug(f"AgentCache: HTTP {resp.status_code} from {url}")
+                    except httpx.ConnectError as e:
+                        logger.debug(f"AgentCache: Connection failed for {base}: {e}")
+                    except httpx.TimeoutException as e:
+                        logger.debug(f"AgentCache: Timeout for {base}: {e}")
+                    except Exception as e:
+                        logger.debug(f"AgentCache: Error for {base}: {type(e).__name__}: {e}")
                 
-                async with httpx.AsyncClient(timeout=httpx.Timeout(10.0), trust_env=False) as client:
-                    resp = await client.get(url, headers=headers)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        raw = data.get("agents", [])
-                        result = []
-                        for a in raw:
-                            if not isinstance(a, dict):
-                                continue
-                            aid = a.get("id", "")
-                            result.append({
-                                "agent_id": aid,
-                                "name": a.get("name", aid),
-                                "description": a.get("description", ""),
-                                "model": a.get("model", ""),
-                                "workspace_dir": a.get("workspace_dir", ""),
-                                "enabled": a.get("enabled", True),
-                                "is_host": aid == DEFAULT_HOST_ID,
-                                "teamchat_enabled": True,
-                            })
-                        self._agents = result
-                        self._last_refresh = now
-                        logger.info(f"AgentCache: Successfully loaded {len(result)} agents")
-                    else:
-                        logger.warning(f"AgentCache: HTTP {resp.status_code} from {url}")
-            except httpx.ConnectError as e:
-                logger.warning(f"AgentCache: Connection failed to {base}: {e}")
-            except httpx.TimeoutException as e:
-                logger.warning(f"AgentCache: Timeout connecting to {base}: {e}")
+                logger.warning(f"AgentCache: All base URLs failed, keeping cached data")
+                
             except Exception as e:
                 logger.warning(f"AgentCache refresh failed: {type(e).__name__}: {e}")
+    
+    async def _get_qwenpaw_base_urls(self) -> List[str]:
+        """获取所有可能的 QwenPaw API 基础 URL（云端+桌面）"""
+        urls = []
+        
+        # 1. 从环境变量获取（云端版通常配置）
+        if qp_base := os.environ.get("QWENPAW_API_BASE"):
+            urls.append(qp_base.rstrip('/'))
+            logger.debug(f"AgentCache: Added URL from QWENPAW_API_BASE: {qp_base}")
+        
+        # 2. 从配置文件获取（桌面版）
+        try:
+            config_paths = [
+                os.path.expanduser("~/.qwenpaw/config.json"),
+                os.path.expanduser("~/.qwenpaw/settings.json"),
+            ]
+            for config_path in config_paths:
+                if os.path.exists(config_path):
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                        # 尝试多种可能的配置键
+                        if port := config.get("port"):
+                            urls.append(f"http://127.0.0.1:{port}")
+                        if api_url := config.get("api_url"):
+                            urls.append(api_url.rstrip('/'))
+                        if base_url := config.get("base_url"):
+                            urls.append(base_url.rstrip('/'))
+                        logger.debug(f"AgentCache: Read config from {config_path}")
+                        break
+        except Exception as e:
+            logger.debug(f"AgentCache: Failed to read config: {e}")
+        
+        # 3. 尝试检测本地端口（桌面版动态端口）
+        # 常见端口列表，按优先级排序
+        common_ports = [8088, 8000, 3000, 5000, 56411, 64987]
+        
+        # 先快速检测哪些端口可用
+        for port in common_ports:
+            try:
+                test_url = f"http://127.0.0.1:{port}/api/agents"
+                async with httpx.AsyncClient(timeout=httpx.Timeout(1.0)) as client:
+                    resp = await client.get(test_url)
+                    if resp.status_code == 200:
+                        urls.append(f"http://127.0.0.1:{port}")
+                        logger.debug(f"AgentCache: Detected working port: {port}")
+                        break  # 找到一个可用的就停止
+            except:
+                continue
+        
+        # 4. 添加默认 URL（云端版）
+        urls.append("http://127.0.0.1:8088")
+        
+        # 去重并保持顺序
+        seen = set()
+        unique_urls = []
+        for url in urls:
+            if url not in seen:
+                seen.add(url)
+                unique_urls.append(url)
+        
+        logger.info(f"AgentCache: Will try {len(unique_urls)} base URLs: {unique_urls}")
+        return unique_urls
 
 
 _agent_cache = AgentCache()
@@ -780,7 +870,7 @@ class BrowserManager:
             return {"success": True, "url": url}
         except ImportError:
             self.is_running = False
-            raise HTTPException(500, "playwright 未安装。请在终端执行: playwright install chromium")
+            raise HTTPException(500, "浏览器功能需要可选依赖 playwright。请在终端执行: pip install playwright && playwright install chromium")
         except Exception as e:
             logger.error(f"浏览器启动失败: {e}")
             self.is_running = False
@@ -3150,6 +3240,27 @@ class TeamChatPlugin:
         self._email_backend_process = None
 
     def register(self, api):
+        # ── 版本守卫：处理“之前安装过同名插件但未用 --force”的情形 ──
+        # 已安装版本 < 当前 → 升级注册；== 当前 → 跳过重复注册；> 当前 → 跳过降级。
+        # 强制重注册：设置环境变量 TEAMCHAT_FORCE_REGISTER=1，或删除 data/.installed_version 后重启。
+        force = os.environ.get("TEAMCHAT_FORCE_REGISTER", "").strip() in ("1", "true", "yes")
+        installed = _read_installed_version()
+        if not force and installed:
+            cur, old = _parse_version(CURRENT_VERSION), _parse_version(installed)
+            if old == cur:
+                logger.info(
+                    f"[TeamChat] 已安装相同版本 v{installed}，跳过重复注册。"
+                    f"如需强制重注册：设置 TEAMCHAT_FORCE_REGISTER=1 或删除 data/.installed_version 后重启。"
+                )
+                return
+            if old > cur:
+                logger.warning(
+                    f"[TeamChat] 已安装更新版本 v{installed}，当前代码为 v{CURRENT_VERSION}（较旧），跳过降级。"
+                    f"如确需降级：用 --force 重装并删除 data/.installed_version。"
+                )
+                return
+            logger.info(f"[TeamChat] 检测到旧版本 v{installed}，升级到 v{CURRENT_VERSION}...")
+
         logger.info(f"TeamChat v{CURRENT_VERSION} 注册中...")
         _load_email_backend()  # 延迟加载，用完即还原 sys.path
         main_router = build_router()
@@ -3168,6 +3279,7 @@ class TeamChatPlugin:
         api.register_shutdown_hook("team_chat_v4_stop", self._shutdown, priority=110)
         # 注册热重载支持
         self._register_hot_reload(api)
+        _write_installed_version()
         logger.info(f"TeamChat v{CURRENT_VERSION} 就绪")
     
     def _register_hot_reload(self, api):
@@ -3351,6 +3463,8 @@ class TeamChatPlugin:
 
 # ── 加载 AI决策 模块 ──
 _AI_DECISION_AVAILABLE = False
+animation_component = None
+expert_config = None
 
 try:
     if str(plugin_dir) not in sys.path:
@@ -3526,6 +3640,8 @@ def _build_vote_prompt(title: str, options: List[Dict], file_context: str = "", 
         template_type = "ranking"
     elif template.startswith("consensus"):
         template_type = "consensus"
+    elif template in ["fact_check", "best_option", "advice", "risk_assess", "confidence_level"]:
+        template_type = "question"
 
     if template_type == "score":
         action = """请按评分制（1-10分）对每个对象逐一打分，并选出最高分的方案。回复格式：
@@ -3533,6 +3649,26 @@ def _build_vote_prompt(title: str, options: List[Dict], file_context: str = "", 
     elif template_type == "ranking":
         action = """请对以下项目按优先级排序（最重要的排第1），回复格式：
 {"ranking": ["item1", "item3", "item2"], "confidence": 0.85, "reasoning": "...", "analysis": "..."}"""
+    elif template_type == "question":
+        # 疑问型模板：更开放的回答方式
+        if template == "fact_check":
+            action = """这是一个事实确认问题。请分析并给出你的判断。回复格式：
+{"vote": "最符合事实的选项ID", "confidence": 0.85, "reasoning": "基于什么事实/数据做出的判断", "analysis": "详细分析过程和依据"}"""
+        elif template == "best_option":
+            action = """这是一个选择最优方案的问题。请对比分析各选项，选出最佳。回复格式：
+{"vote": "最优选项ID", "confidence": 0.85, "reasoning": "为什么这个选项最优", "analysis": "各选项优劣对比分析"}"""
+        elif template == "advice":
+            action = """这是一个建议征询问题。请基于你的专业知识给出建议。回复格式：
+{"vote": "建议采纳的选项ID", "confidence": 0.85, "reasoning": "建议的理由", "analysis": "详细建议内容和考量因素"}"""
+        elif template == "risk_assess":
+            action = """这是一个风险评估问题。请评估各选项的风险等级（1-10分，10分最高风险）。回复格式：
+{"scores": {"选项ID": 风险分数}, "vote": "风险最低的选项ID", "confidence": 0.85, "reasoning": "风险评估依据", "analysis": "详细风险分析"}"""
+        elif template == "confidence_level":
+            action = """这是一个置信度评估问题。请评估你对各选项的确定程度。回复格式：
+{"scores": {"选项ID": 置信度分数0-1}, "vote": "置信度最高的选项ID", "confidence": 你的整体置信度, "reasoning": "判断依据", "analysis": "详细分析"}"""
+        else:
+            action = """请基于你的专业知识分析这个问题。回复格式：
+{"vote": "你的选择", "confidence": 0.85, "reasoning": "简短理由", "analysis": "详细分析"}"""
     else:
         action = """请以 **严格JSON** 格式回复（不要包含任何其他文字或markdown标记）：
 {"vote": "方案ID", "confidence": 0.85, "reasoning": "简短理由（50字以内）", "analysis": "详细分析"}"""
@@ -3884,18 +4020,51 @@ async def ai_voting_templates():
     """获取投票模板列表"""
     return {
         "templates": [
-            {"id": "yes_no", "name": "简单决策", "description": "是/否 二选一", "type": "decision", "category": "决策型"},
-            {"id": "yes_no_abstain", "name": "决策（含弃权）", "description": "是/否/弃权", "type": "decision", "category": "决策型"},
-            {"id": "go_no_go", "name": "通过决议", "description": "通过/不通过", "type": "decision", "category": "决策型"},
-            {"id": "score_5", "name": "5分评分", "description": "1-5分制", "type": "score", "category": "评分型"},
-            {"id": "score_10", "name": "10分评分", "description": "1-10分制", "type": "score", "category": "评分型"},
-            {"id": "score_100", "name": "百分制评分", "description": "0-100分制", "type": "score", "category": "评分型"},
-            {"id": "rank_priority", "name": "优先级排序", "description": "按优先级排序", "type": "ranking", "category": "排序型"},
-            {"id": "rank_preference", "name": "偏好排序", "description": "按个人偏好排序", "type": "ranking", "category": "排序型"},
-            {"id": "consensus_basic", "name": "基础共识", "description": "多轮协商达成共识", "type": "consensus", "category": "共识型"},
-            {"id": "consensus_deep", "name": "深度共识", "description": "深度多轮协商", "type": "consensus", "category": "共识型"},
-            {"id": "consensus_unanimous", "name": "全体一致", "description": "要求全体一致", "type": "consensus", "category": "共识型"},
-            {"id": "multi_select", "name": "多选投票", "description": "可选择多个选项", "type": "multi_choice", "category": "多选型"},
+            # 原有模板 - 决策型
+            {"id": "yes_no", "name": "简单决策", "description": "是/否 二选一", "type": "decision", "category": "决策型", 
+             "prompt_guide": "主题：请描述需要决策的问题\n选项：是 / 否\n示例：'这个项目值得投资吗？'"},
+            {"id": "yes_no_abstain", "name": "决策（含弃权）", "description": "是/否/弃权 三选一", "type": "decision", "category": "决策型",
+             "prompt_guide": "主题：请描述需要决策的问题\n选项：是 / 否 / 弃权\n示例：'同意这个方案吗？信息不足可弃权'"},
+            {"id": "go_no_go", "name": "通过决议", "description": "通过/不通过", "type": "decision", "category": "决策型",
+             "prompt_guide": "主题：请描述需要审批的内容\n选项：通过 / 不通过\n示例：'预算申请是否通过？'"},
+            
+            # 评分型
+            {"id": "score_5", "name": "5分评分", "description": "1-5分制评分", "type": "score", "category": "评分型",
+             "prompt_guide": "主题：请描述评分对象\n选项：各候选方案\n示例：'对三个供应商的服务质量评分'"},
+            {"id": "score_10", "name": "10分评分", "description": "1-10分制评分", "type": "score", "category": "评分型",
+             "prompt_guide": "主题：请描述评分对象\n选项：各候选方案\n示例：'对候选人的综合能力评分'"},
+            {"id": "score_100", "name": "百分制评分", "description": "0-100分制评分", "type": "score", "category": "评分型",
+             "prompt_guide": "主题：请描述评分对象\n选项：各候选方案\n示例：'对项目提案的完善度评分'"},
+            
+            # 排序型
+            {"id": "rank_priority", "name": "优先级排序", "description": "按重要性排序", "type": "ranking", "category": "排序型",
+             "prompt_guide": "主题：请描述排序目标\n选项：各待办事项\n示例：'按紧急程度排列这些任务'"},
+            {"id": "rank_preference", "name": "偏好排序", "description": "按个人偏好排序", "type": "ranking", "category": "排序型",
+             "prompt_guide": "主题：请描述排序目标\n选项：各候选方案\n示例：'按偏好程度排列这些设计方案'"},
+            
+            # 共识型
+            {"id": "consensus_basic", "name": "基础共识", "description": "多轮协商达成共识", "type": "consensus", "category": "共识型",
+             "prompt_guide": "主题：请描述需要达成共识的问题\n选项：各方观点\n示例：'团队对项目方向达成共识'"},
+            {"id": "consensus_deep", "name": "深度共识", "description": "深度多轮协商", "type": "consensus", "category": "共识型",
+             "prompt_guide": "主题：请描述复杂议题\n选项：各方立场\n示例：'就技术架构进行深度讨论'"},
+            {"id": "consensus_unanimous", "name": "全体一致", "description": "要求全体一致", "type": "consensus", "category": "共识型",
+             "prompt_guide": "主题：请描述重要决策\n选项：各方意见\n示例：'重大投资决策需全体一致'"},
+            
+            # 多选型
+            {"id": "multi_select", "name": "多选投票", "description": "可选择多个选项", "type": "multi_choice", "category": "多选型",
+             "prompt_guide": "主题：请描述选择目标\n选项：多个可选项\n示例：'选择所有可行的方案'"},
+            
+            # 新增：疑问型模板
+            {"id": "fact_check", "name": "事实确认", "description": "确认某个事实是否正确", "type": "decision", "category": "疑问型",
+             "prompt_guide": "主题：请描述需要确认的事实\n选项：是 / 否 / 不确定\n示例：'今天是星期天吗？'"},
+            {"id": "best_option", "name": "最佳选择", "description": "从多个选项中选择最优", "type": "decision", "category": "疑问型",
+             "prompt_guide": "主题：请描述选择场景\n选项：各候选方案\n示例：'周末去哪里玩最好？'"},
+            {"id": "advice", "name": "建议征询", "description": "征询处理建议", "type": "decision", "category": "疑问型",
+             "prompt_guide": "主题：请描述遇到的问题\n选项：各处理方案\n示例：'如何优化这个流程？'"},
+            {"id": "risk_assess", "name": "风险评估", "description": "评估风险等级", "type": "score", "category": "疑问型",
+             "prompt_guide": "主题：请描述需要评估的事项\n选项：各方案或风险点\n示例：'评估各方案的实施风险'"},
+            {"id": "confidence_level", "name": "置信度评估", "description": "评估对某事的确定程度", "type": "score", "category": "疑问型",
+             "prompt_guide": "主题：请描述需要评估信心的事项\n选项：各判断或预测\n示例：'对项目按时完成的信心程度'"},
         ]
     }
 
@@ -4169,5 +4338,152 @@ async def ai_voting_decision_records():
     except Exception as e:
         logger.error(f"[AI决策] 获取决策记录失败: {e}")
         return {"records": [], "error": str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════
+# AI决策动画 API — 使用函数内动态导入避免模块缓存问题
+# ═══════════════════════════════════════════════════════════════
+
+def _get_animation_component():
+    """动态获取动画组件（解决模块缓存问题）"""
+    import importlib
+    import modules.ai_decision.animation_component as _anim_mod
+    importlib.reload(_anim_mod)
+    return _anim_mod.animation_engine
+
+def _get_expert_config():
+    """动态获取专家配置（解决模块缓存问题）"""
+    from modules.ai_decision.decision_expert_config import expert_config as _ec
+    return _ec
+
+
+@ai_voting_router.get("/ai-voting/animation/start")
+async def ai_voting_animation_start(vote_id: str = Query(..., description="决策ID")):
+    """启动决策动画 / Start decision animation"""
+    try:
+        ac = _get_animation_component()
+        result = ac.start_animation(vote_id)
+        return result
+    except Exception as e:
+        logger.error(f"[AI决策动画] 启动失败: {e}")
+        raise HTTPException(status_code=500, detail=f"动画启动失败: {e}")
+
+
+@ai_voting_router.get("/ai-voting/animation/frame")
+async def ai_voting_animation_frame(
+    animation_id: str = Query(..., description="动画ID"),
+    stage_index: Optional[int] = Query(None, description="阶段索引")
+):
+    """获取动画帧 / Get animation frame"""
+    try:
+        ac = _get_animation_component()
+        result = ac.get_frame(animation_id, stage_index)
+        return result
+    except Exception as e:
+        logger.error(f"[AI决策动画] 获取帧失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取动画帧失败: {e}")
+
+
+@ai_voting_router.get("/ai-voting/animation/advantages")
+async def ai_voting_animation_advantages():
+    """获取AI决策优势展示 / Get AI decision advantages"""
+    try:
+        ac = _get_animation_component()
+        result = ac.get_advantages()
+        return result
+    except Exception as e:
+        logger.error(f"[AI决策动画] 获取优势失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取优势展示失败: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════
+# 决策分析专家配置 API — 使用函数内动态导入避免模块缓存问题
+# ═══════════════════════════════════════════════════════════════
+
+@ai_voting_router.get("/ai-voting/experts")
+async def ai_voting_experts():
+    """获取所有专家配置 / Get all expert configurations"""
+    try:
+        ec = _get_expert_config()
+        result = ec.get_all_experts()
+        return result
+    except Exception as e:
+        logger.error(f"[AI决策专家] 获取专家失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取专家失败: {e}")
+
+
+@ai_voting_router.get("/ai-voting/experts/types")
+async def ai_voting_expert_types():
+    """获取专家类型和等级 / Get expert types and levels"""
+    try:
+        ec = _get_expert_config()
+        result = ec.get_expert_types()
+        return result
+    except Exception as e:
+        logger.error(f"[AI决策专家] 获取类型失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取专家类型失败: {e}")
+
+
+@ai_voting_router.post("/ai-voting/experts/create")
+async def ai_voting_experts_create(request: Request):
+    """创建专家 / Create expert"""
+    try:
+        data = await request.json()
+        ec = _get_expert_config()
+        result = ec.create_expert(data)
+        return result
+    except Exception as e:
+        logger.error(f"[AI决策专家] 创建失败: {e}")
+        raise HTTPException(status_code=500, detail=f"创建专家失败: {e}")
+
+
+@ai_voting_router.post("/ai-voting/experts/update")
+async def ai_voting_experts_update(request: Request):
+    """更新专家 / Update expert"""
+    try:
+        data = await request.json()
+        expert_id = data.get("expert_id")
+        if not expert_id:
+            return {"success": False, "error": "缺少expert_id / Missing expert_id"}
+        ec = _get_expert_config()
+        result = ec.update_expert(expert_id, data)
+        return result
+    except Exception as e:
+        logger.error(f"[AI决策专家] 更新失败: {e}")
+        raise HTTPException(status_code=500, detail=f"更新专家失败: {e}")
+
+
+@ai_voting_router.post("/ai-voting/experts/delete")
+async def ai_voting_experts_delete(request: Request):
+    """删除专家 / Delete expert"""
+    try:
+        data = await request.json()
+        expert_id = data.get("expert_id")
+        if not expert_id:
+            return {"success": False, "error": "缺少expert_id / Missing expert_id"}
+        ec = _get_expert_config()
+        result = ec.delete_expert(expert_id)
+        return result
+    except Exception as e:
+        logger.error(f"[AI决策专家] 删除失败: {e}")
+        raise HTTPException(status_code=500, detail=f"删除专家失败: {e}")
+
+
+@ai_voting_router.post("/ai-voting/experts/recommend")
+async def ai_voting_experts_recommend(request: Request):
+    """智能推荐专家 / Recommend experts based on topic"""
+    try:
+        data = await request.json()
+        topic = data.get("topic", "")
+        decision_type = data.get("decision_type")
+        if not topic:
+            return {"success": False, "error": "缺少决策主题 / Missing decision topic"}
+        ec = _get_expert_config()
+        result = ec.recommend_experts(topic, decision_type)
+        return result
+    except Exception as e:
+        logger.error(f"[AI决策专家] 推荐失败: {e}")
+        raise HTTPException(status_code=500, detail=f"推荐专家失败: {e}")
+
 
 plugin = TeamChatPlugin()
